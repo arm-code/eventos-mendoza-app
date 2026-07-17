@@ -3,6 +3,7 @@ import { GeistMono } from 'geist/font/mono';
 import './globals.css';
 import { ToastContainer } from 'react-toastify';
 import type { Metadata } from 'next';
+import PwaRegistration from '@/components/PwaRegistration';
 
 const BASE_URL = 'https://eventos-mendoza.arm-solutions.com.mx';
 
@@ -59,6 +60,7 @@ export default function RootLayout({
   return (
     <html lang='es' className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body className='min-h-screen bg-gray-50'>
+        <PwaRegistration />
         {children}
         <ToastContainer
           position='top-right'
