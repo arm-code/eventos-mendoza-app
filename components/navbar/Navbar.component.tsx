@@ -7,10 +7,9 @@ import { Menu, X } from 'lucide-react'
 
 const items = [
   { title: 'Inicio', route: '/' },
-  { title: 'Productos y servicios', route: '/products-services' },
-  { title: 'Equipo de trabajo', route: '/about-owners' },
+  // { title: 'Productos y servicios', route: '/products-services' },
+  // { title: 'Equipo de trabajo', route: '/about-owners' },
   { title: 'Datos bancarios', route: '/payment-info' },
-  { title: 'Administración', route: '/auth/login' },
   { title: 'Desarrollador', route: '/about-me' },
 ]
 
