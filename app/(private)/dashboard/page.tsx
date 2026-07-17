@@ -185,7 +185,7 @@ export default function DashboardPage() {
             <h2 className="text-lg font-semibold text-violet-900">Stock Bajo</h2>
             {stats.lowStockProducts > 0 && (
               <Link 
-                href="/productos/stock/bajo"
+                href="/gestion-productos/productos/stock/bajo"
                 className="flex items-center gap-1 text-violet-600 hover:text-violet-700 text-sm"
               >
                 Ver todos
@@ -229,7 +229,7 @@ export default function DashboardPage() {
           <h2 className="text-lg font-semibold text-violet-900 mb-4">Acciones Rápidas</h2>
           <div className="space-y-3">
             <Link 
-              href="/productos/crear"
+              href="/gestion-productos/crear-producto"
               className="flex items-center gap-3 p-4 border border-violet-200 rounded-lg hover:bg-violet-50 transition-colors group"
             >
               <div className="p-2 bg-violet-100 rounded-lg group-hover:bg-violet-200 transition-colors">
@@ -242,7 +242,7 @@ export default function DashboardPage() {
             </Link>
 
             <Link 
-              href="/productos"
+              href="/gestion-productos/productos"
               className="flex items-center gap-3 p-4 border border-violet-200 rounded-lg hover:bg-violet-50 transition-colors group"
             >
               <div className="p-2 bg-violet-100 rounded-lg group-hover:bg-violet-200 transition-colors">
@@ -255,7 +255,7 @@ export default function DashboardPage() {
             </Link>
 
             <Link 
-              href="/categorias"
+              href="/gestion-productos/categorias"
               className="flex items-center gap-3 p-4 border border-violet-200 rounded-lg hover:bg-violet-50 transition-colors group"
             >
               <div className="p-2 bg-violet-100 rounded-lg group-hover:bg-violet-200 transition-colors">

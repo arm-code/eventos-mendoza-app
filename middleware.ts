@@ -29,11 +29,8 @@ export async function middleware(req: NextRequest) {
   const privateRoutes = [
     '/dashboard',
     '/configuracion',
-    '/productos',
     '/usuarios',
-    '/categorias',
-    '/crear-producto',
-    '/tipos-productos',
+    '/gestion-productos',
     '/tools',
   ];
 
@@ -57,10 +54,7 @@ export async function middleware(req: NextRequest) {
 export const config = {
   matcher: [
     '/dashboard/:path*',
-    '/productos/:path*',
-    '/categorias/:path*',
-    '/crear-producto/:path*',
-    '/tipos-productos/:path*',
+    '/gestion-productos/:path*',
     '/configuracion/:path*',
     '/tools/:path*',
     '/usuarios/:path*',
