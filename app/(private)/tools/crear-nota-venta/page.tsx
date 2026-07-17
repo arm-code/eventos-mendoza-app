@@ -157,6 +157,7 @@ export default function CreateSalesNotePage() {
                 <Input
                   value={clientInfo.name}
                   onChange={(e) => setClientInfo({ ...clientInfo, name: e.target.value })}
+                  onFocus={(e) => e.target.select()}
                   placeholder="Nombre del cliente"
                 />
               </div>
@@ -165,6 +166,8 @@ export default function CreateSalesNotePage() {
                 <Input
                   value={clientInfo.phone}
                   onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })}
+                  onFocus={(e) => e.target.select()}
+                  inputMode="tel"
                   placeholder="Número de teléfono"
                 />
               </div>
@@ -173,6 +176,7 @@ export default function CreateSalesNotePage() {
                 <Input
                   value={clientInfo.address}
                   onChange={(e) => setClientInfo({ ...clientInfo, address: e.target.value })}
+                  onFocus={(e) => e.target.select()}
                   placeholder="Dirección completa"
                 />
               </div>
@@ -189,6 +193,7 @@ export default function CreateSalesNotePage() {
                 <Input
                   value={clientInfo.noteNumber}
                   onChange={(e) => setClientInfo({ ...clientInfo, noteNumber: e.target.value })}
+                  onFocus={(e) => e.target.select()}
                   placeholder="Ej. NV-1001"
                 />
               </div>
@@ -198,6 +203,7 @@ export default function CreateSalesNotePage() {
                   type="date"
                   value={clientInfo.date}
                   onChange={(e) => setClientInfo({ ...clientInfo, date: e.target.value })}
+                  onFocus={(e) => e.target.select()}
                 />
               </div>
             </CardContent>
@@ -250,6 +256,7 @@ export default function CreateSalesNotePage() {
                         <Input
                           value={item.description}
                           onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                          onFocus={(e) => e.target.select()}
                           placeholder="Descripción"
                           className="w-full"
                         />
@@ -262,11 +269,16 @@ export default function CreateSalesNotePage() {
                         <label className="text-xs font-medium text-muted-foreground md:hidden print:hidden mb-1.5 block">Cant.</label>
                         <Input
                           type="number"
-                          min="0.01"
+                          inputMode="decimal"
+                          min="0"
                           step="0.01"
-                          value={item.quantity}
-                          onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
-                          className="w-full text-center"
+                          value={item.quantity === 0 ? '' : item.quantity}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            updateItem(item.id, 'quantity', isNaN(val) ? 0 : Math.max(0, val));
+                          }}
+                          className="w-full text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                       
@@ -274,11 +286,16 @@ export default function CreateSalesNotePage() {
                         <label className="text-xs font-medium text-muted-foreground md:hidden print:hidden mb-1.5 block">Precio Unit.</label>
                         <Input
                           type="number"
+                          inputMode="decimal"
                           min="0"
                           step="0.01"
-                          value={item.unit_price}
-                          onChange={(e) => updateItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
-                          className="w-full text-right"
+                          value={item.unit_price === 0 ? '' : item.unit_price}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            updateItem(item.id, 'unit_price', isNaN(val) ? 0 : Math.max(0, val));
+                          }}
+                          className="w-full text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                       
