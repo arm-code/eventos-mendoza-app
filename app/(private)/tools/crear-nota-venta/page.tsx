@@ -1,13 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Printer, Save, Loader2, Search } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, Search, FileDown, Image as ImageIcon } from "lucide-react";
 import { useApi } from '@/hooks/useApi';
 import { Product } from '@/types/products.types';
 import { useRouter } from 'next/navigation';
+import { ReceiptPrintView } from '@/components/ReceiptPrintView';
+import { toPng } from 'html-to-image';
+import jsPDF from 'jspdf';
+import { toast } from 'sonner';
 
 interface SalesItem {
   id: string;
@@ -25,6 +29,7 @@ export default function CreateSalesNotePage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showProductList, setShowProductList] = useState<string | null>(null);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const [clientInfo, setClientInfo] = useState({
     name: '',
@@ -107,7 +112,7 @@ export default function CreateSalesNotePage() {
 
   const handleSave = async () => {
     if (!clientInfo.name) {
-      alert('El nombre del cliente es obligatorio');
+      toast.error('El nombre del cliente es obligatorio');
       return;
     }
 
@@ -137,21 +142,57 @@ export default function CreateSalesNotePage() {
       });
 
       if (res.data) {
-        alert('Nota de venta creada exitosamente');
+        toast.success('Nota de venta creada exitosamente');
         router.push('/tools/notas-venta');
       } else {
-        alert('Error al crear la nota: ' + res.error);
+        toast.error('Error al crear la nota: ' + res.error);
       }
     } catch (err) {
       console.error(err);
-      alert('Error de red al crear la nota');
+      toast.error('Error de red al crear la nota');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const exportToImage = async () => {
+    if (!printRef.current) return;
+    try {
+      toast.info('Generando imagen...');
+      const dataUrl = await toPng(printRef.current, { pixelRatio: 2 });
+      const link = document.createElement('a');
+      link.download = `nota_venta_${clientInfo.noteNumber}.png`;
+      link.href = dataUrl;
+      link.click();
+      toast.success('Imagen exportada correctamente');
+    } catch (err) {
+      console.error('Error exporting image:', err);
+      toast.error('Error al exportar imagen');
+    }
+  };
+
+  const exportToPDF = async () => {
+    if (!printRef.current) return;
+    try {
+      toast.info('Generando PDF...');
+      const dataUrl = await toPng(printRef.current, { pixelRatio: 2 });
+      
+      // Calculate aspect ratio
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise((resolve) => { img.onload = resolve; });
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (img.height * pdfWidth) / img.width;
+      
+      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`nota_venta_${clientInfo.noteNumber}.pdf`);
+      toast.success('PDF exportado correctamente');
+    } catch (err) {
+      console.error('Error exporting PDF:', err);
+      toast.error('Error al exportar PDF');
+    }
   };
 
   return (
@@ -161,14 +202,18 @@ export default function CreateSalesNotePage() {
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">Nueva Nota de Venta</h1>
           <p className="text-muted-foreground">Llena los datos para generar la nota.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <Button onClick={handleSave} disabled={isSaving} className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Guardar
           </Button>
-          <Button onClick={handlePrint} variant="outline" className="gap-2">
-            <Printer className="h-4 w-4" />
-            Imprimir
+          <Button onClick={exportToPDF} variant="outline" className="gap-2">
+            <FileDown className="h-4 w-4" />
+            PDF
+          </Button>
+          <Button onClick={exportToImage} variant="outline" className="gap-2">
+            <ImageIcon className="h-4 w-4" />
+            Imagen
           </Button>
         </div>
       </div>
@@ -243,21 +288,94 @@ export default function CreateSalesNotePage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="overflow-visible">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="py-3 px-2 text-left w-20">Cant.</th>
-                    <th className="py-3 px-2 text-left">Descripción / Producto</th>
-                    <th className="py-3 px-2 text-right w-32">Precio Unit.</th>
-                    <th className="py-3 px-2 text-right w-32">Importe</th>
-                    <th className="py-3 px-2 w-10 print:hidden"></th>
-                  </tr>
-                </thead>
-                <tbody className="[&>tr]:border-b">
-                  {items.map((item) => (
-                    <tr key={item.id}>
-                      <td className="p-2 align-top">
+            <div className="overflow-visible text-sm">
+              {/* Header - Solo visible en desktop y al imprimir */}
+              <div className="hidden md:flex print:flex border-b bg-muted/50 py-3 px-2 font-semibold">
+                <div className="w-20">Cant.</div>
+                <div className="flex-1">Descripción / Producto</div>
+                <div className="w-32 text-right">Precio Unit.</div>
+                <div className="w-32 text-right">Importe</div>
+                <div className="w-10 print:hidden"></div>
+              </div>
+
+              {/* Items List */}
+              <div className="space-y-4 md:space-y-0 print:space-y-0 mt-4 md:mt-0 print:mt-0">
+                {items.map((item, index) => (
+                  <div key={item.id} className="flex flex-col md:flex-row md:items-start print:flex-row print:items-start border border-violet-100 rounded-xl md:border-0 md:border-b md:rounded-none p-4 md:p-2 gap-4 md:gap-0 bg-white shadow-sm md:shadow-none print:shadow-none">
+                    
+                    {/* Header para mobile */}
+                    <div className="flex justify-between items-center md:hidden print:hidden border-b border-violet-50 pb-3">
+                      <span className="font-semibold text-violet-900">Concepto {index + 1}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeItem(item.id)}
+                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        disabled={items.length === 1}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Descripción - en mobile va primero */}
+                    <div className="w-full md:flex-1 relative md:px-2 md:order-2 order-2">
+                      <label className="text-xs font-medium text-muted-foreground md:hidden print:hidden mb-1.5 block">Descripción / Producto</label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={item.description}
+                          onChange={(e) => {
+                            updateItem(item.id, 'description', e.target.value);
+                            setSearchTerm(e.target.value);
+                            setShowProductList(item.id);
+                          }}
+                          onFocus={() => {
+                            setSearchTerm(item.description);
+                            setShowProductList(item.id);
+                          }}
+                          placeholder="Descripción o buscar producto..."
+                          className="w-full"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0"
+                          onClick={() => setShowProductList(showProductList === item.id ? null : item.id)}
+                        >
+                          <Search className="h-4 w-4 text-violet-600" />
+                        </Button>
+                      </div>
+
+                      {showProductList === item.id && (
+                        <div className="absolute z-10 left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
+                          {products
+                            .filter(p => p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || p.codigoBarra?.includes(searchTerm))
+                            .map(product => (
+                              <div
+                                key={product.id}
+                                className="p-2 hover:bg-violet-50 cursor-pointer border-b last:border-0"
+                                onClick={() => selectProduct(item.id, product)}
+                              >
+                                <div className="font-medium">{product.nombre}</div>
+                                <div className="text-xs text-muted-foreground flex justify-between">
+                                  <span>SKU: {product.sku || 'N/A'}</span>
+                                  <span className="text-violet-700 font-bold">${parseFloat(product.precioVenta).toFixed(2)}</span>
+                                </div>
+                              </div>
+                            ))
+                          }
+                          {products.length > 0 && products.filter(p => p.nombre.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+                            <div className="p-4 text-center text-sm text-muted-foreground">
+                              No se encontraron productos
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Fila de montos en mobile */}
+                    <div className="flex gap-3 md:contents order-3 w-full">
+                      <div className="w-20 md:w-20 md:px-2 md:order-1 order-1 flex-shrink-0">
+                        <label className="text-xs font-medium text-muted-foreground md:hidden print:hidden mb-1.5 block">Cant.</label>
                         <Input
                           type="number"
                           min="0.01"
@@ -266,60 +384,10 @@ export default function CreateSalesNotePage() {
                           onChange={(e) => updateItem(item.id, 'quantity', parseFloat(e.target.value) || 0)}
                           className="w-full text-center"
                         />
-                      </td>
-                      <td className="p-2 relative align-top">
-                        <div className="flex gap-2">
-                          <Input
-                            value={item.description}
-                            onChange={(e) => {
-                              updateItem(item.id, 'description', e.target.value);
-                              setSearchTerm(e.target.value);
-                              setShowProductList(item.id);
-                            }}
-                            onFocus={() => {
-                              setSearchTerm(item.description);
-                              setShowProductList(item.id);
-                            }}
-                            placeholder="Descripción o buscar producto..."
-                            className="w-full"
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="shrink-0"
-                            onClick={() => setShowProductList(showProductList === item.id ? null : item.id)}
-                          >
-                            <Search className="h-4 w-4 text-violet-600" />
-                          </Button>
-                        </div>
-
-                        {showProductList === item.id && (
-                          <div className="absolute z-10 left-2 right-2 mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
-                            {products
-                              .filter(p => p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || p.codigoBarra?.includes(searchTerm))
-                              .map(product => (
-                                <div
-                                  key={product.id}
-                                  className="p-2 hover:bg-violet-50 cursor-pointer border-b last:border-0"
-                                  onClick={() => selectProduct(item.id, product)}
-                                >
-                                  <div className="font-medium">{product.nombre}</div>
-                                  <div className="text-xs text-muted-foreground flex justify-between">
-                                    <span>SKU: {product.sku || 'N/A'}</span>
-                                    <span className="text-violet-700 font-bold">${parseFloat(product.precioVenta).toFixed(2)}</span>
-                                  </div>
-                                </div>
-                              ))
-                            }
-                            {products.length > 0 && products.filter(p => p.nombre.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
-                              <div className="p-4 text-center text-sm text-muted-foreground">
-                                No se encontraron productos
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      <td className="p-2 align-top">
+                      </div>
+                      
+                      <div className="flex-1 md:w-32 md:px-2 md:order-3 order-2">
+                        <label className="text-xs font-medium text-muted-foreground md:hidden print:hidden mb-1.5 block">Precio Unit.</label>
                         <Input
                           type="number"
                           min="0"
@@ -328,25 +396,31 @@ export default function CreateSalesNotePage() {
                           onChange={(e) => updateItem(item.id, 'unit_price', parseFloat(e.target.value) || 0)}
                           className="w-full text-right"
                         />
-                      </td>
-                      <td className="p-2 text-right font-medium align-top py-4">
-                        ${(item.quantity * item.unit_price).toFixed(2)}
-                      </td>
-                      <td className="p-2 print:hidden align-top">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeItem(item.id)}
-                          className="h-9 w-9 text-red-500 hover:text-red-700 hover:bg-red-50"
-                          disabled={items.length === 1}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                      
+                      <div className="w-24 md:w-32 md:px-2 md:order-4 order-3 text-right">
+                        <label className="text-xs font-medium text-muted-foreground md:hidden print:hidden mb-1.5 block">Importe</label>
+                        <div className="font-semibold text-violet-900 md:text-black md:font-medium py-2 h-full flex items-center justify-end">
+                          ${(item.quantity * item.unit_price).toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botón eliminar desktop */}
+                    <div className="hidden md:flex w-10 md:order-5 md:px-2 items-center justify-center print:hidden">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeItem(item.id)}
+                        className="h-9 w-9 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        disabled={items.length === 1}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -381,6 +455,18 @@ export default function CreateSalesNotePage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Hidden layout for PDF/Image export */}
+      <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
+        <ReceiptPrintView 
+          ref={printRef}
+          clientInfo={clientInfo}
+          items={items}
+          subtotal={calculateSubtotal()}
+          tax={calculateTax()}
+          total={calculateTotal()}
+        />
       </div>
 
       {/* Clic fuera para cerrar lista */}
