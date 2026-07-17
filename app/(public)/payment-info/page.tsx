@@ -55,20 +55,20 @@ export default function PaymentInfoPage() {
       <button
         onClick={() => copyToClipboard(text, fieldId)}
         title="Copiar"
-        className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition-all duration-200 ${copied
+        className={`flex items-center justify-center gap-1.5 text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded-lg font-medium transition-all duration-200 flex-shrink-0 min-w-[76px] sm:min-w-[84px] ${copied
           ? 'bg-green-100 text-green-700 border border-green-300'
           : 'bg-violet-100 text-violet-700 border border-violet-200 hover:bg-violet-200'
           }`}
       >
         {copied ? (
           <>
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            Copiado
+            <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>Copiado</span>
           </>
         ) : (
           <>
-            <Copy className="w-3.5 h-3.5" />
-            Copiar
+            <Copy className="w-3.5 h-3.5 flex-shrink-0" />
+            <span>Copiar</span>
           </>
         )}
       </button>
@@ -117,7 +117,7 @@ export default function PaymentInfoPage() {
                   <p className="text-white/60 text-xs uppercase tracking-wider mb-1">
                     Número de tarjeta
                   </p>
-                  <p className="text-2xl font-mono font-semibold tracking-widest">
+                  <p className="text-xl sm:text-2xl font-mono font-semibold tracking-wider sm:tracking-widest break-all">
                     {account.cardNumber}
                   </p>
                 </div>
@@ -127,7 +127,9 @@ export default function PaymentInfoPage() {
                   <p className="text-white/60 text-xs uppercase tracking-wider mb-1">
                     Titular / Beneficiario
                   </p>
-                  <p className="font-semibold text-lg">{account.beneficiary}</p>
+                  <p className="font-semibold text-base sm:text-lg leading-tight sm:leading-normal">
+                    {account.beneficiary}
+                  </p>
                 </div>
               </div>
             </div>
@@ -135,73 +137,81 @@ export default function PaymentInfoPage() {
             {/* Detalles copiables */}
             <div className="p-6 space-y-4">
               {/* Banco */}
-              <div className="flex items-center justify-between p-3 bg-violet-50 rounded-xl border border-violet-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Building2 className="w-5 h-5 text-violet-600" />
+              <div className="flex items-center justify-between p-2.5 sm:p-3 bg-violet-50 rounded-xl border border-violet-100 gap-2">
+                <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600" />
                   </div>
-                  <div>
-                    <p className="text-xs text-violet-500 font-medium uppercase tracking-wider">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] sm:text-xs text-violet-500 font-medium uppercase tracking-wider truncate">
                       Banco
                     </p>
-                    <p className="font-semibold text-violet-900">{account.bank}</p>
+                    <p className="font-semibold text-violet-900 text-sm sm:text-base truncate sm:whitespace-normal break-words">{account.bank}</p>
                   </div>
                 </div>
-                <CopyButton text={account.bank} fieldId={`${account.id}-bank`} />
+                <div className="flex-shrink-0">
+                  <CopyButton text={account.bank} fieldId={`${account.id}-bank`} />
+                </div>
               </div>
 
               {/* Número de tarjeta */}
-              <div className="flex items-center justify-between p-3 bg-violet-50 rounded-xl border border-violet-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <CreditCard className="w-5 h-5 text-violet-600" />
+              <div className="flex items-center justify-between p-2.5 sm:p-3 bg-violet-50 rounded-xl border border-violet-100 gap-2">
+                <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600" />
                   </div>
-                  <div>
-                    <p className="text-xs text-violet-500 font-medium uppercase tracking-wider">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] sm:text-xs text-violet-500 font-medium uppercase tracking-wider truncate">
                       Número de tarjeta
                     </p>
-                    <p className="font-mono font-semibold text-violet-900">
+                    <p className="font-mono font-semibold text-violet-900 text-sm sm:text-base truncate sm:whitespace-normal break-all">
                       {account.cardNumber}
                     </p>
                   </div>
                 </div>
-                <CopyButton text={account.cardNumber} fieldId={`${account.id}-card`} />
+                <div className="flex-shrink-0">
+                  <CopyButton text={account.cardNumber} fieldId={`${account.id}-card`} />
+                </div>
               </div>
 
               {/* CLABE (si existe) */}
               {account.clabe && (
-                <div className="flex items-center justify-between p-3 bg-violet-50 rounded-xl border border-violet-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Banknote className="w-5 h-5 text-violet-600" />
+                <div className="flex items-center justify-between p-2.5 sm:p-3 bg-violet-50 rounded-xl border border-violet-100 gap-2">
+                  <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+                    <div className="w-8 h-8 sm:w-9 sm:h-9 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Banknote className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600" />
                     </div>
-                    <div>
-                      <p className="text-xs text-violet-500 font-medium uppercase tracking-wider">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] sm:text-xs text-violet-500 font-medium uppercase tracking-wider truncate">
                         CLABE interbancaria
                       </p>
-                      <p className="font-mono font-semibold text-violet-900 text-sm">
+                      <p className="font-mono font-semibold text-violet-900 text-xs sm:text-sm truncate sm:whitespace-normal break-all">
                         {account.clabe}
                       </p>
                     </div>
                   </div>
-                  <CopyButton text={account.clabe} fieldId={`${account.id}-clabe`} />
+                  <div className="flex-shrink-0">
+                    <CopyButton text={account.clabe} fieldId={`${account.id}-clabe`} />
+                  </div>
                 </div>
               )}
 
               {/* Beneficiario */}
-              <div className="flex items-center justify-between p-3 bg-violet-50 rounded-xl border border-violet-100">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <User className="w-5 h-5 text-violet-600" />
+              <div className="flex items-center justify-between p-2.5 sm:p-3 bg-violet-50 rounded-xl border border-violet-100 gap-2">
+                <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <User className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600" />
                   </div>
-                  <div>
-                    <p className="text-xs text-violet-500 font-medium uppercase tracking-wider">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] sm:text-xs text-violet-500 font-medium uppercase tracking-wider truncate">
                       Beneficiario
                     </p>
-                    <p className="font-semibold text-violet-900">{account.beneficiary}</p>
+                    <p className="font-semibold text-violet-900 text-sm sm:text-base leading-tight truncate sm:whitespace-normal break-words">{account.beneficiary}</p>
                   </div>
                 </div>
-                <CopyButton text={account.beneficiary} fieldId={`${account.id}-beneficiary`} />
+                <div className="flex-shrink-0">
+                  <CopyButton text={account.beneficiary} fieldId={`${account.id}-beneficiary`} />
+                </div>
               </div>
             </div>
           </div>
@@ -231,11 +241,11 @@ export default function PaymentInfoPage() {
             href={`https://wa.me/${WHATS}?text=Hola,%20realicé%20mi%20transferencia%20y%20quiero%20confirmar%20mi%20reserva`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-green-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-green-700 transition-colors"
+            className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 sm:px-6 py-3 w-full sm:w-auto rounded-xl font-semibold hover:bg-green-700 transition-colors text-sm sm:text-base"
           >
-            <Phone className="w-5 h-5" />
-            Enviar comprobante por WhatsApp
-            <ArrowRight className="w-4 h-4" />
+            <Phone className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+            <span className="truncate sm:whitespace-normal">Enviar comprobante por WhatsApp</span>
+            <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
           </Link>
         </div>
       </div>
