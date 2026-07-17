@@ -26,10 +26,10 @@ export default function PrivateLayout({ children }: { children: React.ReactNode 
       // navegación real en lugar de useState
       const paths: Record<string, string> = {
         'principal': '/dashboard',
-        'productos': '/productos',
-        'categorias': '/categorias',
-        'crear-producto': '/crear-producto',
-        'tipos-productos': '/tipos-productos',
+        'productos': '/gestion-productos/productos',
+        'categorias': '/gestion-productos/categorias',
+        'crear-producto': '/gestion-productos/crear-producto',
+        'tipos-productos': '/gestion-productos/tipos-productos',
         'configuracion': '/configuracion',
         'tools': '/tools',
       }

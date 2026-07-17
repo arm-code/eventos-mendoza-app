@@ -18,16 +18,16 @@ export default function LoginPage() {
       await loginUser(formData.get("email") as string, formData.get("password") as string)
       setMessage("Se ha iniciado sesión correctamente")
       setLoading(false)
-      router.push("/")
+      router.push("/dashboard")
     } catch (err: any) {
       setMessage("Error: " + err.message)
-    }finally{
+    } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="flex items-start min-h-full bg-gray-50">
+    <div className="flex items-start justify-center min-h-screen bg-gray-50">
       <form
         onSubmit={handleSubmit}
         className="bg-white shadow-md rounded-xl p-6 w-full max-w-sm space-y-4 border border-gray-200"

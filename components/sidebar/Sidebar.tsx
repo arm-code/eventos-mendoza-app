@@ -8,7 +8,8 @@ import SidebarFooter from './SidebarFooter';
 import Topbar from './Topbar';
 import { supabaseBrowser } from '@/lib/supabase/supabaseBrowser';
 import { View } from '@/types/View.types';
-import { Home, Package, PackagePlus, Settings, Tags, Menu, X, Boxes, Wrench } from 'lucide-react';
+import { Home, Package, PackagePlus, Settings, Tags, Menu, X, Boxes, Wrench, PackageSearch } from 'lucide-react';
+import { MenuItem } from './SidebarNav';
 
 interface SidebarProps {
   currentView: View;
@@ -64,27 +65,34 @@ export default function SidebarLayout({
     router.push('/auth/login');
   };
 
-  const menuItems: { id: View; label: string; icon: React.ReactNode }[] = [
+  const menuItems: MenuItem[] = [
     { id: 'principal', label: 'Principal', icon: <Home className='w-5 h-5' /> },
     {
-      id: 'productos',
-      label: 'Productos',
-      icon: <Package className='w-5 h-5' />,
-    },
-    {
-      id: 'crear-producto',
-      label: 'Nuevo Producto',
-      icon: <PackagePlus className='w-5 h-5' />,
-    },
-    {
-      id: 'categorias',
-      label: 'Categorías',
-      icon: <Tags className='w-5 h-5' />,
-    },
-    {
-      id: 'tipos-productos',
-      label: 'Tipos de productos',
-      icon: <Boxes className='w-5 h-5' />,
+      id: 'gestion-productos',
+      label: 'Gestión Productos',
+      icon: <PackageSearch className='w-5 h-5' />,
+      subItems: [
+        {
+          id: 'productos',
+          label: 'Catálogo',
+          icon: <Package className='w-4 h-4' />,
+        },
+        {
+          id: 'crear-producto',
+          label: 'Nuevo Producto',
+          icon: <PackagePlus className='w-4 h-4' />,
+        },
+        {
+          id: 'categorias',
+          label: 'Categorías',
+          icon: <Tags className='w-4 h-4' />,
+        },
+        {
+          id: 'tipos-productos',
+          label: 'Tipos de productos',
+          icon: <Boxes className='w-4 h-4' />,
+        },
+      ]
     },
     {
       id: 'tools',
@@ -136,6 +144,7 @@ export default function SidebarLayout({
               if (isMobile) closeSidebar();
             }}
             isSidebarOpen={isSidebarOpen}
+            onOpenSidebar={() => setIsSidebarOpen(true)}
           />
         </div>
 
