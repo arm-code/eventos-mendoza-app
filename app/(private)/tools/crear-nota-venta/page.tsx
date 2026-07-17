@@ -4,10 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, Save, Loader2, Search, FileDown, Image as ImageIcon } from "lucide-react";
-import { useApi } from '@/hooks/useApi';
-import { Product } from '@/types/products.types';
-import { useRouter } from 'next/navigation';
+import { Plus, Trash2, FileDown, Image as ImageIcon } from "lucide-react";
 import { ReceiptPrintView } from '@/components/ReceiptPrintView';
 import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
@@ -15,7 +12,6 @@ import { toast } from 'sonner';
 
 interface SalesItem {
   id: string;
-  product_id?: number;
   quantity: number;
   description: string;
   unit_price: number;
@@ -23,38 +19,33 @@ interface SalesItem {
 }
 
 export default function CreateSalesNotePage() {
-  const router = useRouter();
-  const { request, loading: apiLoading } = useApi();
-  const [isSaving, setIsSaving] = useState(false);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showProductList, setShowProductList] = useState<string | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
   const [clientInfo, setClientInfo] = useState({
     name: '',
     phone: '',
     address: '',
-    noteNumber: `NV-${Math.floor(1000 + Math.random() * 9000)}`,
-    date: new Date().toISOString().split('T')[0],
+    noteNumber: '',
+    date: '',
   });
 
   const [items, setItems] = useState<SalesItem[]>([
-    { id: Math.random().toString(36).substr(2, 9), quantity: 1, description: '', unit_price: 0, amount: 0 }
+    { id: 'initial-item', quantity: 1, description: '', unit_price: 0, amount: 0 }
   ]);
 
   const [applyTax, setApplyTax] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    fetchProducts();
+    setClientInfo(prev => ({
+      ...prev,
+      noteNumber: `NV-${Math.floor(1000 + Math.random() * 9000)}`,
+      date: new Date().toISOString().split('T')[0],
+    }));
+    setMounted(true);
   }, []);
 
-  const fetchProducts = async () => {
-    const res = await request('/productos');
-    if (res.data) {
-      setProducts(res.data.products || []);
-    }
-  };
+  if (!mounted) return null;
 
   const calculateSubtotal = () => {
     return items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
@@ -92,67 +83,6 @@ export default function CreateSalesNotePage() {
       }
       return item;
     }));
-  };
-
-  const selectProduct = (itemId: string, product: Product) => {
-    setItems(items.map(item => {
-      if (item.id === itemId) {
-        return {
-          ...item,
-          product_id: product.id,
-          description: product.nombre,
-          unit_price: parseFloat(product.precioVenta),
-          amount: item.quantity * parseFloat(product.precioVenta)
-        };
-      }
-      return item;
-    }));
-    setShowProductList(null);
-  };
-
-  const handleSave = async () => {
-    if (!clientInfo.name) {
-      toast.error('El nombre del cliente es obligatorio');
-      return;
-    }
-
-    setIsSaving(true);
-    try {
-      const payload = {
-        note_number: clientInfo.noteNumber,
-        client_name: clientInfo.name,
-        client_phone: clientInfo.phone,
-        client_address: clientInfo.address,
-        subtotal: calculateSubtotal(),
-        tax_amount: calculateTax(),
-        total: calculateTotal(),
-        issued_by: 'admin', // Podría venir del auth en el futuro
-        items: items.map(({ product_id, quantity, description, unit_price, amount }) => ({
-          product_id,
-          quantity,
-          description,
-          unit_price,
-          amount
-        }))
-      };
-
-      const res = await request('/sales-notes', {
-        method: 'POST',
-        json: payload
-      });
-
-      if (res.data) {
-        toast.success('Nota de venta creada exitosamente');
-        router.push('/tools/notas-venta');
-      } else {
-        toast.error('Error al crear la nota: ' + res.error);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error('Error de red al crear la nota');
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   const exportToImage = async () => {
@@ -203,10 +133,6 @@ export default function CreateSalesNotePage() {
           <p className="text-muted-foreground">Llena los datos para generar la nota.</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2">
-          <Button onClick={handleSave} disabled={isSaving} className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
-            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Guardar
-          </Button>
           <Button onClick={exportToPDF} variant="outline" className="gap-2">
             <FileDown className="h-4 w-4" />
             PDF
@@ -323,53 +249,11 @@ export default function CreateSalesNotePage() {
                       <div className="flex gap-2">
                         <Input
                           value={item.description}
-                          onChange={(e) => {
-                            updateItem(item.id, 'description', e.target.value);
-                            setSearchTerm(e.target.value);
-                            setShowProductList(item.id);
-                          }}
-                          onFocus={() => {
-                            setSearchTerm(item.description);
-                            setShowProductList(item.id);
-                          }}
-                          placeholder="Descripción o buscar producto..."
+                          onChange={(e) => updateItem(item.id, 'description', e.target.value)}
+                          placeholder="Descripción"
                           className="w-full"
                         />
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="shrink-0"
-                          onClick={() => setShowProductList(showProductList === item.id ? null : item.id)}
-                        >
-                          <Search className="h-4 w-4 text-violet-600" />
-                        </Button>
                       </div>
-
-                      {showProductList === item.id && (
-                        <div className="absolute z-10 left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-auto">
-                          {products
-                            .filter(p => p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || p.codigoBarra?.includes(searchTerm))
-                            .map(product => (
-                              <div
-                                key={product.id}
-                                className="p-2 hover:bg-violet-50 cursor-pointer border-b last:border-0"
-                                onClick={() => selectProduct(item.id, product)}
-                              >
-                                <div className="font-medium">{product.nombre}</div>
-                                <div className="text-xs text-muted-foreground flex justify-between">
-                                  <span>SKU: {product.sku || 'N/A'}</span>
-                                  <span className="text-violet-700 font-bold">${parseFloat(product.precioVenta).toFixed(2)}</span>
-                                </div>
-                              </div>
-                            ))
-                          }
-                          {products.length > 0 && products.filter(p => p.nombre.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
-                            <div className="p-4 text-center text-sm text-muted-foreground">
-                              No se encontraron productos
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
 
                     {/* Fila de montos en mobile */}
@@ -469,13 +353,6 @@ export default function CreateSalesNotePage() {
         />
       </div>
 
-      {/* Clic fuera para cerrar lista */}
-      {showProductList && (
-        <div
-          className="fixed inset-0 z-0"
-          onClick={() => setShowProductList(null)}
-        />
-      )}
     </div>
   );
 }

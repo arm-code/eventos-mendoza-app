@@ -68,33 +68,6 @@ export default function SidebarLayout({
   const menuItems: MenuItem[] = [
     { id: 'principal', label: 'Principal', icon: <Home className='w-5 h-5' /> },
     {
-      id: 'gestion-productos',
-      label: 'Gestión Productos',
-      icon: <PackageSearch className='w-5 h-5' />,
-      subItems: [
-        {
-          id: 'productos',
-          label: 'Catálogo',
-          icon: <Package className='w-4 h-4' />,
-        },
-        {
-          id: 'crear-producto',
-          label: 'Nuevo Producto',
-          icon: <PackagePlus className='w-4 h-4' />,
-        },
-        {
-          id: 'categorias',
-          label: 'Categorías',
-          icon: <Tags className='w-4 h-4' />,
-        },
-        {
-          id: 'tipos-productos',
-          label: 'Tipos de productos',
-          icon: <Boxes className='w-4 h-4' />,
-        },
-      ]
-    },
-    {
       id: 'tools',
       label: 'Herramientas',
       icon: <Wrench className='w-5 h-5' />,
