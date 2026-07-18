@@ -1,4 +1,4 @@
-import { apiClient } from './api';
+import { axiosInstance } from './axios';
 import { 
   Transaction, 
   CreateTransactionDto, 
@@ -8,35 +8,40 @@ import {
   PaymentMethod 
 } from '@/types/finance';
 
-// Assuming API endpoints are prefixed with /v1
 const PREFIX = '/v1';
 
 export const financeApi = {
   // Transactions
-  getTransactions: () => 
-    apiClient<Transaction[]>(`${PREFIX}/transactions`, { method: 'GET' }),
+  getTransactions: async () => {
+    const res = await axiosInstance.get<Transaction[]>(`${PREFIX}/transactions`);
+    return res.data;
+  },
   
-  createTransaction: (data: CreateTransactionDto) => 
-    apiClient<Transaction>(`${PREFIX}/transactions`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+  createTransaction: async (data: CreateTransactionDto) => {
+    const res = await axiosInstance.post<Transaction>(`${PREFIX}/transactions`, data);
+    return res.data;
+  },
 
   // Business Events
-  getBusinessEvents: () => 
-    apiClient<BusinessEvent[]>(`${PREFIX}/events`, { method: 'GET' }),
+  getBusinessEvents: async () => {
+    const res = await axiosInstance.get<BusinessEvent[]>(`${PREFIX}/events`);
+    return res.data;
+  },
   
-  createBusinessEvent: (data: CreateBusinessEventDto) => 
-    apiClient<BusinessEvent>(`${PREFIX}/events`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
+  createBusinessEvent: async (data: CreateBusinessEventDto) => {
+    const res = await axiosInstance.post<BusinessEvent>(`${PREFIX}/events`, data);
+    return res.data;
+  },
 
   // Categories
-  getCategories: () => 
-    apiClient<TransactionCategory[]>(`${PREFIX}/categories`, { method: 'GET' }), // Assuming the endpoint is /categories based on standard naming, or /transaction-categories
+  getCategories: async () => {
+    const res = await axiosInstance.get<TransactionCategory[]>(`${PREFIX}/categories`);
+    return res.data;
+  },
 
   // Payment Methods
-  getPaymentMethods: () => 
-    apiClient<PaymentMethod[]>(`${PREFIX}/payment-methods`, { method: 'GET' }),
+  getPaymentMethods: async () => {
+    const res = await axiosInstance.get<PaymentMethod[]>(`${PREFIX}/payment-methods`);
+    return res.data;
+  },
 };

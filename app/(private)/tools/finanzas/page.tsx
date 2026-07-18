@@ -7,26 +7,21 @@ import { PlusCircle, ArrowUpRight, ArrowDownRight, Wallet, CalendarDays } from "
 import { financeApi } from '@/lib/api/finance';
 import { Transaction, TransactionCategory, PaymentMethod, BusinessEvent } from '@/types/finance';
 import { useToast } from "@/hooks/useToast";
+import { useQuery } from '@tanstack/react-query';
 
 export default function FinanzasDashboard() {
   const { showError } = useToast();
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  const fetchTransactions = async () => {
-    setIsLoading(true);
-    const res = await financeApi.getTransactions();
-    if (res.data) {
-      setTransactions(res.data);
-    } else {
-      showError(res.error || "No se pudieron cargar las transacciones.");
-    }
-    setIsLoading(false);
-  };
+  
+  const { data: transactions = [], isLoading, error } = useQuery({
+    queryKey: ['transactions'],
+    queryFn: () => financeApi.getTransactions(),
+  });
 
   useEffect(() => {
-    fetchTransactions();
-  }, []);
+    if (error) {
+      showError(error.message || "No se pudieron cargar las transacciones.");
+    }
+  }, [error, showError]);
 
   const totalInputs = transactions
     .filter(t => t.type === 'INPUT')

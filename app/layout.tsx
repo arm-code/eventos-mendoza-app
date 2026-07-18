@@ -5,6 +5,7 @@ import { ToastContainer } from 'react-toastify';
 import type { Metadata } from 'next';
 import PwaRegistration from '@/components/PwaRegistration';
 import { Toaster } from 'sonner';
+import QueryProvider from '@/components/providers/QueryProvider';
 
 const BASE_URL = 'https://eventos-mendoza.arm-solutions.com.mx';
 
@@ -61,16 +62,18 @@ export default function RootLayout({
   return (
     <html lang='es' className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body className='min-h-screen bg-gray-50'>
-        <PwaRegistration />
-        {children}
-        <Toaster position="top-right" richColors />
-        <ToastContainer
-          position='top-right'
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-        />
+        <QueryProvider>
+          <PwaRegistration />
+          {children}
+          <Toaster position="top-right" richColors />
+          <ToastContainer
+            position='top-right'
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+          />
+        </QueryProvider>
       </body>
     </html>
   );
