@@ -7,7 +7,8 @@ import {
   TransactionCategory,
   PaymentMethod,
   CreateTransactionCategoryDto,
-  CreatePaymentMethodDto
+  CreatePaymentMethodDto,
+  PaginatedResponse
 } from '@/types/finance';
 
 const PREFIX = '/v1';
@@ -15,8 +16,8 @@ const PREFIX = '/v1';
 export const financeApi = {
   // Transactions
   getTransactions: async () => {
-    const res = await axiosInstance.get<Transaction[]>(`${PREFIX}/transactions`);
-    return res.data;
+    const res = await axiosInstance.get<PaginatedResponse<Transaction> | Transaction[]>(`${PREFIX}/transactions`);
+    return (res.data as PaginatedResponse<Transaction>).items || res.data;
   },
   
   createTransaction: async (data: CreateTransactionDto) => {
@@ -26,8 +27,8 @@ export const financeApi = {
 
   // Business Events
   getBusinessEvents: async () => {
-    const res = await axiosInstance.get<BusinessEvent[]>(`${PREFIX}/events`);
-    return res.data;
+    const res = await axiosInstance.get<PaginatedResponse<BusinessEvent> | BusinessEvent[]>(`${PREFIX}/events`);
+    return (res.data as PaginatedResponse<BusinessEvent>).items || res.data;
   },
   
   createBusinessEvent: async (data: CreateBusinessEventDto) => {
@@ -37,8 +38,8 @@ export const financeApi = {
 
   // Categories
   getCategories: async () => {
-    const res = await axiosInstance.get<TransactionCategory[]>(`${PREFIX}/categories`);
-    return res.data;
+    const res = await axiosInstance.get<PaginatedResponse<TransactionCategory> | TransactionCategory[]>(`${PREFIX}/categories`);
+    return (res.data as PaginatedResponse<TransactionCategory>).items || res.data;
   },
 
   createCategory: async (data: CreateTransactionCategoryDto) => {
@@ -48,8 +49,8 @@ export const financeApi = {
 
   // Payment Methods
   getPaymentMethods: async () => {
-    const res = await axiosInstance.get<PaymentMethod[]>(`${PREFIX}/payment-methods`);
-    return res.data;
+    const res = await axiosInstance.get<PaginatedResponse<PaymentMethod> | PaymentMethod[]>(`${PREFIX}/payment-methods`);
+    return (res.data as PaginatedResponse<PaymentMethod>).items || res.data;
   },
 
   createPaymentMethod: async (data: CreatePaymentMethodDto) => {
