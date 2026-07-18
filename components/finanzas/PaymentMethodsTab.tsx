@@ -64,7 +64,7 @@ export default function PaymentMethodsTab() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Métodos de Pago</h2>
           <p className="text-violet-900">
@@ -78,7 +78,7 @@ export default function PaymentMethodsTab() {
               Nuevo Método
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="w-[95vw] sm:max-w-[425px] max-h-[90vh] overflow-y-auto p-4 sm:p-6">
             <DialogHeader>
               <DialogTitle>Crear Método de Pago</DialogTitle>
               <DialogDescription>

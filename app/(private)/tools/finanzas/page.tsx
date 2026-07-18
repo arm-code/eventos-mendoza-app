@@ -17,7 +17,7 @@ export default function FinanzasDashboard() {
       </div>
 
       <Tabs defaultValue="transactions" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-violet-100 text-violet-700">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 h-auto gap-2 p-1 bg-violet-100 text-violet-700">
           <TabsTrigger value="transactions" className="data-[state=active]:bg-white data-[state=active]:text-violet-900">
             Transacciones
           </TabsTrigger>
