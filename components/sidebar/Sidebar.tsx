@@ -8,7 +8,7 @@ import SidebarFooter from './SidebarFooter';
 import Topbar from './Topbar';
 import { supabaseBrowser } from '@/lib/supabase/supabaseBrowser';
 import { View } from '@/types/View.types';
-import { Home, Package, PackagePlus, Settings, Tags, Menu, X, Boxes, Wrench, PackageSearch } from 'lucide-react';
+import { Home, Package, PackagePlus, Settings, Tags, Menu, X, Boxes, Wrench, PackageSearch, DollarSign, FileText, LayoutDashboard } from 'lucide-react';
 import { MenuItem } from './SidebarNav';
 
 interface SidebarProps {
@@ -71,6 +71,12 @@ export default function SidebarLayout({
       id: 'tools',
       label: 'Herramientas',
       icon: <Wrench className='w-5 h-5' />,
+      subItems: [
+        { id: 'tools', label: 'Panel General', icon: <LayoutDashboard className='w-4 h-4' /> },
+        { id: 'crear-nota-venta', label: 'Crear Nota', icon: <FileText className='w-4 h-4' /> },
+        { id: 'notas-venta', label: 'Historial Notas', icon: <FileText className='w-4 h-4' /> },
+        { id: 'finanzas', label: 'Finanzas', icon: <DollarSign className='w-4 h-4' /> }
+      ]
     },
     {
       id: 'configuracion',
