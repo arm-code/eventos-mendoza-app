@@ -61,6 +61,8 @@ export default function CategoriesTab() {
     showError(error.message || "No se pudieron cargar las categorías.");
   }
 
+  const safeCategories = Array.isArray(categories) ? categories : [];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -121,14 +123,14 @@ export default function CategoriesTab() {
         <CardContent>
           {isLoading ? (
             <div className="text-center py-4 text-violet-500">Cargando categorías...</div>
-          ) : categories.length === 0 ? (
+          ) : safeCategories.length === 0 ? (
             <div className="text-center py-8 text-violet-400">
               <Tags className="mx-auto h-8 w-8 mb-2 opacity-50" />
               <p>No hay categorías registradas.</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {categories.map((cat) => (
+              {safeCategories.map((cat) => (
                 <div key={cat.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
                   <div className="flex items-center gap-4">
                     <div className="p-2 rounded-full bg-violet-100">

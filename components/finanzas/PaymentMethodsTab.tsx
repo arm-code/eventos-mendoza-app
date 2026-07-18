@@ -60,6 +60,8 @@ export default function PaymentMethodsTab() {
     showError(error.message || "No se pudieron cargar los métodos de pago.");
   }
 
+  const safeMethods = Array.isArray(methods) ? methods : [];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -115,14 +117,14 @@ export default function PaymentMethodsTab() {
         <CardContent>
           {isLoading ? (
             <div className="text-center py-4 text-violet-500">Cargando métodos...</div>
-          ) : methods.length === 0 ? (
+          ) : safeMethods.length === 0 ? (
             <div className="text-center py-8 text-violet-400">
               <CreditCard className="mx-auto h-8 w-8 mb-2 opacity-50" />
               <p>No hay métodos de pago registrados.</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {methods.map((method) => (
+              {safeMethods.map((method) => (
                 <div key={method.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
                   <div className="flex items-center gap-4">
                     <div className="p-2 rounded-full bg-violet-100">

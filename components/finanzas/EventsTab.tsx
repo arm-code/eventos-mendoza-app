@@ -58,6 +58,8 @@ export default function EventsTab() {
     showError(error.message || "No se pudieron cargar los eventos.");
   }
 
+  const safeEvents = Array.isArray(events) ? events : [];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -123,14 +125,14 @@ export default function EventsTab() {
         <CardContent>
           {isLoading ? (
             <div className="text-center py-4 text-violet-500">Cargando eventos...</div>
-          ) : events.length === 0 ? (
+          ) : safeEvents.length === 0 ? (
             <div className="text-center py-8 text-violet-400">
               <CalendarDays className="mx-auto h-8 w-8 mb-2 opacity-50" />
               <p>No hay eventos registrados.</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {events.map((event) => (
+              {safeEvents.map((event) => (
                 <div key={event.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
                   <div className="flex items-center gap-4">
                     <div className="p-2 rounded-full bg-violet-100">

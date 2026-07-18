@@ -83,11 +83,13 @@ export default function TransactionsTab() {
     showError(error.message || "No se pudieron cargar las transacciones.");
   }
 
-  const totalInputs = transactions
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+
+  const totalInputs = safeTransactions
     .filter(t => t.type === 'INPUT')
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  const totalOutputs = transactions
+  const totalOutputs = safeTransactions
     .filter(t => t.type === 'OUTPUT')
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
@@ -157,7 +159,7 @@ export default function TransactionsTab() {
                   {...register("categoryId")}
                 >
                   <option value="">Seleccionar Categoría</option>
-                  {categories.map((cat) => (
+                  {(Array.isArray(categories) ? categories : []).map((cat) => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
@@ -172,7 +174,7 @@ export default function TransactionsTab() {
                   {...register("paymentMethodId")}
                 >
                   <option value="">Seleccionar Método</option>
-                  {paymentMethods.map((pm) => (
+                  {(Array.isArray(paymentMethods) ? paymentMethods : []).map((pm) => (
                     <option key={pm.id} value={pm.id}>{pm.name}</option>
                   ))}
                 </select>
@@ -187,7 +189,7 @@ export default function TransactionsTab() {
                   {...register("businessEventId")}
                 >
                   <option value="">Ninguno</option>
-                  {events.map((evt) => (
+                  {(Array.isArray(events) ? events : []).map((evt) => (
                     <option key={evt.id} value={evt.id}>{evt.name}</option>
                   ))}
                 </select>
@@ -250,14 +252,14 @@ export default function TransactionsTab() {
         <CardContent>
           {isLoading ? (
             <div className="text-center py-4 text-violet-500">Cargando movimientos...</div>
-          ) : transactions.length === 0 ? (
+          ) : safeTransactions.length === 0 ? (
             <div className="text-center py-8 text-violet-400">
               <CalendarDays className="mx-auto h-8 w-8 mb-2 opacity-50" />
               <p>No hay movimientos registrados.</p>
             </div>
           ) : (
             <div className="space-y-4">
-              {transactions.map((tx) => (
+              {safeTransactions.map((tx) => (
                 <div key={tx.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
                   <div className="flex items-center gap-4">
                     <div className={`p-2 rounded-full ${tx.type === 'INPUT' ? 'bg-green-100' : 'bg-red-100'}`}>
