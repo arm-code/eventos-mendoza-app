@@ -5,7 +5,9 @@ import {
   BusinessEvent, 
   CreateBusinessEventDto,
   TransactionCategory,
-  PaymentMethod 
+  PaymentMethod,
+  CreateTransactionCategoryDto,
+  CreatePaymentMethodDto
 } from '@/types/finance';
 
 const PREFIX = '/v1';
@@ -39,9 +41,19 @@ export const financeApi = {
     return res.data;
   },
 
+  createCategory: async (data: CreateTransactionCategoryDto) => {
+    const res = await axiosInstance.post<TransactionCategory>(`${PREFIX}/categories`, data);
+    return res.data;
+  },
+
   // Payment Methods
   getPaymentMethods: async () => {
     const res = await axiosInstance.get<PaymentMethod[]>(`${PREFIX}/payment-methods`);
+    return res.data;
+  },
+
+  createPaymentMethod: async (data: CreatePaymentMethodDto) => {
+    const res = await axiosInstance.post<PaymentMethod>(`${PREFIX}/payment-methods`, data);
     return res.data;
   },
 };

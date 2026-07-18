@@ -1,18 +1,25 @@
 export interface TransactionCategory {
   id: string;
+  code?: string;
   name: string;
   description?: string;
+  isActive?: boolean;
 }
 
 export interface PaymentMethod {
   id: string;
+  code?: string;
   name: string;
+  isActive?: boolean;
 }
 
 export interface BusinessEvent {
   id: string;
   name: string;
   date?: string;
+  eventDate?: string;
+  clientName?: string;
+  notes?: string;
 }
 
 export interface Transaction {
@@ -40,5 +47,20 @@ export interface CreateTransactionDto {
 
 export interface CreateBusinessEventDto {
   name: string;
-  date?: string;
+  clientName?: string;
+  eventDate?: string;
+  notes?: string;
+}
+
+export interface CreateTransactionCategoryDto {
+  code: string;
+  name: string;
+  description?: string;
+  isActive?: boolean;
+}
+
+export interface CreatePaymentMethodDto {
+  code: string;
+  name: string;
+  isActive?: boolean;
 }
