@@ -13,6 +13,7 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 
 const transactionSchema = yup.object().shape({
   transactionDate: yup.string().required("La fecha es obligatoria"),
@@ -30,10 +31,12 @@ export default function TransactionsTab() {
   const { showError, showSuccess } = useToast();
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [limit] = useState(10);
 
-  const { data: transactions = [], isLoading, error } = useQuery({
-    queryKey: ['transactions'],
-    queryFn: () => financeApi.getTransactions(),
+  const { data: paginatedData, isLoading, error } = useQuery({
+    queryKey: ['transactions', currentPage, limit],
+    queryFn: () => financeApi.getTransactions(currentPage, limit),
   });
 
   const { data: summary, isLoading: isLoadingSummary } = useQuery({
@@ -88,6 +91,9 @@ export default function TransactionsTab() {
   if (error) {
     showError(error.message || "No se pudieron cargar las transacciones.");
   }
+
+  const transactions = paginatedData?.items || [];
+  const meta = paginatedData?.meta || { page: 1, limit: 10, totalPages: 1, hasNextPage: false, hasPreviousPage: false };
 
   const safeTransactions = Array.isArray(transactions) ? transactions : [];
 
@@ -283,6 +289,16 @@ export default function TransactionsTab() {
                   </div>
                 </div>
               ))}
+
+              <div className="pt-4 mt-4">
+                <PaginationControls
+                  currentPage={meta.page}
+                  totalPages={meta.totalPages}
+                  onPageChange={setCurrentPage}
+                  hasNextPage={meta.hasNextPage}
+                  hasPreviousPage={meta.hasPreviousPage}
+                />
+              </div>
             </div>
           )}
         </CardContent>

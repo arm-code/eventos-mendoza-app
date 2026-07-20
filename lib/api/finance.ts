@@ -15,9 +15,12 @@ const PREFIX = '/v1';
 
 export const financeApi = {
   // Transactions
-  getTransactions: async () => {
-    const res = await axiosInstance.get<PaginatedResponse<Transaction> | Transaction[]>(`${PREFIX}/transactions`);
-    return (res.data as PaginatedResponse<Transaction>).items || res.data;
+  getTransactions: async (page: number = 1, limit: number = 10) => {
+    const res = await axiosInstance.get<PaginatedResponse<Transaction>>(`${PREFIX}/transactions`, {
+      params: { page, limit }
+    });
+    // Return the full paginated response which contains { items, meta }
+    return res.data;
   },
 
   createTransaction: async (data: CreateTransactionDto) => {
