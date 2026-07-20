@@ -30,10 +30,15 @@ export default function TransactionsTab() {
   const { showError, showSuccess } = useToast();
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
-  
+
   const { data: transactions = [], isLoading, error } = useQuery({
     queryKey: ['transactions'],
     queryFn: () => financeApi.getTransactions(),
+  });
+
+  const { data: summary, isLoading: isLoadingSummary } = useQuery({
+    queryKey: ['transactionsSummary'],
+    queryFn: () => financeApi.getSummary(),
   });
 
   const { data: categories = [] } = useQuery({
@@ -55,6 +60,7 @@ export default function TransactionsTab() {
     mutationFn: (data: any) => financeApi.createTransaction(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['transactions'] });
+      queryClient.invalidateQueries({ queryKey: ['transactionsSummary'] });
       showSuccess("Transacción registrada exitosamente");
       setIsOpen(false);
       reset({
@@ -85,15 +91,9 @@ export default function TransactionsTab() {
 
   const safeTransactions = Array.isArray(transactions) ? transactions : [];
 
-  const totalInputs = safeTransactions
-    .filter(t => t.type === 'INPUT')
-    .reduce((sum, t) => sum + Number(t.amount), 0);
-
-  const totalOutputs = safeTransactions
-    .filter(t => t.type === 'OUTPUT')
-    .reduce((sum, t) => sum + Number(t.amount), 0);
-
-  const balance = totalInputs - totalOutputs;
+  const totalInputs = summary?.totalInputs || 0;
+  const totalOutputs = summary?.totalOutputs || 0;
+  const balance = summary?.balance || 0;
 
   return (
     <div className="space-y-6">

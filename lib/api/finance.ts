@@ -1,8 +1,8 @@
 import { axiosInstance } from './axios';
-import { 
-  Transaction, 
-  CreateTransactionDto, 
-  BusinessEvent, 
+import {
+  Transaction,
+  CreateTransactionDto,
+  BusinessEvent,
   CreateBusinessEventDto,
   TransactionCategory,
   PaymentMethod,
@@ -19,9 +19,16 @@ export const financeApi = {
     const res = await axiosInstance.get<PaginatedResponse<Transaction> | Transaction[]>(`${PREFIX}/transactions`);
     return (res.data as PaginatedResponse<Transaction>).items || res.data;
   },
-  
+
   createTransaction: async (data: CreateTransactionDto) => {
     const res = await axiosInstance.post<Transaction>(`${PREFIX}/transactions`, data);
+    return res.data;
+  },
+
+  getSummary: async () => {
+    const res = await axiosInstance.get<{ totalInputs: number; totalOutputs: number; balance: number }>(`${PREFIX}/transactions/summary`);
+    // Assuming the transform interceptor unwraps the "data" or if axiosInstance handles it.
+    // If interceptor returns `res.data` as the content of `data` property:
     return res.data;
   },
 
@@ -30,7 +37,7 @@ export const financeApi = {
     const res = await axiosInstance.get<PaginatedResponse<BusinessEvent> | BusinessEvent[]>(`${PREFIX}/events`);
     return (res.data as PaginatedResponse<BusinessEvent>).items || res.data;
   },
-  
+
   createBusinessEvent: async (data: CreateBusinessEventDto) => {
     const res = await axiosInstance.post<BusinessEvent>(`${PREFIX}/events`, data);
     return res.data;
