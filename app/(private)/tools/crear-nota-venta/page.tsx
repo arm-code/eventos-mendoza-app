@@ -1,376 +1,379 @@
-'use client';
+'use client'
 
-import { useState, useEffect, useRef } from 'react';
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, Trash2, FileDown, Image as ImageIcon } from "lucide-react";
-import { ReceiptPrintView } from '@/components/ReceiptPrintView';
-import { toPng } from 'html-to-image';
-import jsPDF from 'jspdf';
-import { toast } from 'sonner';
+import { useMemo, useState, ChangeEvent } from 'react'
+import { useRouter } from 'next/navigation'
+import { Plus, Save, Trash2, ArrowLeft } from 'lucide-react'
+import { toast } from 'sonner'
+import { useQuery } from '@tanstack/react-query'
+import { useData } from '@/lib/data-store'
+import { financeApi } from '@/lib/api/finance'
+import { computeNoteTotals, itemAmount } from '@/lib/calculations'
+import { formatCurrency, genId } from '@/lib/format'
+import { seedBusinessConfig } from '@/lib/mock-data'
+import type { Note, NoteItem } from '@/lib/types'
+import { PageHeader } from '@/components/admin/page-header'
+import { SaleNoteDocument } from '@/components/documents/sale-note-document'
+import { DocumentActions } from '@/components/documents/document-actions'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
-interface SalesItem {
-  id: string;
-  quantity: number;
-  description: string;
-  unit_price: number;
-  amount: number;
+const IVA_RATE = 0.16
+
+function emptyItem(): NoteItem {
+  return { id: genId('it'), description: '', quantity: 1, unitPrice: 0 }
 }
 
-export default function CreateSalesNotePage() {
-  const printRef = useRef<HTMLDivElement>(null);
+export default function CreateNotePage() {
+  const router = useRouter()
+  const { createNote, events: localEvents } = useData()
 
-  const [clientInfo, setClientInfo] = useState({
-    name: '',
-    phone: '',
-    address: '',
-    noteNumber: '',
-    date: '',
-  });
+  // Form states
+  const [customerName, setCustomerName] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [customerAddress, setCustomerAddress] = useState('')
+  const [items, setItems] = useState<NoteItem[]>([emptyItem()])
+  const [applyIva, setApplyIva] = useState(false)
+  const [notes, setNotes] = useState('')
+  const [status, setStatus] = useState<'quote' | 'issued'>('quote')
+  const [eventId, setEventId] = useState<string>('none')
 
-  const [items, setItems] = useState<SalesItem[]>([
-    { id: 'initial-item', quantity: 1, description: '', unit_price: 0, amount: 0 }
-  ]);
+  const [savedNote, setSavedNote] = useState<Note | null>(null)
 
-  const [applyTax, setApplyTax] = useState(true);
-  const [mounted, setMounted] = useState(false);
+  // API events fetch
+  const { data: apiEvents = [] } = useQuery({
+    queryKey: ['businessEvents'],
+    queryFn: () => financeApi.getBusinessEvents(),
+  })
 
-  useEffect(() => {
-    setClientInfo(prev => ({
-      ...prev,
-      noteNumber: `NV-${Math.floor(1000 + Math.random() * 9000)}`,
-      date: new Date().toISOString().split('T')[0],
-    }));
-    setMounted(true);
-  }, []);
+  // Combine events for dropdown
+  const safeApiEvents = Array.isArray(apiEvents) ? apiEvents : []
+  const availableEvents = safeApiEvents.length > 0 ? safeApiEvents : localEvents
 
-  if (!mounted) return null;
+  const totals = useMemo(() => computeNoteTotals(items, applyIva, IVA_RATE), [items, applyIva])
 
-  const calculateSubtotal = () => {
-    return items.reduce((sum, item) => sum + (item.quantity * item.unit_price), 0);
-  };
+  function updateItem(id: string, patch: Partial<NoteItem>) {
+    setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)))
+  }
 
-  const calculateTax = () => {
-    return applyTax ? calculateSubtotal() * 0.16 : 0;
-  };
+  function addItem() {
+    setItems((prev) => [...prev, emptyItem()])
+  }
 
-  const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax();
-  };
+  function removeItem(id: string) {
+    setItems((prev) => (prev.length > 1 ? prev.filter((it) => it.id !== id) : prev))
+  }
 
-  const addItem = () => {
-    setItems([
-      ...items,
-      { id: Math.random().toString(36).substr(2, 9), quantity: 1, description: '', unit_price: 0, amount: 0 }
-    ]);
-  };
-
-  const removeItem = (id: string) => {
-    if (items.length > 1) {
-      setItems(items.filter(item => item.id !== id));
+  function handleSave() {
+    if (!customerName.trim()) {
+      toast.error('Ingresa el nombre del cliente')
+      return
     }
-  };
+    const validItems = items.filter((it) => it.description.trim() !== '')
+    if (validItems.length === 0) {
+      toast.error('Agrega al menos un concepto con descripción')
+      return
+    }
 
-  const updateItem = (id: string, field: keyof SalesItem, value: any) => {
-    setItems(items.map(item => {
-      if (item.id === id) {
-        const updatedItem = { ...item, [field]: value };
-        if (field === 'quantity' || field === 'unit_price') {
-          updatedItem.amount = updatedItem.quantity * updatedItem.unit_price;
-        }
-        return updatedItem;
-      }
-      return item;
-    }));
-  };
+    const note = createNote({
+      customer: {
+        name: customerName.trim(),
+        phone: customerPhone.trim() || undefined,
+        address: customerAddress.trim() || undefined,
+      },
+      items: validItems,
+      applyIva,
+      ivaRate: IVA_RATE,
+      notes: notes.trim() || undefined,
+      status,
+      eventId: eventId === 'none' ? null : eventId,
+    })
 
-  const exportToImage = async () => {
-    if (!printRef.current) return;
+    // Persistir en localStorage
     try {
-      toast.info('Generando imagen...');
-      const dataUrl = await toPng(printRef.current, { pixelRatio: 2 });
-      const link = document.createElement('a');
-      link.download = `nota_venta_${clientInfo.noteNumber}.png`;
-      link.href = dataUrl;
-      link.click();
-      toast.success('Imagen exportada correctamente');
-    } catch (err) {
-      console.error('Error exporting image:', err);
-      toast.error('Error al exportar imagen');
+      const existing: Note[] = JSON.parse(localStorage.getItem('eventos_mendoza_notes') || '[]')
+      const updated = [note, ...existing.filter((n) => n.id !== note.id)]
+      localStorage.setItem('eventos_mendoza_notes', JSON.stringify(updated))
+    } catch (e) {
+      console.warn('No se pudo guardar en localStorage:', e)
     }
-  };
 
-  const exportToPDF = async () => {
-    if (!printRef.current) return;
-    try {
-      toast.info('Generando PDF...');
-      const dataUrl = await toPng(printRef.current, { pixelRatio: 2 });
-      
-      // Calculate aspect ratio
-      const img = new Image();
-      img.src = dataUrl;
-      await new Promise((resolve) => { img.onload = resolve; });
-      
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (img.height * pdfWidth) / img.width;
-      
-      pdf.addImage(dataUrl, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`nota_venta_${clientInfo.noteNumber}.pdf`);
-      toast.success('PDF exportado correctamente');
-    } catch (err) {
-      console.error('Error exporting PDF:', err);
-      toast.error('Error al exportar PDF');
-    }
-  };
+    setSavedNote(note)
+    toast.success(`Nota ${note.folio} generada correctamente`)
+  }
+
+  if (savedNote) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title={`Nota ${savedNote.folio}`}
+          description="Previsualiza y exporta la nota de venta o cotización a PDF / Imagen para enviarla a tu cliente."
+          action={
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" className="border-violet-200 text-violet-700 hover:bg-violet-50" onClick={() => setSavedNote(null)}>
+                <ArrowLeft className="mr-1.5 h-4 w-4" />
+                Editar datos
+              </Button>
+              <Button className="bg-violet-600 hover:bg-violet-700 text-white" onClick={() => router.push('/tools/notas-venta')}>
+                Ver historial
+              </Button>
+            </div>
+          }
+        />
+        <Card className="border-violet-100 bg-white shadow-sm p-4 sm:p-6">
+          <DocumentActions filename={`nota-${savedNote.folio}`}>
+            <SaleNoteDocument note={savedNote} business={seedBusinessConfig} />
+          </DocumentActions>
+        </Card>
+      </div>
+    )
+  }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-20">
-      <div className="flex justify-between items-center print:hidden">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Nueva Nota de Venta</h1>
-          <p className="text-muted-foreground">Llena los datos para generar la nota.</p>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Button onClick={exportToPDF} variant="outline" className="gap-2">
-            <FileDown className="h-4 w-4" />
-            PDF
-          </Button>
-          <Button onClick={exportToImage} variant="outline" className="gap-2">
-            <ImageIcon className="h-4 w-4" />
-            Imagen
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Crear nota de venta"
+        description="Genera notas de venta o cotizaciones profesionales optimizadas para exportar a PDF o Imagen."
+      />
 
-      <div className="print:p-8 print:max-w-none">
-        {/* Header Information */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Información del Cliente</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Cliente</label>
-                <Input
-                  value={clientInfo.name}
-                  onChange={(e) => setClientInfo({ ...clientInfo, name: e.target.value })}
-                  onFocus={(e) => e.target.select()}
-                  placeholder="Nombre del cliente"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Teléfono</label>
-                <Input
-                  value={clientInfo.phone}
-                  onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })}
-                  onFocus={(e) => e.target.select()}
-                  inputMode="tel"
-                  placeholder="Número de teléfono"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Dirección</label>
-                <Input
-                  value={clientInfo.address}
-                  onChange={(e) => setClientInfo({ ...clientInfo, address: e.target.value })}
-                  onFocus={(e) => e.target.select()}
-                  placeholder="Dirección completa"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Detalles de la Nota</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Número de Nota</label>
-                <Input
-                  value={clientInfo.noteNumber}
-                  onChange={(e) => setClientInfo({ ...clientInfo, noteNumber: e.target.value })}
-                  onFocus={(e) => e.target.select()}
-                  placeholder="Ej. NV-1001"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Fecha</label>
-                <Input
-                  type="date"
-                  value={clientInfo.date}
-                  onChange={(e) => setClientInfo({ ...clientInfo, date: e.target.value })}
-                  onFocus={(e) => e.target.select()}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Items Table */}
-        <Card className="mb-8">
-          <CardHeader className="pb-2 flex flex-row justify-between items-center">
-            <CardTitle className="text-lg">Conceptos</CardTitle>
-            <Button onClick={addItem} size="sm" className="bg-violet-600 hover:bg-violet-700 text-white print:hidden">
-              <Plus className="h-4 w-4 mr-2" />
-              Agregar
-            </Button>
+      <div className="flex flex-col gap-6">
+        {/* Datos del cliente */}
+        <Card className="border-violet-100 bg-white shadow-sm">
+          <CardHeader className="pb-3 border-b border-violet-50">
+            <CardTitle className="text-base font-bold text-violet-950">Datos del cliente</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="overflow-visible text-sm">
-              {/* Header - Solo visible en desktop y al imprimir */}
-              <div className="hidden md:flex print:flex border-b bg-muted/50 py-3 px-2 font-semibold">
-                <div className="w-20">Cant.</div>
-                <div className="flex-1">Descripción / Producto</div>
-                <div className="w-32 text-right">Precio Unit.</div>
-                <div className="w-32 text-right">Importe</div>
-                <div className="w-10 print:hidden"></div>
-              </div>
-
-              {/* Items List */}
-              <div className="space-y-4 md:space-y-0 print:space-y-0 mt-4 md:mt-0 print:mt-0">
-                {items.map((item, index) => (
-                  <div key={item.id} className="flex flex-col md:flex-row md:items-start print:flex-row print:items-start border border-violet-100 rounded-xl md:border-0 md:border-b md:rounded-none p-4 md:p-2 gap-4 md:gap-0 bg-white shadow-sm md:shadow-none print:shadow-none">
-                    
-                    {/* Header para mobile */}
-                    <div className="flex justify-between items-center md:hidden print:hidden border-b border-violet-50 pb-3">
-                      <span className="font-semibold text-violet-900">Concepto {index + 1}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeItem(item.id)}
-                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        disabled={items.length === 1}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    {/* Descripción - en mobile va primero */}
-                    <div className="w-full md:flex-1 relative md:px-2 md:order-2 order-2">
-                      <label className="text-xs font-medium text-muted-foreground md:hidden print:hidden mb-1.5 block">Descripción / Producto</label>
-                      <div className="flex gap-2">
-                        <Input
-                          value={item.description}
-                          onChange={(e) => updateItem(item.id, 'description', e.target.value)}
-                          onFocus={(e) => e.target.select()}
-                          placeholder="Descripción"
-                          className="w-full"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Fila de montos en mobile */}
-                    <div className="flex gap-3 md:contents order-3 w-full">
-                      <div className="w-20 md:w-20 md:px-2 md:order-1 order-1 flex-shrink-0">
-                        <label className="text-xs font-medium text-muted-foreground md:hidden print:hidden mb-1.5 block">Cant.</label>
-                        <Input
-                          type="number"
-                          inputMode="decimal"
-                          min="0"
-                          step="0.01"
-                          value={item.quantity === 0 ? '' : item.quantity}
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value);
-                            updateItem(item.id, 'quantity', isNaN(val) ? 0 : Math.max(0, val));
-                          }}
-                          className="w-full text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      </div>
-                      
-                      <div className="flex-1 md:w-32 md:px-2 md:order-3 order-2">
-                        <label className="text-xs font-medium text-muted-foreground md:hidden print:hidden mb-1.5 block">Precio Unit.</label>
-                        <Input
-                          type="number"
-                          inputMode="decimal"
-                          min="0"
-                          step="0.01"
-                          value={item.unit_price === 0 ? '' : item.unit_price}
-                          onFocus={(e) => e.target.select()}
-                          onChange={(e) => {
-                            const val = parseFloat(e.target.value);
-                            updateItem(item.id, 'unit_price', isNaN(val) ? 0 : Math.max(0, val));
-                          }}
-                          className="w-full text-right [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      </div>
-                      
-                      <div className="w-24 md:w-32 md:px-2 md:order-4 order-3 text-right">
-                        <label className="text-xs font-medium text-muted-foreground md:hidden print:hidden mb-1.5 block">Importe</label>
-                        <div className="font-semibold text-violet-900 md:text-black md:font-medium py-2 h-full flex items-center justify-end">
-                          ${(item.quantity * item.unit_price).toFixed(2)}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Botón eliminar desktop */}
-                    <div className="hidden md:flex w-10 md:order-5 md:px-2 items-center justify-center print:hidden">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeItem(item.id)}
-                        className="h-9 w-9 text-red-500 hover:text-red-700 hover:bg-red-50"
-                        disabled={items.length === 1}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <CardContent className="grid gap-4 sm:grid-cols-2 pt-4">
+            <div className="flex flex-col gap-2 sm:col-span-2">
+              <Label htmlFor="cname" className="text-xs font-semibold text-violet-900">
+                Nombre del cliente *
+              </Label>
+              <Input
+                id="cname"
+                value={customerName}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomerName(e.target.value)}
+                placeholder="Nombre completo o empresa"
+                className="h-11 border-violet-100 focus:border-violet-500 focus:ring-violet-500"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="cphone" className="text-xs font-semibold text-violet-900">
+                Teléfono
+              </Label>
+              <Input
+                id="cphone"
+                inputMode="tel"
+                value={customerPhone}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomerPhone(e.target.value)}
+                placeholder="656 123 4567"
+                className="h-11 border-violet-100 focus:border-violet-500 focus:ring-violet-500"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="caddr" className="text-xs font-semibold text-violet-900">
+                Dirección / Ubicación
+              </Label>
+              <Input
+                id="caddr"
+                value={customerAddress}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomerAddress(e.target.value)}
+                placeholder="Dirección de entrega u opcional"
+                className="h-11 border-violet-100 focus:border-violet-500 focus:ring-violet-500"
+              />
             </div>
           </CardContent>
         </Card>
 
-        {/* Totals */}
-        <div className="flex justify-end">
-          <div className="w-full md:w-1/3 space-y-3">
-            <div className="flex justify-between py-2 border-b">
-              <span className="font-medium text-violet-900">Subtotal:</span>
-              <span className="font-bold">${calculateSubtotal().toFixed(2)}</span>
-            </div>
-
-            <div className="flex justify-between items-center py-2 border-b">
-              <div className="flex items-center gap-2">
-                <span className="font-medium text-violet-900">IVA (16%):</span>
-                <label className="flex items-center gap-2 text-sm text-muted-foreground print:hidden">
-                  <input
-                    type="checkbox"
-                    checked={applyTax}
-                    onChange={(e) => setApplyTax(e.target.checked)}
-                    className="rounded border-gray-300 accent-violet-600"
-                  />
-                  Aplicar
-                </label>
+        {/* Conceptos / Artículos */}
+        <Card className="border-violet-100 bg-white shadow-sm">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-violet-50 pb-3">
+            <CardTitle className="text-base font-bold text-violet-950">Conceptos / Productos</CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={addItem}
+              className="border-violet-200 text-violet-700 hover:bg-violet-50 font-semibold"
+            >
+              <Plus className="mr-1.5 h-4 w-4 text-violet-600" />
+              Agregar concepto
+            </Button>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4 pt-4">
+            {items.map((item, index) => (
+              <div
+                key={item.id}
+                className="rounded-xl border border-violet-100 bg-violet-50/40 p-4 transition-all hover:border-violet-200"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-violet-700 bg-violet-100/80 px-2.5 py-1 rounded-md">
+                    Concepto {index + 1}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-700"
+                    onClick={() => removeItem(item.id)}
+                    disabled={items.length === 1}
+                    aria-label="Eliminar concepto"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-12">
+                  <div className="flex flex-col gap-1.5 sm:col-span-6">
+                    <Label className="text-xs font-semibold text-violet-900">Descripción / Producto</Label>
+                    <Input
+                      value={item.description}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => updateItem(item.id, { description: e.target.value })}
+                      placeholder="Ej. Renta de Silla Tiffany Blanca"
+                      className="h-11 bg-white border-violet-100 focus:border-violet-500"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <Label className="text-xs font-semibold text-violet-900">Cantidad</Label>
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      value={item.quantity === 0 ? '' : item.quantity}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        updateItem(item.id, { quantity: Number(e.target.value) || 0 })
+                      }
+                      className="h-11 bg-white border-violet-100 text-center font-semibold"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <Label className="text-xs font-semibold text-violet-900">P. Unitario ($)</Label>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      min={0}
+                      step="0.01"
+                      value={item.unitPrice === 0 ? '' : item.unitPrice}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        updateItem(item.id, { unitPrice: Number(e.target.value) || 0 })
+                      }
+                      className="h-11 bg-white border-violet-100 text-right font-semibold"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <Label className="text-xs font-semibold text-violet-900">Importe</Label>
+                    <div className="flex h-11 items-center justify-end rounded-md bg-violet-100/60 px-3 text-sm font-bold text-violet-950 border border-violet-200/50">
+                      {formatCurrency(itemAmount(item))}
+                    </div>
+                  </div>
+                </div>
               </div>
-              <span className="font-bold">${calculateTax().toFixed(2)}</span>
-            </div>
+            ))}
+          </CardContent>
+        </Card>
 
-            <div className="flex justify-between py-4 border-t-2 border-violet-600">
-              <span className="text-xl font-bold text-violet-900">Total:</span>
-              <span className="text-2xl font-bold text-violet-700">${calculateTotal().toFixed(2)}</span>
+        {/* Opciones y Resumen */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Opciones */}
+          <Card className="border-violet-100 bg-white shadow-sm">
+            <CardHeader className="pb-3 border-b border-violet-50">
+              <CardTitle className="text-base font-bold text-violet-950">Opciones del documento</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4 pt-4">
+              <div className="flex flex-col gap-2">
+                <Label className="text-xs font-semibold text-violet-900">Tipo de documento</Label>
+                <Select value={status} onValueChange={(v) => setStatus(v as 'quote' | 'issued')}>
+                  <SelectTrigger className="h-11 border-violet-100 bg-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="quote">Cotización</SelectItem>
+                    <SelectItem value="issued">Nota de venta</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Label className="text-xs font-semibold text-violet-900">Vincular a evento (opcional)</Label>
+                <Select value={eventId} onValueChange={setEventId}>
+                  <SelectTrigger className="h-11 border-violet-100 bg-white">
+                    <SelectValue placeholder="Sin evento vinculado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin evento</SelectItem>
+                    {availableEvents.map((ev: any) => (
+                      <SelectItem key={ev.id} value={ev.id}>
+                        {ev.name || ev.serviceDescription || `Evento #${ev.id.slice(0, 6)}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <label className="flex items-center gap-3 rounded-xl border border-violet-100 bg-violet-50/40 p-3.5 cursor-pointer hover:bg-violet-50 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={applyIva}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setApplyIva(e.target.checked)}
+                  className="h-4 w-4 rounded border-violet-300 accent-violet-600 cursor-pointer"
+                />
+                <span className="text-sm font-semibold text-violet-950">Aplicar IVA (16%)</span>
+              </label>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="obs" className="text-xs font-semibold text-violet-900">
+                  Notas / observaciones
+                </Label>
+                <textarea
+                  id="obs"
+                  value={notes}
+                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setNotes(e.target.value)}
+                  placeholder="Condiciones de pago, fecha de validez o comentarios adicionales..."
+                  className="w-full min-h-[90px] rounded-lg border border-violet-100 p-3 text-sm focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Resumen & Acción */}
+          <Card className="border-violet-100 bg-white shadow-sm flex flex-col justify-between">
+            <div>
+              <CardHeader className="pb-3 border-b border-violet-50">
+                <CardTitle className="text-base font-bold text-violet-950">Resumen de totales</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3.5 pt-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-violet-700/80 font-medium">Subtotal</span>
+                  <span className="font-bold text-violet-950">{formatCurrency(totals.subtotal)}</span>
+                </div>
+                {applyIva && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-violet-700/80 font-medium">IVA (16%)</span>
+                    <span className="font-bold text-violet-950">{formatCurrency(totals.iva)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-t border-violet-100 pt-3 text-xl font-extrabold text-violet-700">
+                  <span>Total</span>
+                  <span>{formatCurrency(totals.total)}</span>
+                </div>
+              </CardContent>
             </div>
-          </div>
+            <CardContent className="pt-4 pb-6">
+              <Button
+                size="lg"
+                className="w-full h-12 bg-violet-600 hover:bg-violet-700 text-white font-bold text-base shadow-md shadow-violet-200 transition-all gap-2"
+                onClick={handleSave}
+              >
+                <Save className="h-5 w-5" />
+                Guardar y generar documento
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
-
-      {/* Hidden layout for PDF/Image export */}
-      <div style={{ position: 'absolute', top: '-9999px', left: '-9999px' }}>
-        <ReceiptPrintView 
-          ref={printRef}
-          clientInfo={clientInfo}
-          items={items}
-          subtotal={calculateSubtotal()}
-          tax={calculateTax()}
-          total={calculateTotal()}
-        />
-      </div>
-
     </div>
-  );
+  )
 }
-
