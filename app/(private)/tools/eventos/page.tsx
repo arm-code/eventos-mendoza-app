@@ -1,22 +1,22 @@
 'use client'
 
 import { useState, useMemo, useEffect, ChangeEvent } from 'react'
-import { Plus, Search, Calendar, MapPin, User, Phone, FileText, Edit2, FileDown, CheckCircle2, Clock, AlertCircle, XCircle } from 'lucide-react'
+import { Plus, Search, Calendar, MapPin, User, Phone, FileText, Edit2, FileDown, CheckCircle2, Clock, XCircle, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
-import { useData } from '@/lib/data-store'
 import { noteTotal } from '@/lib/calculations'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { seedBusinessConfig } from '@/lib/mock-data'
 import { PageHeader } from '@/components/admin/page-header'
 import { DocumentActions } from '@/components/documents/document-actions'
-import { EventContractDocument } from '@/components/documents/event-contract-document'
+import { EventContractDocument, EventContractData } from '@/components/documents/event-contract-document'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import type { EventStatus, CreateBusinessEventDto, UpdateBusinessEventDto, BusinessEvent } from '@/types/finance'
 import {
   Dialog,
   DialogContent,
@@ -31,34 +31,15 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-export interface AppEvent {
-  id: string
-  folio: string
-  name: string
-  serviceDescription: string
-  cost: number
-  date: string
-  clientName: string
-  clientPhone?: string
-  eventAddress: string
-  status: 'pending' | 'delivered' | 'collected' | 'cancelled'
-  noteId?: string | null
-  noteFolio?: string | null
-  guaranteeDocument?: string
-  notes?: string
-  createdAt: string
-}
-
 export default function EventosPage() {
-  const { events: storeEvents } = useData()
-  const [localEvents, setLocalEvents] = useState<AppEvent[]>([])
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'upcoming' | 'finished' | 'cancelled' | 'all'>('upcoming')
   const [searchQuery, setSearchQuery] = useState('')
 
   // Modal States
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingEvent, setEditingEvent] = useState<AppEvent | null>(null)
-  const [contractEvent, setContractEvent] = useState<AppEvent | null>(null)
+  const [editingEvent, setEditingEvent] = useState<BusinessEvent | null>(null)
+  const [contractEvent, setContractEvent] = useState<BusinessEvent | null>(null)
 
   // Form Fields
   const [formName, setFormName] = useState('')
@@ -67,93 +48,38 @@ export default function EventosPage() {
   const [formAddress, setFormAddress] = useState('')
   const [formDate, setFormDate] = useState('')
   const [formCost, setFormCost] = useState('')
-  const [formStatus, setFormStatus] = useState<'pending' | 'delivered' | 'collected' | 'cancelled'>('pending')
+  const [formStatus, setFormStatus] = useState<EventStatus>('pending')
   const [formNoteId, setFormNoteId] = useState('none')
   const [formGuarantee, setFormGuarantee] = useState('INE / Credencial de Elector')
   const [formNotes, setFormNotes] = useState('')
 
-  // API Events
-  const { data: apiEvents = [] } = useQuery({
-    queryKey: ['businessEvents'],
-    queryFn: () => financeApi.getBusinessEvents(),
+  // Query events 100% from NestJS API Database
+  const { data: rawEvents = [], isLoading, isError } = useQuery({
+    queryKey: ['businessEvents', activeTab, searchQuery],
+    queryFn: () => financeApi.getBusinessEvents({ tab: activeTab, search: searchQuery }),
   })
 
-  // Load from localStorage
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('eventos_mendoza_events')
-      if (stored) {
-        setLocalEvents(JSON.parse(stored))
-      }
-    } catch (e) {
-      console.warn('Error al leer eventos de localStorage:', e)
-    }
-  }, [])
+  // Normalize API Events list
+  const eventsList = useMemo<BusinessEvent[]>(() => {
+    const list = Array.isArray(rawEvents) ? rawEvents : []
+    return list.map((ev) => ({
+      ...ev,
+      id: String(ev.id),
+      folio: ev.folio || `EV-${String(ev.id).slice(0, 4)}`,
+      name: ev.name || ev.serviceDescription || 'Evento de Renta',
+      serviceDescription: ev.serviceDescription || ev.name || 'Renta de mobiliario',
+      cost: Number(ev.cost) || 0,
+      date: ev.eventDate || ev.date || new Date().toISOString(),
+      clientName: ev.clientName || 'Cliente',
+      clientPhone: ev.clientPhone || '',
+      eventAddress: ev.eventAddress || 'Dirección por definir',
+      status: (ev.status as EventStatus) || 'pending',
+    })).sort((a, b) => +new Date(b.date || 0) - +new Date(a.date || 0))
+  }, [rawEvents])
 
-  // Notes from localStorage for linking
-  const [availableNotes, setAvailableNotes] = useState<any[]>([])
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('eventos_mendoza_notes')
-      if (stored) {
-        setAvailableNotes(JSON.parse(stored))
-      }
-    } catch (e) {
-      // ignore
-    }
-  }, [isFormOpen])
-
-  // Combine Events
-  const allEvents = useMemo(() => {
-    const map = new Map<string, AppEvent>()
-
-    // Local events first
-    localEvents.forEach((ev) => map.set(ev.id, ev))
-
-    // Store events
-    storeEvents.forEach((ev: any) => {
-      if (!map.has(ev.id)) {
-        map.set(ev.id, {
-          id: ev.id,
-          folio: ev.folio || `EV-${ev.id.slice(0, 4)}`,
-          name: ev.serviceDescription || ev.name || 'Evento de Renta',
-          serviceDescription: ev.serviceDescription || 'Renta de mobiliario',
-          cost: ev.cost || 0,
-          date: ev.date || new Date().toISOString(),
-          clientName: ev.customer?.name || ev.clientName || 'Cliente',
-          clientPhone: ev.customer?.phone || '',
-          eventAddress: ev.eventAddress || 'Sin dirección',
-          status: ev.status === 'collected' ? 'collected' : ev.status === 'delivered' ? 'delivered' : ev.status === 'cancelled' ? 'cancelled' : 'pending',
-          createdAt: ev.createdAt || new Date().toISOString(),
-        })
-      }
-    })
-
-    // API events
-    const safeApi = Array.isArray(apiEvents) ? apiEvents : []
-    safeApi.forEach((ev: any) => {
-      if (!map.has(ev.id)) {
-        map.set(ev.id, {
-          id: ev.id,
-          folio: `EV-${ev.id.slice(0, 4)}`,
-          name: ev.name || 'Evento Renta',
-          serviceDescription: ev.name || 'Renta de mobiliario',
-          cost: 0,
-          date: ev.eventDate || new Date().toISOString(),
-          clientName: ev.clientName || 'Cliente API',
-          eventAddress: 'Dirección por definir',
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-        })
-      }
-    })
-
-    return Array.from(map.values()).sort((a, b) => +new Date(b.date) - +new Date(a.date))
-  }, [localEvents, storeEvents, apiEvents])
-
-  // Filtered Events
+  // Filter local tab/search if backend sends raw array
   const filteredEvents = useMemo(() => {
-    let list = allEvents
+    let list = eventsList
 
     if (activeTab === 'upcoming') {
       list = list.filter((e) => e.status === 'pending' || e.status === 'delivered')
@@ -168,14 +94,65 @@ export default function EventosPage() {
       list = list.filter(
         (e) =>
           e.name.toLowerCase().includes(q) ||
-          e.clientName.toLowerCase().includes(q) ||
-          e.eventAddress.toLowerCase().includes(q) ||
-          e.folio.toLowerCase().includes(q)
+          (e.clientName && e.clientName.toLowerCase().includes(q)) ||
+          (e.eventAddress && e.eventAddress.toLowerCase().includes(q)) ||
+          (e.folio && e.folio.toLowerCase().includes(q))
       )
     }
 
     return list
-  }, [allEvents, activeTab, searchQuery])
+  }, [eventsList, activeTab, searchQuery])
+
+  // API Mutations for NestJS backend
+  const createMutation = useMutation({
+    mutationFn: (dto: CreateBusinessEventDto) => financeApi.createBusinessEvent(dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['businessEvents'] })
+      toast.success('Evento agendado exitosamente en la base de datos')
+      setIsFormOpen(false)
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Error al guardar el evento en la API')
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, dto }: { id: string; dto: UpdateBusinessEventDto }) =>
+      financeApi.updateBusinessEvent(id, dto),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['businessEvents'] })
+      toast.success('Evento actualizado exitosamente')
+      setIsFormOpen(false)
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Error al actualizar el evento')
+    },
+  })
+
+  const statusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: EventStatus }) =>
+      financeApi.updateEventStatus(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['businessEvents'] })
+      toast.success('Estado del evento actualizado')
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Error al actualizar el estado')
+    },
+  })
+
+  // Notes from localStorage for optional linking
+  const [availableNotes, setAvailableNotes] = useState<any[]>([])
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('eventos_mendoza_notes')
+      if (stored) {
+        setAvailableNotes(JSON.parse(stored))
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, [isFormOpen])
 
   function resetForm() {
     setFormName('')
@@ -196,28 +173,19 @@ export default function EventosPage() {
     setIsFormOpen(true)
   }
 
-  function openEditModal(event: AppEvent) {
+  function openEditModal(event: BusinessEvent) {
     setEditingEvent(event)
-    setFormName(event.name)
-    setFormClientName(event.clientName)
+    setFormName(event.name || '')
+    setFormClientName(event.clientName || '')
     setFormClientPhone(event.clientPhone || '')
-    setFormAddress(event.eventAddress)
-    setFormDate(event.date ? event.date.split('T')[0] : new Date().toISOString().split('T')[0])
+    setFormAddress(event.eventAddress || '')
+    setFormDate(event.date || event.eventDate ? (event.date || event.eventDate)!.split('T')[0] : new Date().toISOString().split('T')[0])
     setFormCost(String(event.cost || ''))
-    setFormStatus(event.status)
+    setFormStatus(event.status || 'pending')
     setFormNoteId(event.noteId || 'none')
     setFormGuarantee(event.guaranteeDocument || 'INE / Credencial de Elector')
     setFormNotes(event.notes || '')
     setIsFormOpen(true)
-  }
-
-  function saveEventInStorage(updatedEvents: AppEvent[]) {
-    setLocalEvents(updatedEvents)
-    try {
-      localStorage.setItem('eventos_mendoza_events', JSON.stringify(updatedEvents))
-    } catch (e) {
-      console.warn('Error al guardar en localStorage:', e)
-    }
   }
 
   function handleFormSubmit() {
@@ -230,78 +198,34 @@ export default function EventosPage() {
       return
     }
 
-    const linkedNote = availableNotes.find((n) => n.id === formNoteId)
+    const eventDateIso = formDate ? new Date(formDate).toISOString() : new Date().toISOString()
+    const costNum = Number(formCost) || 0
+
+    const dto: CreateBusinessEventDto = {
+      name: formName.trim(),
+      clientName: formClientName.trim(),
+      clientPhone: formClientPhone.trim() || undefined,
+      eventAddress: formAddress.trim() || 'Sin dirección',
+      eventDate: eventDateIso,
+      cost: costNum,
+      status: formStatus,
+      guaranteeDocument: formGuarantee,
+      noteId: formNoteId === 'none' ? undefined : formNoteId,
+      notes: formNotes.trim() || undefined,
+    }
 
     if (editingEvent) {
-      const updated = allEvents.map((ev) =>
-        ev.id === editingEvent.id
-          ? {
-              ...ev,
-              name: formName.trim(),
-              serviceDescription: formName.trim(),
-              clientName: formClientName.trim(),
-              clientPhone: formClientPhone.trim() || undefined,
-              eventAddress: formAddress.trim() || 'Sin dirección',
-              date: formDate ? new Date(formDate).toISOString() : ev.date,
-              cost: Number(formCost) || 0,
-              status: formStatus,
-              noteId: formNoteId === 'none' ? null : formNoteId,
-              noteFolio: linkedNote ? linkedNote.folio : ev.noteFolio,
-              guaranteeDocument: formGuarantee,
-              notes: formNotes.trim() || undefined,
-            }
-          : ev
-      )
-      saveEventInStorage(updated)
-      toast.success('Evento actualizado correctamente')
+      updateMutation.mutate({ id: editingEvent.id, dto })
     } else {
-      const count = allEvents.length + 1
-      const newEv: AppEvent = {
-        id: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
-        folio: `EV-${String(count).padStart(4, '0')}`,
-        name: formName.trim(),
-        serviceDescription: formName.trim(),
-        clientName: formClientName.trim(),
-        clientPhone: formClientPhone.trim() || undefined,
-        eventAddress: formAddress.trim() || 'Sin dirección',
-        date: formDate ? new Date(formDate).toISOString() : new Date().toISOString(),
-        cost: Number(formCost) || 0,
-        status: formStatus,
-        noteId: formNoteId === 'none' ? null : formNoteId,
-        noteFolio: linkedNote ? linkedNote.folio : null,
-        guaranteeDocument: formGuarantee,
-        notes: formNotes.trim() || undefined,
-        createdAt: new Date().toISOString(),
-      }
-
-      // Try API first asynchronously
-      financeApi.createBusinessEvent({
-        name: newEv.name,
-        clientName: newEv.clientName,
-        eventDate: newEv.date,
-        notes: newEv.notes,
-      }).catch(() => {})
-
-      saveEventInStorage([newEv, ...localEvents])
-      toast.success(`Evento ${newEv.folio} agendado correctamente`)
+      createMutation.mutate(dto)
     }
-
-    setIsFormOpen(false)
   }
 
-  function handleStatusChange(event: AppEvent, newStatus: AppEvent['status']) {
-    const updated = allEvents.map((ev) => (ev.id === event.id ? { ...ev, status: newStatus } : ev))
-    saveEventInStorage(updated)
-    const labels: Record<string, string> = {
-      pending: 'Pendiente',
-      delivered: 'Entregado',
-      collected: 'Recogido / Finalizado',
-      cancelled: 'Cancelado',
-    }
-    toast.success(`Estado actualizado a: ${labels[newStatus]}`)
+  function handleStatusChange(event: BusinessEvent, newStatus: EventStatus) {
+    statusMutation.mutate({ id: event.id, status: newStatus })
   }
 
-  const getStatusBadge = (status: AppEvent['status']) => {
+  const getStatusBadge = (status?: EventStatus) => {
     switch (status) {
       case 'pending':
         return <Badge className="bg-amber-100 text-amber-800 border-amber-200 font-semibold gap-1"><Clock className="w-3 h-3" /> Pendiente</Badge>
@@ -311,6 +235,8 @@ export default function EventosPage() {
         return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 font-semibold gap-1"><CheckCircle2 className="w-3 h-3" /> Recogido</Badge>
       case 'cancelled':
         return <Badge className="bg-red-100 text-red-800 border-red-200 font-semibold gap-1"><XCircle className="w-3 h-3" /> Cancelado</Badge>
+      default:
+        return <Badge className="bg-gray-100 text-gray-800 border-gray-200 font-semibold gap-1">Pendiente</Badge>
     }
   }
 
@@ -318,7 +244,7 @@ export default function EventosPage() {
     <div className="space-y-6 pb-12">
       <PageHeader
         title="Gestión de Eventos"
-        description="Agenda, controla el estatus de mobiliario entregado/recogido y emite contratos de garantía."
+        description="Agenda de eventos en base de datos real, control de entregas y emisión de contratos."
         action={
           <Button onClick={openCreateModal} className="w-full sm:w-auto bg-violet-600 hover:bg-violet-700 text-white font-bold h-11 gap-2 shadow-sm shadow-violet-200">
             <Plus className="h-5 w-5" />
@@ -334,7 +260,7 @@ export default function EventosPage() {
           <Input
             value={searchQuery}
             onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-            placeholder="Buscar evento, cliente o dirección..."
+            placeholder="Buscar evento, cliente o dirección en base de datos..."
             className="h-11 pl-10 border-violet-100 bg-white focus:border-violet-500 shadow-sm"
           />
         </div>
@@ -387,12 +313,12 @@ export default function EventosPage() {
                 : 'bg-white text-violet-700 border border-violet-100 hover:bg-violet-50'
             }`}
           >
-            Todos ({allEvents.length})
+            Todos ({eventsList.length})
           </Button>
         </div>
       </div>
 
-      {/* Lista de Eventos - Mobile-First Cards */}
+      {/* Lista de Eventos - Database Driven */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filteredEvents.map((evt) => (
           <Card key={evt.id} className="border-violet-100 bg-white shadow-sm hover:border-violet-200 transition-all flex flex-col justify-between">
@@ -440,10 +366,10 @@ export default function EventosPage() {
               <div className="pt-2 border-t border-violet-50 flex items-center justify-between">
                 <div>
                   <span className="text-xs text-violet-500 block">Costo total</span>
-                  <span className="text-lg font-bold text-violet-950">{formatCurrency(evt.cost)}</span>
+                  <span className="text-lg font-bold text-violet-950">{formatCurrency(evt.cost || 0)}</span>
                 </div>
 
-                <Select value={evt.status} onValueChange={(val) => handleStatusChange(evt, val as any)}>
+                <Select value={evt.status} onValueChange={(val) => handleStatusChange(evt, val as EventStatus)}>
                   <SelectTrigger className="h-8 text-xs border-violet-100 bg-violet-50/50 w-28">
                     <SelectValue />
                   </SelectTrigger>
@@ -483,9 +409,18 @@ export default function EventosPage() {
 
         {filteredEvents.length === 0 && (
           <Card className="col-span-full border-violet-100 bg-white p-8 text-center">
-            <Calendar className="w-12 h-12 text-violet-300 mx-auto mb-3 opacity-60" />
-            <p className="text-violet-900 font-bold text-base">No hay eventos que coincidan.</p>
-            <p className="text-xs text-violet-500 mt-1">Presiona "Nuevo Evento" para agendar un servicio.</p>
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2 text-violet-600 font-semibold py-4">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Cargando eventos desde la API...</span>
+              </div>
+            ) : (
+              <>
+                <Calendar className="w-12 h-12 text-violet-300 mx-auto mb-3 opacity-60" />
+                <p className="text-violet-900 font-bold text-base">No hay eventos guardados en la base de datos.</p>
+                <p className="text-xs text-violet-500 mt-1">Presiona "Nuevo Evento" para agendar el primer servicio.</p>
+              </>
+            )}
           </Card>
         )}
       </div>
@@ -570,7 +505,7 @@ export default function EventosPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold text-violet-900">Estado del Evento</Label>
-                <Select value={formStatus} onValueChange={(val) => setFormStatus(val as any)}>
+                <Select value={formStatus} onValueChange={(val) => setFormStatus(val as EventStatus)}>
                   <SelectTrigger className="h-11 border-violet-100 bg-white">
                     <SelectValue />
                   </SelectTrigger>
@@ -631,7 +566,12 @@ export default function EventosPage() {
               <Button variant="outline" onClick={() => setIsFormOpen(false)} className="h-11 border-violet-100">
                 Cancelar
               </Button>
-              <Button onClick={handleFormSubmit} className="h-11 bg-violet-600 hover:bg-violet-700 text-white font-bold px-6">
+              <Button
+                onClick={handleFormSubmit}
+                disabled={createMutation.isPending || updateMutation.isPending}
+                className="h-11 bg-violet-600 hover:bg-violet-700 text-white font-bold px-6"
+              >
+                {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {editingEvent ? 'Guardar Cambios' : 'Agendar Evento'}
               </Button>
             </div>
@@ -651,7 +591,7 @@ export default function EventosPage() {
           {contractEvent && (
             <div className="space-y-4 pt-2">
               <DocumentActions filename={`contrato-evento-${contractEvent.folio}`}>
-                <EventContractDocument event={contractEvent} business={seedBusinessConfig} />
+                <EventContractDocument event={contractEvent as EventContractData} business={seedBusinessConfig} />
               </DocumentActions>
             </div>
           )}

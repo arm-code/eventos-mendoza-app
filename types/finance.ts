@@ -25,13 +25,26 @@ export interface PaymentMethod {
   isActive?: boolean;
 }
 
+export type EventStatus = 'pending' | 'delivered' | 'collected' | 'cancelled';
+
 export interface BusinessEvent {
   id: string;
+  folio?: string;
   name: string;
+  serviceDescription?: string;
   date?: string;
   eventDate?: string;
   clientName?: string;
+  clientPhone?: string;
+  eventAddress?: string;
+  cost?: number;
+  status?: EventStatus;
+  guaranteeDocument?: string;
+  noteId?: string | null;
+  noteFolio?: string | null;
   notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Transaction {
@@ -60,9 +73,17 @@ export interface CreateTransactionDto {
 export interface CreateBusinessEventDto {
   name: string;
   clientName?: string;
+  clientPhone?: string;
+  eventAddress?: string;
   eventDate?: string;
+  cost?: number;
+  status?: EventStatus;
+  guaranteeDocument?: string;
+  noteId?: string;
   notes?: string;
 }
+
+export interface UpdateBusinessEventDto extends Partial<CreateBusinessEventDto> {}
 
 export interface CreateTransactionCategoryDto {
   code: string;

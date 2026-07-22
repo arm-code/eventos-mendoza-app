@@ -4,6 +4,8 @@ import {
   CreateTransactionDto,
   BusinessEvent,
   CreateBusinessEventDto,
+  UpdateBusinessEventDto,
+  EventStatus,
   TransactionCategory,
   PaymentMethod,
   CreateTransactionCategoryDto,
@@ -36,13 +38,35 @@ export const financeApi = {
   },
 
   // Business Events
-  getBusinessEvents: async () => {
-    const res = await axiosInstance.get<PaginatedResponse<BusinessEvent> | BusinessEvent[]>(`${PREFIX}/events`);
+  getBusinessEvents: async (params?: { page?: number; limit?: number; status?: string; tab?: string; search?: string }) => {
+    const res = await axiosInstance.get<PaginatedResponse<BusinessEvent> | BusinessEvent[]>(`${PREFIX}/events`, {
+      params,
+    });
     return (res.data as PaginatedResponse<BusinessEvent>).items || res.data;
+  },
+
+  getBusinessEventById: async (id: string) => {
+    const res = await axiosInstance.get<BusinessEvent>(`${PREFIX}/events/${id}`);
+    return res.data;
   },
 
   createBusinessEvent: async (data: CreateBusinessEventDto) => {
     const res = await axiosInstance.post<BusinessEvent>(`${PREFIX}/events`, data);
+    return res.data;
+  },
+
+  updateBusinessEvent: async (id: string, data: UpdateBusinessEventDto) => {
+    const res = await axiosInstance.patch<BusinessEvent>(`${PREFIX}/events/${id}`, data);
+    return res.data;
+  },
+
+  updateEventStatus: async (id: string, status: EventStatus) => {
+    const res = await axiosInstance.patch<BusinessEvent>(`${PREFIX}/events/${id}/status`, { status });
+    return res.data;
+  },
+
+  deleteBusinessEvent: async (id: string) => {
+    const res = await axiosInstance.delete<{ success: boolean }>(`${PREFIX}/events/${id}`);
     return res.data;
   },
 
