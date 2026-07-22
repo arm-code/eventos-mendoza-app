@@ -34,6 +34,13 @@ export const primaryNav: NavItem[] = [
         icon: Wallet,
         matchPrefix: '/tools/finanzas',
     },
+    {
+        label: 'Eventos',
+        shortLabel: 'Eventos',
+        href: '/tools/eventos',
+        icon: Calendar,
+        matchPrefix: '/tools/eventos',
+    },
     { label: 'Configuración', shortLabel: 'Ajustes', href: '/configuracion', icon: Settings },
 ]
 
