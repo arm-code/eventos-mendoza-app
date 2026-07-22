@@ -1,167 +1,274 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { useApi } from '@/hooks/useApi';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, Eye, FileText, Plus, Loader2 } from "lucide-react";
-import Link from 'next/link';
-import { Loader } from '@/components/Loaders/Loader.component';
+import { useMemo, useState, useEffect } from 'react'
+import Link from 'next/link'
+import { Eye, FilePlus2, Search, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { useData } from '@/lib/data-store'
+import { noteTotal } from '@/lib/calculations'
+import { formatCurrency, formatDate } from '@/lib/format'
+import { seedBusinessConfig } from '@/lib/mock-data'
+import type { Note } from '@/lib/types'
+import { PageHeader } from '@/components/admin/page-header'
+import { SaleNoteDocument } from '@/components/documents/sale-note-document'
+import { DocumentActions } from '@/components/documents/document-actions'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
-import SalesNoteDetailView from '@/components/sales/SalesNoteDetailView.component';
-import { X } from 'lucide-react';
+export default function NotesHistoryPage() {
+  const { notes: storeNotes, deleteNote: storeDeleteNote, events } = useData()
+  const [query, setQuery] = useState('')
+  const [selected, setSelected] = useState<Note | null>(null)
+  const [localNotes, setLocalNotes] = useState<Note[]>([])
 
-interface SaleNote {
-    id: number;
-    note_number: string;
-    client_name: string;
-    total: number;
-    created_at: string;
-}
-
-export default function SalesNotesListPage() {
-    const { request, loading, error } = useApi();
-    const [notes, setNotes] = useState<SaleNote[]>([]);
-    const [searchTerm, setSearchTerm] = useState('');
-
-    // Modal states
-    const [selectedNote, setSelectedNote] = useState<any | null>(null);
-    const [isLoadingDetails, setIsLoadingDetails] = useState(false);
-
-    const fetchNotes = async () => {
-        const res = await request('/sales-notes');
-        if (res.data) {
-            setNotes(res.data || []);
-        }
-    };
-
-    useEffect(() => {
-        fetchNotes();
-    }, []);
-
-    const handleViewDetails = async (id: number) => {
-        setIsLoadingDetails(true);
-        try {
-            const res = await request(`/sales-notes/${id}`);
-            if (res.data) {
-                setSelectedNote(res.data);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setIsLoadingDetails(false);
-        }
-    };
-
-    const filteredNotes = notes.filter(note =>
-        note.note_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        note.client_name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
-    if (loading && notes.length === 0) {
-        return <Loader size="lg" text="Cargando notas de venta..." />;
+  // Cargar notas guardadas en localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('eventos_mendoza_notes')
+      if (stored) {
+        setLocalNotes(JSON.parse(stored))
+      }
+    } catch (e) {
+      console.warn('Error al leer notas de localStorage:', e)
     }
+  }, [])
 
-    return (
-        <div className="space-y-6 p-4 md:p-6 relative">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl md:text-3xl font-bold text-violet-900">Notas de Venta</h1>
-                    <p className="text-violet-600 mt-1">Listado histórico de todas las notas generadas.</p>
-                </div>
-                <Link href="/tools/crear-nota-venta">
-                    <Button className="bg-violet-600 hover:bg-violet-700 text-white gap-2">
-                        <Plus className="h-4 w-4" />
-                        Nueva Nota
-                    </Button>
-                </Link>
-            </div>
+  // Combinar notas del store y de localStorage evitando duplicados
+  const combinedNotes = useMemo(() => {
+    const map = new Map<string, Note>()
+    localNotes.forEach((n) => map.set(n.id, n))
+    storeNotes.forEach((n) => map.set(n.id, n))
+    return Array.from(map.values()).sort(
+      (a, b) => +new Date(b.createdAt) - +new Date(a.createdAt),
+    )
+  }, [localNotes, storeNotes])
 
-            <div className="flex items-center gap-4 bg-white p-4 rounded-xl border border-violet-100 shadow-sm">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-violet-400 w-4 h-4" />
-                    <Input
-                        placeholder="Buscar por número de nota o cliente..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 border-violet-200"
-                    />
-                </div>
-            </div>
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return combinedNotes
+    return combinedNotes.filter(
+      (n) =>
+        n.folio.toLowerCase().includes(q) ||
+        n.customer.name.toLowerCase().includes(q),
+    )
+  }, [combinedNotes, query])
 
-            <div className="bg-white border border-violet-100 rounded-xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="bg-violet-50 text-violet-900 border-b border-violet-100 font-semibold">
-                                <th className="py-4 px-4 text-left">Folio</th>
-                                <th className="py-4 px-4 text-left">Cliente</th>
-                                <th className="py-4 px-4 text-left">Fecha</th>
-                                <th className="py-4 px-4 text-right">Total</th>
-                                <th className="py-4 px-4 text-center">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-violet-100">
-                            {filteredNotes.length > 0 ? (
-                                filteredNotes.map((note) => (
-                                    <tr key={note.id} className="hover:bg-violet-50/50 transition-colors text-violet-900">
-                                        <td className="py-4 px-4 font-medium">{note.note_number}</td>
-                                        <td className="py-4 px-4">{note.client_name}</td>
-                                        <td className="py-4 px-4 text-violet-600">
-                                            {new Date(note.created_at).toLocaleDateString()}
-                                        </td>
-                                        <td className="py-4 px-4 text-right font-bold text-violet-700">
-                                            ${Number(note.total).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                        </td>
-                                        <td className="py-4 px-4 text-center">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="text-violet-600 hover:text-violet-900 hover:bg-violet-100"
-                                                onClick={() => handleViewDetails(note.id)}
-                                                disabled={isLoadingDetails}
-                                            >
-                                                {isLoadingDetails ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4 mr-1" />}
-                                                Detalles
-                                            </Button>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={5} className="py-12 text-center text-violet-400">
-                                        <FileText className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                                        <p>No se encontraron notas de venta</p>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+  function handleDelete(id: string) {
+    // Eliminar de store
+    try {
+      storeDeleteNote(id)
+    } catch (e) {
+      // Ignore if store handles it
+    }
+    // Eliminar de localStorage
+    const updated = localNotes.filter((n) => n.id !== id)
+    setLocalNotes(updated)
+    try {
+      localStorage.setItem('eventos_mendoza_notes', JSON.stringify(updated))
+    } catch (e) {
+      console.warn('Error al actualizar localStorage:', e)
+    }
+    toast.success('Nota eliminada correctamente')
+  }
 
-            {/* Detail Modal */}
-            {selectedNote && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl relative animate-in zoom-in-95 duration-200">
-                        <div className="sticky top-0 right-0 p-4 flex justify-end z-10">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setSelectedNote(null)}
-                                className="bg-white/80 backdrop-blur hover:bg-red-50 hover:text-red-600 rounded-full shadow-md"
-                            >
-                                <X className="h-6 w-6" />
-                            </Button>
-                        </div>
-                        <div className="p-4 md:p-8 pt-0">
-                            <SalesNoteDetailView note={selectedNote} />
-                        </div>
+  function eventFolio(eventId?: string | null) {
+    if (!eventId) return null
+    return events.find((e) => e.id === eventId)?.folio ?? null
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Historial de notas"
+        description="Consulta, exporta a PDF/Imagen o administra tus notas de venta y cotizaciones."
+        action={
+          <Button asChild className="bg-violet-600 hover:bg-violet-700 text-white gap-2 font-semibold">
+            <Link href="/tools/crear-nota-venta">
+              <FilePlus2 className="h-4 w-4" />
+              Nueva nota
+            </Link>
+          </Button>
+        }
+      />
+
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-violet-400" />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Buscar por folio (ej. NV-0001) o cliente..."
+          className="h-11 pl-10 border-violet-100 bg-white focus:border-violet-500 focus:ring-violet-500 shadow-sm"
+        />
+      </div>
+
+      {/* Vista de tabla (desktop) */}
+      <Card className="hidden md:block border-violet-100 bg-white shadow-sm overflow-hidden">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-violet-50/70 hover:bg-violet-50/70 border-b border-violet-100">
+                <TableHead className="font-bold text-violet-950">Folio</TableHead>
+                <TableHead className="font-bold text-violet-950">Cliente</TableHead>
+                <TableHead className="font-bold text-violet-950">Tipo</TableHead>
+                <TableHead className="font-bold text-violet-950">Fecha</TableHead>
+                <TableHead className="font-bold text-violet-950 text-right">Total</TableHead>
+                <TableHead className="font-bold text-violet-950 text-right">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((note) => (
+                <TableRow key={note.id} className="hover:bg-violet-50/40 border-b border-violet-100/60 transition-colors">
+                  <TableCell className="font-bold text-violet-950">{note.folio}</TableCell>
+                  <TableCell className="font-medium text-violet-900">{note.customer.name}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="secondary"
+                      className={
+                        note.status === 'quote'
+                          ? 'bg-violet-100 text-violet-700 border-violet-200'
+                          : 'bg-green-100 text-green-700 border-green-200'
+                      }
+                    >
+                      {note.status === 'quote' ? 'Cotización' : 'Nota de venta'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-violet-600/80 text-xs font-medium">
+                    {formatDate(note.createdAt)}
+                  </TableCell>
+                  <TableCell className="text-right font-bold text-violet-950">
+                    {formatCurrency(noteTotal(note))}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setSelected(note)}
+                        className="text-violet-600 hover:bg-violet-100 hover:text-violet-900 h-8 w-8"
+                        aria-label="Ver nota"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-red-500 hover:bg-red-50 hover:text-red-700 h-8 w-8"
+                        onClick={() => handleDelete(note.id)}
+                        aria-label="Eliminar nota"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                </div>
-            )}
-        </div>
-    );
-}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="py-12 text-center text-violet-400">
+                    No hay notas registradas o que coincidan con la búsqueda.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
+      {/* Vista de tarjetas (móvil) */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {filtered.map((note) => {
+          const ef = eventFolio(note.eventId)
+          return (
+            <Card key={note.id} className="border-violet-100 bg-white shadow-sm hover:border-violet-200 transition-all">
+              <CardContent className="flex flex-col gap-3 p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-bold text-violet-950 truncate">{note.customer.name}</p>
+                    <p className="text-xs font-medium text-violet-600/80">
+                      {note.folio} · {formatDate(note.createdAt)}
+                    </p>
+                  </div>
+                  <Badge
+                    variant="secondary"
+                    className={
+                      note.status === 'quote'
+                        ? 'bg-violet-100 text-violet-700 border-violet-200'
+                        : 'bg-green-100 text-green-700 border-green-200'
+                    }
+                  >
+                    {note.status === 'quote' ? 'Cotización' : 'Nota'}
+                  </Badge>
+                </div>
+                {ef && (
+                  <span className="text-xs text-violet-500 font-medium">Vinculada a evento {ef}</span>
+                )}
+                <div className="flex items-center justify-between pt-1 border-t border-violet-50">
+                  <span className="text-lg font-extrabold text-violet-950">
+                    {formatCurrency(noteTotal(note))}
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setSelected(note)}
+                      className="border-violet-200 text-violet-700 hover:bg-violet-50 font-semibold h-9"
+                    >
+                      <Eye className="mr-1.5 h-4 w-4 text-violet-600" />
+                      Ver
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-red-500 hover:bg-red-50 hover:text-red-700 h-9 w-9"
+                      onClick={() => handleDelete(note.id)}
+                      aria-label="Eliminar nota"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+        {filtered.length === 0 && (
+          <Card className="border-violet-100 bg-white">
+            <CardContent className="py-12 text-center text-violet-400">
+              No hay notas de venta registradas.
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Dialog de vista/exportación */}
+      <Dialog open={selected !== null} onOpenChange={(o) => !o && setSelected(null)}>
+        <DialogContent className="max-h-[90dvh] max-w-4xl overflow-y-auto border-violet-100 bg-white p-4 sm:p-6">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-violet-950">Nota {selected?.folio}</DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <DocumentActions filename={`nota-${selected.folio}`}>
+              <SaleNoteDocument note={selected} business={seedBusinessConfig} />
+            </DocumentActions>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
