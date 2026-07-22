@@ -2,15 +2,15 @@
 
 import { useMemo, useState, ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Save, Trash2, ArrowLeft } from 'lucide-react'
+import { Plus, Save, Trash2, ArrowLeft, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useQuery } from '@tanstack/react-query'
-import { useData } from '@/lib/data-store'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
 import { computeNoteTotals, itemAmount } from '@/lib/calculations'
 import { formatCurrency, genId } from '@/lib/format'
 import { seedBusinessConfig } from '@/lib/mock-data'
 import type { Note, NoteItem } from '@/lib/types'
+import type { CreateSalesNoteDto, SalesNoteStatus } from '@/types/finance'
 import { PageHeader } from '@/components/admin/page-header'
 import { SaleNoteDocument } from '@/components/documents/sale-note-document'
 import { DocumentActions } from '@/components/documents/document-actions'
@@ -34,7 +34,7 @@ function emptyItem(): NoteItem {
 
 export default function CreateNotePage() {
   const router = useRouter()
-  const { createNote, events: localEvents } = useData()
+  const queryClient = useQueryClient()
 
   // Form states
   const [customerName, setCustomerName] = useState('')
@@ -48,15 +48,48 @@ export default function CreateNotePage() {
 
   const [savedNote, setSavedNote] = useState<Note | null>(null)
 
-  // API events fetch
+  // API events fetch for event linking dropdown
   const { data: apiEvents = [] } = useQuery({
     queryKey: ['businessEvents'],
     queryFn: () => financeApi.getBusinessEvents(),
   })
+  const availableEvents = Array.isArray(apiEvents) ? apiEvents : []
 
-  // Combine events for dropdown
-  const safeApiEvents = Array.isArray(apiEvents) ? apiEvents : []
-  const availableEvents = safeApiEvents.length > 0 ? safeApiEvents : localEvents
+  // NestJS API Mutation
+  const createMutation = useMutation({
+    mutationFn: (dto: CreateSalesNoteDto) => financeApi.createSalesNote(dto),
+    onSuccess: (apiNote) => {
+      queryClient.invalidateQueries({ queryKey: ['salesNotes'] })
+      toast.success(`Nota ${apiNote.folio || 'generada'} guardada correctamente en la base de datos`)
+      
+      // Mapear nota devuelta por la API para previsualización e impresión
+      const mappedNote: Note = {
+        id: apiNote.id,
+        folio: apiNote.folio || `NV-${apiNote.id.slice(0, 4)}`,
+        customer: {
+          name: apiNote.customerName || apiNote.customer?.name || customerName.trim(),
+          phone: apiNote.customerPhone || apiNote.customer?.phone || customerPhone.trim() || undefined,
+          address: apiNote.customerAddress || apiNote.customer?.address || customerAddress.trim() || undefined,
+        },
+        items: (apiNote.items || []).map((it, idx) => ({
+          id: it.id || `it_${idx}`,
+          description: it.concept || (it as any).description || '',
+          quantity: it.quantity,
+          unitPrice: Number(it.unitPrice),
+        })),
+        applyIva: Boolean(apiNote.applyIva),
+        ivaRate: Number(apiNote.ivaRate || IVA_RATE),
+        notes: apiNote.notes || notes.trim() || undefined,
+        status: (apiNote.status as any) === 'issued' ? 'issued' : 'quote',
+        eventId: apiNote.eventId || (eventId === 'none' ? null : eventId),
+        createdAt: apiNote.createdAt || new Date().toISOString(),
+      }
+      setSavedNote(mappedNote)
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Error al guardar la nota en la API de NestJS')
+    },
+  })
 
   const totals = useMemo(() => computeNoteTotals(items, applyIva, IVA_RATE), [items, applyIva])
 
@@ -83,31 +116,23 @@ export default function CreateNotePage() {
       return
     }
 
-    const note = createNote({
-      customer: {
-        name: customerName.trim(),
-        phone: customerPhone.trim() || undefined,
-        address: customerAddress.trim() || undefined,
-      },
-      items: validItems,
+    const dto: CreateSalesNoteDto = {
+      customerName: customerName.trim(),
+      customerPhone: customerPhone.trim() || undefined,
+      customerAddress: customerAddress.trim() || undefined,
+      status: status === 'issued' ? ('note' as SalesNoteStatus) : ('quote' as SalesNoteStatus),
       applyIva,
       ivaRate: IVA_RATE,
       notes: notes.trim() || undefined,
-      status,
-      eventId: eventId === 'none' ? null : eventId,
-    })
-
-    // Persistir en localStorage
-    try {
-      const existing: Note[] = JSON.parse(localStorage.getItem('eventos_mendoza_notes') || '[]')
-      const updated = [note, ...existing.filter((n) => n.id !== note.id)]
-      localStorage.setItem('eventos_mendoza_notes', JSON.stringify(updated))
-    } catch (e) {
-      console.warn('No se pudo guardar en localStorage:', e)
+      eventId: eventId === 'none' ? undefined : eventId,
+      items: validItems.map((it) => ({
+        concept: it.description.trim(),
+        quantity: it.quantity,
+        unitPrice: it.unitPrice,
+      })),
     }
 
-    setSavedNote(note)
-    toast.success(`Nota ${note.folio} generada correctamente`)
+    createMutation.mutate(dto)
   }
 
   if (savedNote) {
@@ -141,7 +166,7 @@ export default function CreateNotePage() {
     <div className="space-y-6">
       <PageHeader
         title="Crear nota de venta"
-        description="Genera notas de venta o cotizaciones profesionales optimizadas para exportar a PDF o Imagen."
+        description="Genera notas de venta o cotizaciones profesionales conectadas a la base de datos de NestJS."
       />
 
       <div className="flex flex-col gap-6">
@@ -305,8 +330,8 @@ export default function CreateNotePage() {
                   <SelectContent>
                     <SelectItem value="none">Sin evento</SelectItem>
                     {availableEvents.map((ev: any) => (
-                      <SelectItem key={ev.id} value={ev.id}>
-                        {ev.name || ev.serviceDescription || `Evento #${ev.id.slice(0, 6)}`}
+                      <SelectItem key={ev.id} value={String(ev.id)}>
+                        {ev.name || ev.serviceDescription || `Evento #${String(ev.id).slice(0, 6)}`}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -364,10 +389,11 @@ export default function CreateNotePage() {
             <CardContent className="pt-4 pb-6">
               <Button
                 size="lg"
+                disabled={createMutation.isPending}
                 className="w-full h-12 bg-violet-600 hover:bg-violet-700 text-white font-bold text-base shadow-md shadow-violet-200 transition-all gap-2"
                 onClick={handleSave}
               >
-                <Save className="h-5 w-5" />
+                {createMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Save className="h-5 w-5" />}
                 Guardar y generar documento
               </Button>
             </CardContent>

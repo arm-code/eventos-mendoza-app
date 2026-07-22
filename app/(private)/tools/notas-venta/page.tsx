@@ -1,14 +1,16 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Eye, FilePlus2, Search, Trash2 } from 'lucide-react'
+import { Eye, FilePlus2, Search, Trash2, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useData } from '@/lib/data-store'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { financeApi } from '@/lib/api/finance'
 import { noteTotal } from '@/lib/calculations'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { seedBusinessConfig } from '@/lib/mock-data'
 import type { Note } from '@/lib/types'
+import type { SalesNote } from '@/types/finance'
 import { PageHeader } from '@/components/admin/page-header'
 import { SaleNoteDocument } from '@/components/documents/sale-note-document'
 import { DocumentActions } from '@/components/documents/document-actions'
@@ -32,71 +34,91 @@ import {
 } from '@/components/ui/table'
 
 export default function NotesHistoryPage() {
-  const { notes: storeNotes, deleteNote: storeDeleteNote, events } = useData()
+  const queryClient = useQueryClient()
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Note | null>(null)
-  const [localNotes, setLocalNotes] = useState<Note[]>([])
 
-  // Cargar notas guardadas en localStorage
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('eventos_mendoza_notes')
-      if (stored) {
-        setLocalNotes(JSON.parse(stored))
+  // Query SalesNotes 100% from NestJS API Database
+  const { data: rawNotes = [], isLoading } = useQuery({
+    queryKey: ['salesNotes', query],
+    queryFn: () => financeApi.getSalesNotes({ search: query }),
+  })
+
+  // Events for folio linking info
+  const { data: rawEvents = [] } = useQuery({
+    queryKey: ['businessEvents'],
+    queryFn: () => financeApi.getBusinessEvents(),
+  })
+  const eventsList = Array.isArray(rawEvents) ? rawEvents : []
+
+  // Delete Mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => financeApi.deleteSalesNote(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['salesNotes'] })
+      toast.success('Nota eliminada correctamente de la base de datos')
+    },
+    onError: (err: any) => {
+      toast.error(err.message || 'Error al eliminar la nota')
+    },
+  })
+
+  // Normalize API SalesNotes to Note interface
+  const notesList = useMemo<Note[]>(() => {
+    const list: SalesNote[] = Array.isArray(rawNotes) ? rawNotes : []
+    return list.map((n) => {
+      const items = (n.items || []).map((it, idx) => ({
+        id: it.id || `it_${idx}`,
+        description: it.concept || (it as any).description || '',
+        quantity: Number(it.quantity) || 1,
+        unitPrice: Number(it.unitPrice) || 0,
+      }))
+
+      return {
+        id: String(n.id),
+        folio: n.folio || `NV-${String(n.id).slice(0, 4)}`,
+        customer: {
+          name: n.customerName || n.customer?.name || 'Cliente sin nombre',
+          phone: n.customerPhone || n.customer?.phone || undefined,
+          address: n.customerAddress || n.customer?.address || undefined,
+          email: n.customerEmail || n.customer?.email || undefined,
+        },
+        items,
+        applyIva: Boolean(n.applyIva),
+        ivaRate: Number(n.ivaRate) || 0.16,
+        notes: n.notes || undefined,
+        status: (n.status === 'quote' ? 'quote' : 'issued') as any,
+        eventId: n.eventId || null,
+        createdAt: n.createdAt || new Date().toISOString(),
       }
-    } catch (e) {
-      console.warn('Error al leer notas de localStorage:', e)
-    }
-  }, [])
+    }).sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
+  }, [rawNotes])
 
-  // Combinar notas del store y de localStorage evitando duplicados
-  const combinedNotes = useMemo(() => {
-    const map = new Map<string, Note>()
-    localNotes.forEach((n) => map.set(n.id, n))
-    storeNotes.forEach((n) => map.set(n.id, n))
-    return Array.from(map.values()).sort(
-      (a, b) => +new Date(b.createdAt) - +new Date(a.createdAt),
-    )
-  }, [localNotes, storeNotes])
-
+  // Filter notes by search query if client-side filtering needed
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return combinedNotes
-    return combinedNotes.filter(
+    if (!q) return notesList
+    return notesList.filter(
       (n) =>
         n.folio.toLowerCase().includes(q) ||
-        n.customer.name.toLowerCase().includes(q),
+        n.customer.name.toLowerCase().includes(q)
     )
-  }, [combinedNotes, query])
+  }, [notesList, query])
 
   function handleDelete(id: string) {
-    // Eliminar de store
-    try {
-      storeDeleteNote(id)
-    } catch (e) {
-      // Ignore if store handles it
-    }
-    // Eliminar de localStorage
-    const updated = localNotes.filter((n) => n.id !== id)
-    setLocalNotes(updated)
-    try {
-      localStorage.setItem('eventos_mendoza_notes', JSON.stringify(updated))
-    } catch (e) {
-      console.warn('Error al actualizar localStorage:', e)
-    }
-    toast.success('Nota eliminada correctamente')
+    deleteMutation.mutate(id)
   }
 
   function eventFolio(eventId?: string | null) {
     if (!eventId) return null
-    return events.find((e) => e.id === eventId)?.folio ?? null
+    return eventsList.find((e) => String(e.id) === String(eventId))?.folio ?? null
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Historial de notas"
-        description="Consulta, exporta a PDF/Imagen o administra tus notas de venta y cotizaciones."
+        description="Consulta, exporta a PDF/Imagen o administra las notas de venta y cotizaciones en base de datos real."
         action={
           <Button asChild className="bg-violet-600 hover:bg-violet-700 text-white gap-2 font-semibold">
             <Link href="/tools/crear-nota-venta">
@@ -112,7 +134,7 @@ export default function NotesHistoryPage() {
         <Input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por folio (ej. NV-0001) o cliente..."
+          placeholder="Buscar por folio (ej. NV-0001) o cliente en la base de datos..."
           className="h-11 pl-10 border-violet-100 bg-white focus:border-violet-500 focus:ring-violet-500 shadow-sm"
         />
       </div>
@@ -168,6 +190,7 @@ export default function NotesHistoryPage() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        disabled={deleteMutation.isPending}
                         className="text-red-500 hover:bg-red-50 hover:text-red-700 h-8 w-8"
                         onClick={() => handleDelete(note.id)}
                         aria-label="Eliminar nota"
@@ -181,7 +204,14 @@ export default function NotesHistoryPage() {
               {filtered.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="py-12 text-center text-violet-400">
-                    No hay notas registradas o que coincidan con la búsqueda.
+                    {isLoading ? (
+                      <div className="flex items-center justify-center gap-2 font-medium">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        <span>Cargando notas de la base de datos...</span>
+                      </div>
+                    ) : (
+                      'No hay notas guardadas en la base de datos.'
+                    )}
                   </TableCell>
                 </TableRow>
               )}
@@ -235,6 +265,7 @@ export default function NotesHistoryPage() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      disabled={deleteMutation.isPending}
                       className="text-red-500 hover:bg-red-50 hover:text-red-700 h-9 w-9"
                       onClick={() => handleDelete(note.id)}
                       aria-label="Eliminar nota"
@@ -250,7 +281,14 @@ export default function NotesHistoryPage() {
         {filtered.length === 0 && (
           <Card className="border-violet-100 bg-white">
             <CardContent className="py-12 text-center text-violet-400">
-              No hay notas de venta registradas.
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2 font-medium">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Cargando notas...</span>
+                </div>
+              ) : (
+                'No hay notas de venta registradas en la base de datos.'
+              )}
             </CardContent>
           </Card>
         )}
