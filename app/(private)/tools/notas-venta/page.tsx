@@ -261,13 +261,13 @@ export default function NotesHistoryPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <User className="h-3.5 w-3.5 text-violet-400 flex-shrink-0" />
-                          <p className="font-bold text-violet-950 truncate text-sm">{note.customer.name}</p>
+                          <p className="font-bold text-violet-950 truncate text-sm uppercase">{note.customer.name}</p>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-violet-500">
                           <FileText className="h-3 w-3 flex-shrink-0" />
                           <span className="font-mono">{note.folio}</span>
                           <span className="w-1 h-1 rounded-full bg-violet-300" />
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-1 uppercase">
                             <Calendar className="h-3 w-3" />
                             {formatDate(note.createdAt)}
                           </span>
@@ -302,7 +302,7 @@ export default function NotesHistoryPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => setSelected(note)}
-                            className="border-violet-200 text-violet-700 hover:bg-violet-50 font-semibold h-10 rounded-xl touch-manipulation gap-1.5"
+                            className="border-violet-200 text-violet-700 hover:bg-violet-50 font-semibold h-10 rounded-xl touch-manipulation gap-1.5 uppercase"
                           >
                             <Eye className="h-4 w-4 text-violet-600" />
                             Ver
