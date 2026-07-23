@@ -76,7 +76,7 @@ export default function TipoDeProductosPage() {
 
   const handleDelete = async (id: number) => {
     if (!confirm('¿Estás seguro de eliminar este tipo de producto?')) return
-    
+
     try {
       const res = await request(`/tipos-producto/${id}`, { method: 'DELETE' })
       if (res.status === 200) {
@@ -115,7 +115,7 @@ export default function TipoDeProductosPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader size="lg" text="Cargando tipos de producto..." />
+        <Loader />
       </div>
     )
   }
@@ -130,8 +130,8 @@ export default function TipoDeProductosPage() {
             {productTypes.length} {productTypes.length === 1 ? 'tipo' : 'tipos'} de producto
           </p>
         </div>
-        
-        <button 
+
+        <button
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 bg-violet-600 text-white px-4 py-2 rounded-lg hover:bg-violet-700 transition-colors"
         >
@@ -150,7 +150,7 @@ export default function TipoDeProductosPage() {
                 {editingType ? 'Editar Tipo' : 'Crear Tipo de Producto'}
               </h3>
             </div>
-            <button 
+            <button
               onClick={resetForm}
               className="p-1 text-violet-400 hover:text-violet-600 transition-colors"
             >
@@ -173,7 +173,7 @@ export default function TipoDeProductosPage() {
                   placeholder="Ej: Mesas, Sillas, etc."
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-violet-700 mb-2">
                   Descripción
@@ -200,12 +200,10 @@ export default function TipoDeProductosPage() {
                       onChange={(e) => setFormData({ ...formData, requiereStock: e.target.checked })}
                       className="sr-only"
                     />
-                    <div className={`w-10 h-6 rounded-full transition-colors ${
-                      formData.requiereStock ? 'bg-violet-600' : 'bg-gray-300'
-                    }`}>
-                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                        formData.requiereStock ? 'transform translate-x-5' : 'transform translate-x-1'
-                      }`} />
+                    <div className={`w-10 h-6 rounded-full transition-colors ${formData.requiereStock ? 'bg-violet-600' : 'bg-gray-300'
+                      }`}>
+                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${formData.requiereStock ? 'transform translate-x-5' : 'transform translate-x-1'
+                        }`} />
                     </div>
                   </div>
                   <span className="text-sm text-violet-700">Requiere Stock</span>
@@ -219,12 +217,10 @@ export default function TipoDeProductosPage() {
                       onChange={(e) => setFormData({ ...formData, permiteVenta: e.target.checked })}
                       className="sr-only"
                     />
-                    <div className={`w-10 h-6 rounded-full transition-colors ${
-                      formData.permiteVenta ? 'bg-violet-600' : 'bg-gray-300'
-                    }`}>
-                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                        formData.permiteVenta ? 'transform translate-x-5' : 'transform translate-x-1'
-                      }`} />
+                    <div className={`w-10 h-6 rounded-full transition-colors ${formData.permiteVenta ? 'bg-violet-600' : 'bg-gray-300'
+                      }`}>
+                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${formData.permiteVenta ? 'transform translate-x-5' : 'transform translate-x-1'
+                        }`} />
                     </div>
                   </div>
                   <span className="text-sm text-violet-700">Permite Venta</span>
@@ -238,12 +234,10 @@ export default function TipoDeProductosPage() {
                       onChange={(e) => setFormData({ ...formData, permiteRenta: e.target.checked })}
                       className="sr-only"
                     />
-                    <div className={`w-10 h-6 rounded-full transition-colors ${
-                      formData.permiteRenta ? 'bg-violet-600' : 'bg-gray-300'
-                    }`}>
-                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
-                        formData.permiteRenta ? 'transform translate-x-5' : 'transform translate-x-1'
-                      }`} />
+                    <div className={`w-10 h-6 rounded-full transition-colors ${formData.permiteRenta ? 'bg-violet-600' : 'bg-gray-300'
+                      }`}>
+                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${formData.permiteRenta ? 'transform translate-x-5' : 'transform translate-x-1'
+                        }`} />
                     </div>
                   </div>
                   <span className="text-sm text-violet-700">Permite Renta</span>
@@ -287,8 +281,8 @@ export default function TipoDeProductosPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {productTypes.map((type) => (
-            <div 
-              key={type.id} 
+            <div
+              key={type.id}
               className="bg-white border border-violet-100 rounded-xl p-4 md:p-6 hover:shadow-lg transition-all duration-200"
             >
               {/* Header */}
@@ -346,7 +340,7 @@ export default function TipoDeProductosPage() {
                   <Edit2 className="w-4 h-4" />
                   <span className="text-sm">Editar</span>
                 </button>
-                <button 
+                <button
                   onClick={() => handleDelete(type.id)}
                   className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
                 >

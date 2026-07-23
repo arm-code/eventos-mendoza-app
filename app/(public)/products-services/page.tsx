@@ -58,7 +58,7 @@ export default function ProductsServicesPage() {
   if (loading) {
     return (
       <div className='min-h-screen flex items-center justify-center bg-violet-50'>
-        <Loader size='lg' text='Cargando catálogo...' />
+        <Loader />
       </div>
     );
   }
@@ -169,19 +169,18 @@ export default function ProductsServicesPage() {
                         {product.nombre}
                       </h3>
                       <span
-                        className={`px-3 py-1 text-xs rounded-full font-medium ${
-                          product.stock > 10
+                        className={`px-3 py-1 text-xs rounded-full font-medium ${product.stock > 10
                             ? 'bg-green-100 text-green-800 border border-green-200'
                             : product.stock > 0
-                            ? 'bg-orange-100 text-orange-800 border border-orange-200'
-                            : 'bg-red-100 text-red-800 border border-red-200'
-                        }`}
+                              ? 'bg-orange-100 text-orange-800 border border-orange-200'
+                              : 'bg-red-100 text-red-800 border border-red-200'
+                          }`}
                       >
                         {product.stock > 10
                           ? 'Disponible'
                           : product.stock > 0
-                          ? 'Últimas unidades'
-                          : 'Agotado'}
+                            ? 'Últimas unidades'
+                            : 'Agotado'}
                       </span>
                     </div>
 
@@ -225,11 +224,10 @@ export default function ProductsServicesPage() {
                     <button
                       onClick={() => handleContact(product.nombre)}
                       disabled={product.stock === 0}
-                      className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold transition-colors ${
-                        product.stock === 0
+                      className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold transition-colors ${product.stock === 0
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                           : 'bg-violet-600 text-white hover:bg-violet-700'
-                      }`}
+                        }`}
                     >
                       <ShoppingCart className='w-4 h-4' />
                       {product.stock === 0 ? 'Agotado' : 'Consultar'}

@@ -22,7 +22,7 @@ interface CreateProductForm {
 }
 
 const CrearProductoPage = () => {
-  const { error, loading, request } = useApi();  
+  const { error, loading, request } = useApi();
   const { showSuccess } = useToast();
 
   const [formData, setFormData] = useState<CreateProductForm>({
@@ -50,7 +50,7 @@ const CrearProductoPage = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();    
+    e.preventDefault();
 
     try {
       const res = await request('/productos', {
@@ -58,7 +58,7 @@ const CrearProductoPage = () => {
         json: formData,
       });
 
-      if (res.data) {        
+      if (res.data) {
         showSuccess('Producto creado exitosamente')
         // Reset form
         setFormData({
@@ -80,7 +80,7 @@ const CrearProductoPage = () => {
   if (loading) {
     return (
       <div className='min-h-screen flex items-center justify-center'>
-        <Loader size='lg' text='Creando producto...' />
+        <Loader />
       </div>
     );
   }
@@ -97,7 +97,7 @@ const CrearProductoPage = () => {
             Agrega un nuevo producto al inventario
           </p>
         </div>
-      </div>      
+      </div>
 
       {error && (
         <div className='bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg mb-6'>

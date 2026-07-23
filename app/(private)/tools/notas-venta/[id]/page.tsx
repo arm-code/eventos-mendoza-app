@@ -49,7 +49,7 @@ export default function SaleNoteDetailPage({ params }: { params: Promise<{ id: s
         fetchNoteDetail();
     }, [resolvedParams.id]);
 
-    if (loading) return <Loader size="lg" text="Cargando detalles de la nota..." />;
+    if (loading) return <Loader />;
     if (error) return (
         <div className="p-8 text-center text-red-600">
             <p>Error: {error}</p>

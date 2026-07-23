@@ -66,7 +66,7 @@ export default function CategoriesPage() {
 
   const handleDelete = async (id: number) => {
     if (!confirm('¿Seguro que deseas eliminar esta categoría?')) return
-    
+
     try {
       const res = await request(`/categorias/${id}`, { method: 'DELETE' })
       if (res.status === 200) {
@@ -87,7 +87,7 @@ export default function CategoriesPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader size="lg" text="Cargando categorías..." />
+        <Loader />
       </div>
     )
   }
@@ -102,8 +102,8 @@ export default function CategoriesPage() {
             {categories.length} {categories.length === 1 ? 'categoría' : 'categorías'} encontradas
           </p>
         </div>
-        
-        <button 
+
+        <button
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 bg-violet-600 text-white px-4 py-2 rounded-lg hover:bg-violet-700 transition-colors"
         >
@@ -122,7 +122,7 @@ export default function CategoriesPage() {
                 {editingCategory ? 'Editar Categoría' : 'Crear Categoría'}
               </h3>
             </div>
-            <button 
+            <button
               onClick={resetForm}
               className="p-1 text-violet-400 hover:text-violet-600 transition-colors"
             >
@@ -144,7 +144,7 @@ export default function CategoriesPage() {
                 placeholder="Nombre de la categoría"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-violet-700 mb-2">
                 Descripción
@@ -157,7 +157,7 @@ export default function CategoriesPage() {
                 placeholder="Descripción opcional de la categoría"
               />
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <button
                 type="submit"
@@ -194,8 +194,8 @@ export default function CategoriesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {categories.map((cat) => (
-            <div 
-              key={cat.id} 
+            <div
+              key={cat.id}
               className="bg-white border border-violet-100 rounded-xl p-4 md:p-6 hover:shadow-lg transition-all duration-200"
             >
               {/* Header */}
@@ -226,7 +226,7 @@ export default function CategoriesPage() {
                   <Edit2 className="w-4 h-4" />
                   <span className="text-sm">Editar</span>
                 </button>
-                <button 
+                <button
                   onClick={() => handleDelete(cat.id)}
                   className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
                 >
