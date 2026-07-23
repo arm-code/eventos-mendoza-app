@@ -132,12 +132,11 @@ export default function NotesHistoryPage() {
         action={
           <Button
             asChild
-            className="bg-violet-600 hover:bg-violet-700 text-white gap-2 font-semibold h-11 rounded-xl shadow-lg shadow-violet-600/20 active:scale-[0.98] transition-all touch-manipulation"
+            className="hidden sm:inline-flex bg-violet-600 hover:bg-violet-700 text-white gap-2 font-semibold h-11 rounded-xl shadow-lg shadow-violet-600/20 active:scale-[0.98] transition-all touch-manipulation"
           >
             <Link href="/tools/crear-nota-venta">
               <FilePlus2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Nueva nota</span>
-              <span className="sm:hidden">Nueva</span>
+              <span>Nueva nota</span>
             </Link>
           </Button>
         }
@@ -350,6 +349,19 @@ export default function NotesHistoryPage() {
             </CardContent>
           </Card>
         )}
+      </div>
+
+      {/* FAB móvil (posicionado arriba del bottom nav) */}
+      <div className="sm:hidden fixed bottom-[72px] right-4 z-30">
+        <Link href="/tools/crear-nota-venta">
+          <motion.button
+            whileTap={{ scale: 0.88 }}
+            className="flex items-center justify-center w-14 h-14 rounded-full bg-violet-600 text-white shadow-xl shadow-violet-600/30 active:bg-violet-700 touch-manipulation"
+            aria-label="Nueva nota"
+          >
+            <FilePlus2 className="h-6 w-6" />
+          </motion.button>
+        </Link>
       </div>
 
       {/* Dialog de vista/exportación - Desktop */}
