@@ -1,7 +1,6 @@
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import './globals.css';
-import { ToastContainer } from 'react-toastify';
 import type { Metadata } from 'next';
 import PwaRegistration from '@/components/PwaRegistration';
 import { Toaster } from 'sonner';
@@ -70,13 +69,6 @@ export default function RootLayout({
               <PwaRegistration />
               {children}
               <Toaster position="top-right" richColors />
-              <ToastContainer
-                position='top-right'
-                autoClose={3000}
-                hideProgressBar={false}
-                newestOnTop={false}
-                closeOnClick
-              />
             </DataProvider>
           </AuthProvider>
         </QueryProvider>
