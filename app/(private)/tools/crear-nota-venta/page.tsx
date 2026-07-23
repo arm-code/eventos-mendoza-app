@@ -2,7 +2,7 @@
 
 import { useMemo, useState, ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Save, Trash2, ArrowLeft, Hash, User, Phone, MapPin, FileText, Calculator } from 'lucide-react'
+import { Plus, Save, Trash2, ArrowLeft, Hash, User, Phone, MapPin, FileText, Calculator, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
@@ -29,6 +29,18 @@ import {
 } from '@/components/ui/select'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Loader } from '@/components/Loaders/Loader.component'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 
 const IVA_RATE = 0.16
 
@@ -139,46 +151,6 @@ export default function CreateNotePage() {
     }
 
     createMutation.mutate(dto)
-  }
-
-  if (savedNote) {
-    return (
-      <div className="space-y-4 sm:space-y-6">
-        <PageHeader
-          title={`Nota ${savedNote.folio}`}
-          description="Previsualiza y exporta la nota de venta o cotización."
-          action={
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                className="border-violet-200 text-violet-700 hover:bg-violet-50 rounded-xl h-11 touch-manipulation gap-2"
-                onClick={() => setSavedNote(null)}
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Editar
-              </Button>
-              <Button
-                className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl h-11 shadow-lg shadow-violet-600/20 touch-manipulation"
-                onClick={() => router.push('/tools/notas-venta')}
-              >
-                Ver historial
-              </Button>
-            </div>
-          }
-        />
-        <Card className="border-violet-100 bg-white shadow-sm p-4 sm:p-6 rounded-2xl">
-          <DocumentActions
-            filename={`nota-${savedNote.folio}`}
-            exportNode={<PrintSaleNoteDocument note={savedNote} business={businessConfig} />}
-          >
-            {isMobile
-              ? <NoteCardPreview note={savedNote} business={businessConfig} />
-              : <SaleNoteDocument note={savedNote} business={businessConfig} />
-            }
-          </DocumentActions>
-        </Card>
-      </div>
-    )
   }
 
   return (
@@ -451,6 +423,76 @@ export default function CreateNotePage() {
           </Card>
         </div>
       </div>
+
+      {/* ── Sheet mobile: nota guardada ── */}
+      {isMobile && (
+        <Sheet open={savedNote !== null} onOpenChange={(o) => !o && setSavedNote(null)}>
+          <SheetContent
+            side="bottom"
+            className="h-[92vh] max-h-[92dvh] rounded-t-3xl border-t border-violet-100 bg-white p-0 flex flex-col overflow-hidden"
+          >
+            <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50 flex-shrink-0">
+              <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
+              <SheetHeader className="text-left">
+                <SheetTitle className="text-lg font-bold text-violet-950">Nota {savedNote?.folio}</SheetTitle>
+              </SheetHeader>
+            </div>
+            <div className="px-4 py-4 overflow-y-auto flex-1 pb-4">
+              {savedNote && (
+                <DocumentActions
+                  filename={`nota-${savedNote.folio}`}
+                  exportNode={<PrintSaleNoteDocument note={savedNote} business={businessConfig} />}
+                  extraActions={
+                    <motion.div whileTap={{ scale: 0.94 }} className="flex-1 sm:flex-none">
+                      <Button
+                        variant="outline"
+                        onClick={() => setSavedNote(null)}
+                        className="w-full sm:w-auto h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
+                      >
+                        <Pencil className="h-4 w-4 text-violet-500" />
+                        Editar
+                      </Button>
+                    </motion.div>
+                  }
+                >
+                  <NoteCardPreview note={savedNote} business={businessConfig} />
+                </DocumentActions>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
+
+      {/* ── Dialog desktop: nota guardada ── */}
+      {!isMobile && (
+        <Dialog open={savedNote !== null} onOpenChange={(o) => !o && setSavedNote(null)}>
+          <DialogContent className="max-h-[90dvh] max-w-4xl overflow-y-auto rounded-2xl border-violet-100 bg-white p-4 sm:p-6">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-violet-950">Nota {savedNote?.folio}</DialogTitle>
+            </DialogHeader>
+            {savedNote && (
+              <DocumentActions
+                filename={`nota-${savedNote.folio}`}
+                exportNode={<PrintSaleNoteDocument note={savedNote} business={businessConfig} />}
+                extraActions={
+                  <motion.div whileTap={{ scale: 0.94 }}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setSavedNote(null)}
+                      className="h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
+                    >
+                      <Pencil className="h-4 w-4 text-violet-500" />
+                      Editar
+                    </Button>
+                  </motion.div>
+                }
+              >
+                <SaleNoteDocument note={savedNote} business={businessConfig} />
+              </DocumentActions>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }

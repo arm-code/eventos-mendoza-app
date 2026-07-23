@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Eye, FilePlus2, Search, Trash2, Loader2, FileText, Calendar, User, ShieldAlert } from 'lucide-react'
+import { Eye, FilePlus2, Search, Trash2, Loader2, FileText, Calendar, User, ShieldAlert, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
@@ -388,6 +388,18 @@ export default function NotesHistoryPage() {
                 <DocumentActions
                   filename={`nota-${selected.folio}`}
                   exportNode={<PrintSaleNoteDocument note={selected} business={businessConfig} />}
+                  extraActions={
+                    <motion.div whileTap={{ scale: 0.94 }} className="flex-1 sm:flex-none">
+                      <Button
+                        variant="outline"
+                        onClick={() => setSelected(null)}
+                        className="w-full sm:w-auto h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
+                      >
+                        <Pencil className="h-4 w-4 text-violet-500" />
+                        Editar
+                      </Button>
+                    </motion.div>
+                  }
                 >
                   {/* Vista mobile: tarjetas legibles sin desbordamiento horizontal */}
                   <NoteCardPreview note={selected} business={businessConfig} />
@@ -406,6 +418,18 @@ export default function NotesHistoryPage() {
               <DocumentActions
                 filename={`nota-${selected.folio}`}
                 exportNode={<PrintSaleNoteDocument note={selected} business={businessConfig} />}
+                extraActions={
+                  <motion.div whileTap={{ scale: 0.94 }}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setSelected(null)}
+                      className="h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
+                    >
+                      <Pencil className="h-4 w-4 text-violet-500" />
+                      Editar
+                    </Button>
+                  </motion.div>
+                }
               >
                 <SaleNoteDocument note={selected} business={businessConfig} />
               </DocumentActions>

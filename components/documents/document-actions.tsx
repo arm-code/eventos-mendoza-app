@@ -14,9 +14,11 @@ interface DocumentActionsProps {
   children: React.ReactNode
   // El nodo que se captura al exportar (siempre 794px desktop)
   exportNode: React.ReactNode
+  // Botones adicionales junto a Imagen/PDF (ej. Editar)
+  extraActions?: React.ReactNode
 }
 
-export function DocumentActions({ filename, children, exportNode }: DocumentActionsProps) {
+export function DocumentActions({ filename, children, exportNode, extraActions }: DocumentActionsProps) {
   // Ref apunta al nodo off-screen de exportación (siempre 794px)
   const exportRef = useRef<HTMLDivElement>(null)
   const [exporting, setExporting] = useState<'png' | 'pdf' | null>(null)
@@ -78,7 +80,8 @@ export function DocumentActions({ filename, children, exportNode }: DocumentActi
 
       {/* Barra de acciones (Imagen y PDF) */}
       <div className="sticky bottom-0 z-40 bg-white/95 backdrop-blur-xl border border-violet-100/90 p-2.5 rounded-2xl shadow-xl shadow-violet-900/10 print:hidden">
-        <div className="flex items-center gap-2 justify-center max-w-xs sm:max-w-none mx-auto">
+        <div className="flex items-center gap-2 justify-center flex-wrap max-w-xs sm:max-w-none mx-auto">
+          {extraActions}
           <motion.div whileTap={{ scale: 0.94 }} className="flex-1 sm:flex-none">
             <Button
               variant="outline"
