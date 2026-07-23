@@ -16,7 +16,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import type { EventStatus, CreateBusinessEventDto, UpdateBusinessEventDto, BusinessEvent } from '@/types/finance'
+import type { EventStatus, CreateBusinessEventDto, UpdateBusinessEventDto, BusinessEvent, BusinessConfig } from '@/types/finance'
 import {
   Dialog,
   DialogContent,
@@ -58,6 +58,12 @@ export default function EventosPage() {
     queryKey: ['businessEvents', activeTab, searchQuery],
     queryFn: () => financeApi.getBusinessEvents({ tab: activeTab, search: searchQuery }),
   })
+
+  const { data: apiConfig } = useQuery({
+    queryKey: ['businessConfig'],
+    queryFn: () => financeApi.getConfig(),
+  })
+  const businessConfig: BusinessConfig = apiConfig || defaultBusinessConfig
 
   // Normalize API Events list
   const eventsList = useMemo<BusinessEvent[]>(() => {
@@ -591,7 +597,7 @@ export default function EventosPage() {
           {contractEvent && (
             <div className="space-y-4 pt-2">
               <DocumentActions filename={`contrato-evento-${contractEvent.folio}`}>
-                <EventContractDocument event={contractEvent as EventContractData} business={defaultBusinessConfig} />
+                <EventContractDocument event={contractEvent as EventContractData} business={businessConfig} />
               </DocumentActions>
             </div>
           )}

@@ -94,22 +94,6 @@ export interface Transaction {
   eventId?: string | null // vínculo opcional a un evento
 }
 
-// ---------- Configuración del negocio (fase pública) ----------
+// ---------- Configuración del negocio ----------
 
-export interface PaymentCard {
-  id: string
-  bank: string
-  cardNumber: string
-  clabe: string
-  beneficiary: string
-}
-
-export interface BusinessConfig {
-  name: string
-  logoUrl?: string
-  services: string[]
-  phone?: string
-  whatsapp?: string
-  paymentCards: PaymentCard[]
-  coverageAreas: string[]
-}
+export type { BusinessConfig, PaymentCard } from '@/types/finance'

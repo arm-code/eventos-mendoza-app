@@ -14,7 +14,11 @@ import {
   PaymentMethod,
   CreateTransactionCategoryDto,
   CreatePaymentMethodDto,
-  PaginatedResponse
+  PaginatedResponse,
+  BusinessConfig,
+  UpdateBusinessConfigDto,
+  CreatePaymentCardDto,
+  PaymentCard,
 } from '@/types/finance';
 
 const PREFIX = '/v1';
@@ -123,6 +127,27 @@ export const financeApi = {
 
   createPaymentMethod: async (data: CreatePaymentMethodDto) => {
     const res = await axiosInstance.post<PaymentMethod>(`${PREFIX}/payment-methods`, data);
+    return res.data;
+  },
+
+  // Business Configuration
+  getConfig: async () => {
+    const res = await axiosInstance.get<BusinessConfig>(`${PREFIX}/config`);
+    return res.data;
+  },
+
+  updateConfig: async (data: UpdateBusinessConfigDto) => {
+    const res = await axiosInstance.patch<BusinessConfig>(`${PREFIX}/config`, data);
+    return res.data;
+  },
+
+  addPaymentCard: async (data: CreatePaymentCardDto) => {
+    const res = await axiosInstance.post<PaymentCard>(`${PREFIX}/config/cards`, data);
+    return res.data;
+  },
+
+  deletePaymentCard: async (cardId: string) => {
+    const res = await axiosInstance.delete<{ success: boolean }>(`${PREFIX}/config/cards/${cardId}`);
     return res.data;
   },
 };

@@ -1,7 +1,4 @@
-import type { BusinessConfig } from './types';
-
-// Configuración predeterminada de la empresa "Eventos Mendoza"
-// Utilizada para la generación de documentos (PDF, PNG, contratos) mientras se integra el endpoint de /configuracion.
+import type { BusinessConfig } from '@/types/finance';
 
 export const defaultBusinessConfig: BusinessConfig = {
   name: 'Eventos Mendoza',
@@ -14,6 +11,8 @@ export const defaultBusinessConfig: BusinessConfig = {
   ],
   phone: '656 123 4567',
   whatsapp: '526561234567',
+  email: 'contacto@eventosmendoza.com',
+  address: 'Ciudad Juárez, Chih.',
   paymentCards: [
     {
       id: 'card-1',
@@ -24,4 +23,5 @@ export const defaultBusinessConfig: BusinessConfig = {
     },
   ],
   coverageAreas: ['Ciudad Juárez', 'Chihuahua'],
+  termsAndConditions: 'El cliente se compromete a entregar el mobiliario en buen estado.',
 };

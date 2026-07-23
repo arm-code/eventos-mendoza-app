@@ -10,7 +10,7 @@ import { computeNoteTotals, itemAmount } from '@/lib/calculations'
 import { formatCurrency, genId } from '@/lib/format'
 import { defaultBusinessConfig } from '@/lib/config'
 import type { Note, NoteItem } from '@/lib/types'
-import type { CreateSalesNoteDto, SalesNoteStatus } from '@/types/finance'
+import type { CreateSalesNoteDto, SalesNoteStatus, BusinessConfig } from '@/types/finance'
 import { PageHeader } from '@/components/admin/page-header'
 import { SaleNoteDocument } from '@/components/documents/sale-note-document'
 import { DocumentActions } from '@/components/documents/document-actions'
@@ -53,6 +53,12 @@ export default function CreateNotePage() {
     queryFn: () => financeApi.getBusinessEvents(),
   })
   const availableEvents = Array.isArray(apiEvents) ? apiEvents : []
+
+  const { data: apiConfig } = useQuery({
+    queryKey: ['businessConfig'],
+    queryFn: () => financeApi.getConfig(),
+  })
+  const businessConfig: BusinessConfig = apiConfig || defaultBusinessConfig
 
   const createMutation = useMutation({
     mutationFn: (dto: CreateSalesNoteDto) => financeApi.createSalesNote(dto),
@@ -159,7 +165,7 @@ export default function CreateNotePage() {
         />
         <Card className="border-violet-100 bg-white shadow-sm p-4 sm:p-6 rounded-2xl">
           <DocumentActions filename={`nota-${savedNote.folio}`}>
-            <SaleNoteDocument note={savedNote} business={defaultBusinessConfig} />
+            <SaleNoteDocument note={savedNote} business={businessConfig} />
           </DocumentActions>
         </Card>
       </div>

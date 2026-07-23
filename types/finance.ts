@@ -150,3 +150,46 @@ export interface CreateSalesNoteDto {
 }
 
 export interface UpdateSalesNoteDto extends Partial<CreateSalesNoteDto> {}
+
+export interface PaymentCard {
+  id: string;
+  bank: string;
+  cardNumber?: string;
+  clabe?: string;
+  beneficiary: string;
+}
+
+export interface BusinessConfig {
+  id?: string;
+  name: string;
+  logoUrl?: string;
+  phone?: string;
+  whatsapp?: string;
+  email?: string;
+  address?: string;
+  services: string[];
+  coverageAreas: string[];
+  termsAndConditions?: string;
+  paymentCards: PaymentCard[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface UpdateBusinessConfigDto {
+  name?: string;
+  logoUrl?: string;
+  phone?: string;
+  whatsapp?: string;
+  email?: string;
+  address?: string;
+  services?: string[];
+  coverageAreas?: string[];
+  termsAndConditions?: string;
+}
+
+export interface CreatePaymentCardDto {
+  bank: string;
+  cardNumber?: string;
+  clabe?: string;
+  beneficiary: string;
+}

@@ -10,7 +10,7 @@ import { noteTotal } from '@/lib/calculations'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { defaultBusinessConfig } from '@/lib/config'
 import type { Note } from '@/lib/types'
-import type { SalesNote } from '@/types/finance'
+import type { SalesNote, BusinessConfig } from '@/types/finance'
 import { PageHeader } from '@/components/admin/page-header'
 import { SaleNoteDocument } from '@/components/documents/sale-note-document'
 import { DocumentActions } from '@/components/documents/document-actions'
@@ -57,6 +57,12 @@ export default function NotesHistoryPage() {
     queryFn: () => financeApi.getBusinessEvents(),
   })
   const eventsList = Array.isArray(rawEvents) ? rawEvents : []
+
+  const { data: apiConfig } = useQuery({
+    queryKey: ['businessConfig'],
+    queryFn: () => financeApi.getConfig(),
+  })
+  const businessConfig: BusinessConfig = apiConfig || defaultBusinessConfig
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => financeApi.deleteSalesNote(id),
@@ -354,7 +360,7 @@ export default function NotesHistoryPage() {
           </DialogHeader>
           {selected && (
             <DocumentActions filename={`nota-${selected.folio}`}>
-              <SaleNoteDocument note={selected} business={defaultBusinessConfig} />
+              <SaleNoteDocument note={selected} business={businessConfig} />
             </DocumentActions>
           )}
         </DialogContent>
@@ -375,7 +381,7 @@ export default function NotesHistoryPage() {
           <div className="px-4 py-4 overflow-y-auto h-full pb-8">
             {selected && (
               <DocumentActions filename={`nota-${selected.folio}`}>
-                <SaleNoteDocument note={selected} business={defaultBusinessConfig} />
+                <SaleNoteDocument note={selected} business={businessConfig} />
               </DocumentActions>
             )}
           </div>
