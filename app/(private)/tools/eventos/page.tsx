@@ -10,7 +10,7 @@ import { formatCurrency, formatDate } from '@/lib/format'
 import { defaultBusinessConfig } from '@/lib/config'
 import { PageHeader } from '@/components/admin/page-header'
 import { DocumentActions } from '@/components/documents/document-actions'
-import { EventContractDocument, EventContractData } from '@/components/documents/event-contract-document'
+import { EventContractDocument, PrintEventContractDocument, EventContractData } from '@/components/documents/event-contract-document'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -600,7 +600,10 @@ export default function EventosPage() {
 
           {contractEvent && (
             <div className="space-y-4 pt-2">
-              <DocumentActions filename={`contrato-evento-${contractEvent.folio}`}>
+              <DocumentActions
+                filename={`contrato-evento-${contractEvent.folio}`}
+                exportNode={<PrintEventContractDocument event={contractEvent as EventContractData} business={businessConfig} />}
+              >
                 <EventContractDocument event={contractEvent as EventContractData} business={businessConfig} />
               </DocumentActions>
             </div>

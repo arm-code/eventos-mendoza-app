@@ -10,15 +10,19 @@ import { cn } from '@/lib/utils'
 
 interface DocumentActionsProps {
   filename: string
+  // El nodo visible en pantalla (responsive, adapta al viewport)
   children: React.ReactNode
+  // El nodo que se captura al exportar (siempre 794px desktop)
+  exportNode: React.ReactNode
 }
 
-export function DocumentActions({ filename, children }: DocumentActionsProps) {
-  const docRef = useRef<HTMLDivElement>(null)
+export function DocumentActions({ filename, children, exportNode }: DocumentActionsProps) {
+  // Ref apunta al nodo off-screen de exportación (siempre 794px)
+  const exportRef = useRef<HTMLDivElement>(null)
   const [exporting, setExporting] = useState<'png' | 'pdf' | null>(null)
 
   async function handleExport(type: 'png' | 'pdf') {
-    const node = docRef.current?.firstElementChild as HTMLElement | undefined
+    const node = exportRef.current as HTMLElement | null
     if (!node) return
     setExporting(type)
     try {
@@ -39,7 +43,26 @@ export function DocumentActions({ filename, children }: DocumentActionsProps) {
 
   return (
     <div className="flex flex-col gap-4 relative">
-      {/* Vista previa del documento con scroll horizontal en móvil */}
+      {/* Nodo off-screen de 794px fijo — solo para exportar, nunca visible */}
+      <div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          left: '-9999px',
+          top: 0,
+          zIndex: -1,
+          width: 794,
+          minWidth: 794,
+          pointerEvents: 'none',
+          overflow: 'hidden',
+        }}
+      >
+        <div ref={exportRef} style={{ width: 794, backgroundColor: '#ffffff' }}>
+          {exportNode}
+        </div>
+      </div>
+
+      {/* Vista previa visible — responsive en mobile, sin restricción de ancho */}
       <AnimatePresence>
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -47,20 +70,14 @@ export function DocumentActions({ filename, children }: DocumentActionsProps) {
           transition={{ duration: 0.2 }}
           className="overflow-hidden"
         >
-          <div className="overflow-auto rounded-2xl border border-violet-100 bg-muted/30 p-3 sm:p-4 -mx-3 sm:mx-0">
-            <div
-              ref={docRef}
-              style={{ minWidth: 320 }}
-              className="mx-auto shadow-sm"
-            >
-              {children}
-            </div>
+          <div className="w-full rounded-2xl border border-violet-100 bg-muted/30 p-2 sm:p-4">
+            {children}
           </div>
         </motion.div>
       </AnimatePresence>
 
-      {/* Barra de acciones (Imagen y PDF) fijada al fondo del contenedor sin dejar espacio sobrante */}
-      <div className="sticky bottom-0 z-40 bg-white/95 backdrop-blur-xl border border-violet-100/90 p-2.5 rounded-2xl shadow-xl shadow-violet-900/10 print:hidden -mx-1 sm:mx-0">
+      {/* Barra de acciones (Imagen y PDF) */}
+      <div className="sticky bottom-0 z-40 bg-white/95 backdrop-blur-xl border border-violet-100/90 p-2.5 rounded-2xl shadow-xl shadow-violet-900/10 print:hidden">
         <div className="flex items-center gap-2 justify-center max-w-xs sm:max-w-none mx-auto">
           <motion.div whileTap={{ scale: 0.94 }} className="flex-1 sm:flex-none">
             <Button

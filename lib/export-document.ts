@@ -1,5 +1,6 @@
 // Exportación de documentos (nota de venta / contrato) en el navegador.
 // Usa html-to-image para rasterizar el nodo y jsPDF para exportar a Carta (Letter) / PNG.
+// El nodo que se pasa siempre debe tener 794px de ancho (lo garantiza document-actions.tsx).
 
 import { toPng } from 'html-to-image'
 
@@ -50,12 +51,10 @@ export async function exportNodeToPdf(node: HTMLElement, filename: string): Prom
   let renderHeight = usableWidth * imgRatio
 
   if (renderHeight <= usableHeight) {
-    // Si cabe en una hoja carta, se centra horizontalmente con márgenes equilibrados
     const x = (pageWidth - renderWidth) / 2
     const y = margin
     pdf.addImage(dataUrl, 'PNG', x, y, renderWidth, renderHeight)
   } else {
-    // Si el contenido excede una hoja, se escala proporcionalmente dentro de la página Carta
     const scaleFactor = Math.min(usableWidth / img.width, usableHeight / img.height)
     renderWidth = img.width * scaleFactor
     renderHeight = img.height * scaleFactor

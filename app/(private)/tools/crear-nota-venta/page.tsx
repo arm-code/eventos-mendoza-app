@@ -12,7 +12,9 @@ import { defaultBusinessConfig } from '@/lib/config'
 import type { Note, NoteItem } from '@/lib/types'
 import type { CreateSalesNoteDto, SalesNoteStatus, BusinessConfig } from '@/types/finance'
 import { PageHeader } from '@/components/admin/page-header'
-import { SaleNoteDocument } from '@/components/documents/sale-note-document'
+import { SaleNoteDocument, PrintSaleNoteDocument } from '@/components/documents/sale-note-document'
+import { NoteCardPreview } from '@/components/documents/note-card-preview'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { DocumentActions } from '@/components/documents/document-actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -37,6 +39,7 @@ function emptyItem(): NoteItem {
 export default function CreateNotePage() {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const isMobile = useIsMobile()
 
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
@@ -164,8 +167,14 @@ export default function CreateNotePage() {
           }
         />
         <Card className="border-violet-100 bg-white shadow-sm p-4 sm:p-6 rounded-2xl">
-          <DocumentActions filename={`nota-${savedNote.folio}`}>
-            <SaleNoteDocument note={savedNote} business={businessConfig} />
+          <DocumentActions
+            filename={`nota-${savedNote.folio}`}
+            exportNode={<PrintSaleNoteDocument note={savedNote} business={businessConfig} />}
+          >
+            {isMobile
+              ? <NoteCardPreview note={savedNote} business={businessConfig} />
+              : <SaleNoteDocument note={savedNote} business={businessConfig} />
+            }
           </DocumentActions>
         </Card>
       </div>

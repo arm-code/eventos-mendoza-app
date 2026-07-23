@@ -13,7 +13,8 @@ import type { Note } from '@/lib/types'
 import type { SalesNote, BusinessConfig } from '@/types/finance'
 import { PageHeader } from '@/components/admin/page-header'
 import { useIsMobile } from '@/hooks/useIsMobile'
-import { SaleNoteDocument } from '@/components/documents/sale-note-document'
+import { SaleNoteDocument, PrintSaleNoteDocument } from '@/components/documents/sale-note-document'
+import { NoteCardPreview } from '@/components/documents/note-card-preview'
 import { DocumentActions } from '@/components/documents/document-actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -384,8 +385,12 @@ export default function NotesHistoryPage() {
             </div>
             <div className="px-4 py-4 overflow-y-auto flex-1 pb-4">
               {selected && (
-                <DocumentActions filename={`nota-${selected.folio}`}>
-                  <SaleNoteDocument note={selected} business={businessConfig} />
+                <DocumentActions
+                  filename={`nota-${selected.folio}`}
+                  exportNode={<PrintSaleNoteDocument note={selected} business={businessConfig} />}
+                >
+                  {/* Vista mobile: tarjetas legibles sin desbordamiento horizontal */}
+                  <NoteCardPreview note={selected} business={businessConfig} />
                 </DocumentActions>
               )}
             </div>
@@ -398,7 +403,10 @@ export default function NotesHistoryPage() {
               <DialogTitle className="text-xl font-bold text-violet-950">Nota {selected?.folio}</DialogTitle>
             </DialogHeader>
             {selected && (
-              <DocumentActions filename={`nota-${selected.folio}`}>
+              <DocumentActions
+                filename={`nota-${selected.folio}`}
+                exportNode={<PrintSaleNoteDocument note={selected} business={businessConfig} />}
+              >
                 <SaleNoteDocument note={selected} business={businessConfig} />
               </DocumentActions>
             )}
