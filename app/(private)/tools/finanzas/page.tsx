@@ -2,7 +2,6 @@
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TransactionsTab from "@/components/finanzas/TransactionsTab";
-import EventsTab from "@/components/finanzas/EventsTab";
 import CategoriesTab from "@/components/finanzas/CategoriesTab";
 import PaymentMethodsTab from "@/components/finanzas/PaymentMethodsTab";
 
@@ -21,9 +20,6 @@ export default function FinanzasDashboard() {
           <TabsTrigger value="transactions" className="data-[state=active]:bg-white data-[state=active]:text-violet-900">
             Transacciones
           </TabsTrigger>
-          <TabsTrigger value="events" className="data-[state=active]:bg-white data-[state=active]:text-violet-900">
-            Eventos
-          </TabsTrigger>
           <TabsTrigger value="categories" className="data-[state=active]:bg-white data-[state=active]:text-violet-900">
             Categorías
           </TabsTrigger>
@@ -31,19 +27,15 @@ export default function FinanzasDashboard() {
             Métodos de Pago
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="transactions" className="mt-6">
           <TransactionsTab />
         </TabsContent>
-        
-        <TabsContent value="events" className="mt-6">
-          <EventsTab />
-        </TabsContent>
-        
+
         <TabsContent value="categories" className="mt-6">
           <CategoriesTab />
         </TabsContent>
-        
+
         <TabsContent value="methods" className="mt-6">
           <PaymentMethodsTab />
         </TabsContent>

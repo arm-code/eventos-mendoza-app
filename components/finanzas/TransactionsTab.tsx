@@ -14,6 +14,7 @@ import * as yup from "yup";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PaginationControls } from "@/components/ui/pagination-controls";
+import { Loader } from "@/components/Loaders/Loader.component";
 
 const transactionSchema = yup.object().shape({
   transactionDate: yup.string().required("La fecha es obligatoria"),
@@ -257,7 +258,10 @@ export default function TransactionsTab() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-4 text-violet-500">Cargando movimientos...</div>
+            <div className="text-center py-4 text-violet-500 justify-center items-center flex gap-2 flex-col ">Cargando movimientos...
+              <Loader />
+            </div>
+
           ) : safeTransactions.length === 0 ? (
             <div className="text-center py-8 text-violet-400">
               <CalendarDays className="mx-auto h-8 w-8 mb-2 opacity-50" />
