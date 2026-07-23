@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { Eye, FilePlus2, Search, Trash2, Loader2, FileText, Calendar, User } from 'lucide-react'
+import { Eye, FilePlus2, Search, Trash2, Loader2, FileText, Calendar, User, ShieldAlert } from 'lucide-react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
@@ -23,6 +23,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
 import {
   Sheet,
@@ -46,6 +47,7 @@ export default function NotesHistoryPage() {
   const queryClient = useQueryClient()
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Note | null>(null)
+  const [noteToDelete, setNoteToDelete] = useState<Note | null>(null)
 
   const { data: rawNotes = [], isLoading } = useQuery({
     queryKey: ['salesNotes', query],
@@ -69,6 +71,7 @@ export default function NotesHistoryPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['salesNotes'] })
       toast.success('Nota eliminada correctamente')
+      setNoteToDelete(null)
     },
     onError: (err: any) => {
       toast.error(err.message || 'Error al eliminar la nota')
@@ -115,8 +118,8 @@ export default function NotesHistoryPage() {
     )
   }, [notesList, query])
 
-  function handleDelete(id: string) {
-    deleteMutation.mutate(id)
+  function handleDelete(note: Note) {
+    setNoteToDelete(note)
   }
 
   function eventFolio(eventId?: string | null) {
@@ -213,7 +216,7 @@ export default function NotesHistoryPage() {
                           size="icon"
                           disabled={deleteMutation.isPending}
                           className="text-red-500 hover:bg-red-50 hover:text-red-700 h-9 w-9 rounded-lg touch-manipulation"
-                          onClick={() => handleDelete(note.id)}
+                          onClick={() => handleDelete(note)}
                           aria-label="Eliminar nota"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -314,7 +317,7 @@ export default function NotesHistoryPage() {
                             size="icon"
                             disabled={deleteMutation.isPending}
                             className="text-red-500 hover:bg-red-50 hover:text-red-700 h-10 w-10 rounded-xl touch-manipulation"
-                            onClick={() => handleDelete(note.id)}
+                            onClick={() => handleDelete(note)}
                             aria-label="Eliminar nota"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -399,6 +402,48 @@ export default function NotesHistoryPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Modal de confirmación para eliminar nota */}
+      <Dialog open={noteToDelete !== null} onOpenChange={(o) => !o && setNoteToDelete(null)}>
+        <DialogContent className="max-w-md rounded-2xl border-violet-100 bg-white p-6">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-violet-950 flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-red-500" />
+              ¿Eliminar nota {noteToDelete?.folio}?
+            </DialogTitle>
+            <DialogDescription className="text-sm text-violet-600 pt-1">
+              Esta acción es permanente y eliminará el registro de la nota de venta del cliente{' '}
+              <span className="font-semibold text-violet-950 uppercase">{noteToDelete?.customer.name}</span>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={() => setNoteToDelete(null)}
+              className="rounded-xl border-violet-200 text-violet-700 h-11 px-4 font-semibold"
+            >
+              Cancelar
+            </Button>
+            <Button
+              disabled={deleteMutation.isPending}
+              onClick={() => {
+                if (noteToDelete) {
+                  deleteMutation.mutate(noteToDelete.id)
+                }
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white rounded-xl h-11 px-5 font-bold shadow-md shadow-red-200 touch-manipulation gap-2"
+            >
+              {deleteMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Eliminar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
