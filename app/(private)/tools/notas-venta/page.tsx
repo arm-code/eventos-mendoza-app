@@ -382,15 +382,15 @@ export default function NotesHistoryPage() {
       <Sheet open={selected !== null} onOpenChange={(o) => !o && setSelected(null)}>
         <SheetContent
           side="bottom"
-          className="sm:hidden h-[92vh] rounded-t-3xl border-t border-violet-100 bg-white p-0"
+          className="sm:hidden h-[92vh] max-h-[92dvh] rounded-t-3xl border-t border-violet-100 bg-white p-0 flex flex-col overflow-hidden"
         >
-          <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50">
+          <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50 flex-shrink-0">
             <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
             <SheetHeader className="text-left">
               <SheetTitle className="text-lg font-bold text-violet-950">Nota {selected?.folio}</SheetTitle>
             </SheetHeader>
           </div>
-          <div className="px-4 py-4 overflow-y-auto h-full pb-8">
+          <div className="px-4 py-4 overflow-y-auto flex-1 pb-4">
             {selected && (
               <DocumentActions filename={`nota-${selected.folio}`}>
                 <SaleNoteDocument note={selected} business={businessConfig} />

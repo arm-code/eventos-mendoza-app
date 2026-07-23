@@ -38,7 +38,7 @@ export function DocumentActions({ filename, children }: DocumentActionsProps) {
   }
 
   return (
-    <div className="flex flex-col gap-4 pb-20 sm:pb-16">
+    <div className="flex flex-col gap-4 relative">
       {/* Vista previa del documento con scroll horizontal en móvil */}
       <AnimatePresence>
         <motion.div
@@ -59,8 +59,8 @@ export function DocumentActions({ filename, children }: DocumentActionsProps) {
         </motion.div>
       </AnimatePresence>
 
-      {/* Barra de acciones (Imagen y PDF) fijada en la parte inferior */}
-      <div className="fixed bottom-[68px] sm:bottom-6 left-3 right-3 sm:left-auto sm:right-6 z-40 bg-white/95 backdrop-blur-xl border border-violet-100/90 p-2 rounded-2xl shadow-xl shadow-violet-900/10 print:hidden">
+      {/* Barra de acciones (Imagen y PDF) fijada al fondo del contenedor sin dejar espacio sobrante */}
+      <div className="sticky bottom-0 z-40 bg-white/95 backdrop-blur-xl border border-violet-100/90 p-2.5 rounded-2xl shadow-xl shadow-violet-900/10 print:hidden -mx-1 sm:mx-0">
         <div className="flex items-center gap-2 justify-center max-w-xs sm:max-w-none mx-auto">
           <motion.div whileTap={{ scale: 0.94 }} className="flex-1 sm:flex-none">
             <Button
