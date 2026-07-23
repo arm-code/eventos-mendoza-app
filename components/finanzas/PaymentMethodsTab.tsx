@@ -66,16 +66,7 @@ export default function PaymentMethodsTab() {
   const safeMethods = Array.isArray(methods) ? methods : [];
 
   return (
-    <div className="space-y-4 sm:space-y-6 pb-24 sm:pb-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-violet-950">Métodos de Pago</h2>
-          <p className="text-sm text-violet-600/70 mt-0.5">
-            Formas de pago aceptadas
-          </p>
-        </div>
-      </div>
-
+    <div className="space-y-4 sm:space-y-6">
       <Card className="border-violet-100 shadow-sm">
         <CardHeader className="pb-3 sm:pb-4">
           <CardTitle className="text-base sm:text-lg">Listado de Métodos</CardTitle>
@@ -105,7 +96,7 @@ export default function PaymentMethodsTab() {
                     key={method.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
+                    transition={{ delay: index * 0.03 }}
                     whileTap={{ scale: 0.995, backgroundColor: "rgba(139, 92, 246, 0.04)" }}
                     className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl active:bg-violet-50/50 transition-colors touch-manipulation cursor-pointer"
                   >
@@ -117,7 +108,7 @@ export default function PaymentMethodsTab() {
                         {method.name}
                       </p>
                       <p className="text-xs sm:text-sm text-violet-500 mt-0.5">
-                        Código: <span className="font-mono text-violet-600">{method.code}</span>
+                        Código: <span className="font-mono text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded text-[11px]">{method.code}</span>
                       </p>
                     </div>
                   </motion.div>
@@ -128,10 +119,10 @@ export default function PaymentMethodsTab() {
         </CardContent>
       </Card>
 
-      {/* FAB móvil / Botón desktop */}
-      <div className="sm:hidden fixed bottom-6 right-4 z-40">
+      {/* FAB móvil */}
+      <div className="sm:hidden fixed bottom-[72px] right-4 z-30">
         <motion.button
-          whileTap={{ scale: 0.92 }}
+          whileTap={{ scale: 0.88 }}
           onClick={() => setIsOpen(true)}
           className="flex items-center justify-center w-14 h-14 rounded-full bg-violet-600 text-white shadow-xl shadow-violet-600/30 active:bg-violet-700 touch-manipulation"
         >
@@ -139,10 +130,11 @@ export default function PaymentMethodsTab() {
         </motion.button>
       </div>
 
+      {/* Botón desktop */}
       <div className="hidden sm:flex justify-end">
         <Button
           onClick={() => setIsOpen(true)}
-          className="bg-violet-600 hover:bg-violet-700 text-white h-11 px-6 rounded-xl shadow-lg shadow-violet-600/20 active:scale-[0.98] transition-all"
+          className="bg-violet-600 hover:bg-violet-700 text-white h-11 px-6 rounded-xl shadow-lg shadow-violet-600/20 active:scale-[0.98] transition-all touch-manipulation"
         >
           <PlusCircle className="mr-2 h-4 w-4" />
           Nuevo Método
@@ -156,7 +148,7 @@ export default function PaymentMethodsTab() {
           className="sm:hidden h-[70vh] rounded-t-3xl border-t border-violet-100 bg-white p-0"
         >
           <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50">
-            <div className="w-12 h-1.5 rounded-full bg-violet-200 mx-auto mb-4" />
+            <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
             <SheetHeader className="text-left space-y-1">
               <SheetTitle className="text-lg font-bold text-violet-950">Crear Método de Pago</SheetTitle>
               <SheetDescription className="text-sm text-violet-500">
@@ -213,7 +205,7 @@ function PaymentMethodForm({
 }) {
   return (
     <form onSubmit={onSubmit} className="space-y-5">
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <Label htmlFor="code" className="text-sm font-medium text-violet-900">Código</Label>
         <div className="relative">
           <Wallet className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-violet-400" />
@@ -227,7 +219,7 @@ function PaymentMethodForm({
         {errors.code && <p className="text-xs text-red-500">{errors.code.message}</p>}
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         <Label htmlFor="name" className="text-sm font-medium text-violet-900">Nombre</Label>
         <Input
           id="name"
