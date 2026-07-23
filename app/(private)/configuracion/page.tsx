@@ -11,6 +11,7 @@ import { financeApi } from '@/lib/api/finance'
 import { defaultBusinessConfig } from '@/lib/config'
 import type { BusinessConfig, PaymentCard, CreatePaymentCardDto } from '@/types/finance'
 import { PageHeader } from '@/components/admin/page-header'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -35,6 +36,7 @@ import { Loader } from '@/components/Loaders/Loader.component'
 import { cn } from '@/lib/utils'
 
 export default function ConfigurationPage() {
+  const isMobile = useIsMobile()
   const queryClient = useQueryClient()
 
   // Fetch config from NestJS API
@@ -519,142 +521,143 @@ export default function ConfigurationPage() {
         </motion.div>
       </div>
 
-      {/* Modal Agregar Tarjeta - Desktop */}
-      <Dialog open={isCardModalOpen} onOpenChange={setIsCardModalOpen}>
-        <DialogContent className="hidden sm:block sm:max-w-[440px] rounded-2xl p-6">
-          <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-violet-950">Agregar Cuenta Bancaria</DialogTitle>
-            <DialogDescription className="text-sm text-violet-500">
-              Registra una tarjeta o CLABE interbancaria para depósitos.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleAddCardSubmit} className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-violet-900">Banco *</Label>
-              <Input
-                value={bank}
-                onChange={(e) => setBank(e.target.value)}
-                placeholder="Ej. BBVA / Santander"
-                className="h-11 rounded-xl border-violet-200 text-sm"
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-violet-900">Beneficiario / Titular *</Label>
-              <Input
-                value={beneficiary}
-                onChange={(e) => setBeneficiary(e.target.value)}
-                placeholder="Ej. Eventos Mendoza SA de CV"
-                className="h-11 rounded-xl border-violet-200 text-sm"
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-violet-900">CLABE Interbancaria (18 dígitos)</Label>
-              <Input
-                value={clabe}
-                onChange={(e) => setClabe(e.target.value)}
-                placeholder="012180000000000000"
-                className="h-11 rounded-xl border-violet-200 text-sm font-mono"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-violet-900">Número de Tarjeta (16 dígitos)</Label>
-              <Input
-                value={cardNumber}
-                onChange={(e) => setCardNumber(e.target.value)}
-                placeholder="4152 3138 0000 0000"
-                className="h-11 rounded-xl border-violet-200 text-sm font-mono"
-              />
+      {/* Modal / Sheet Agregar Tarjeta */}
+      {isMobile ? (
+        <Sheet open={isCardModalOpen} onOpenChange={setIsCardModalOpen}>
+          <SheetContent side="bottom" className="h-[85vh] rounded-t-3xl border-t border-violet-100 bg-white p-0">
+            <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50">
+              <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
+              <SheetHeader className="text-left">
+                <SheetTitle className="text-lg font-bold text-violet-950">Agregar Cuenta Bancaria</SheetTitle>
+                <SheetDescription className="text-sm text-violet-500">
+                  Registra una tarjeta o CLABE interbancaria para depósitos.
+                </SheetDescription>
+              </SheetHeader>
             </div>
 
-            <div className="pt-2 flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsCardModalOpen(false)}
-                className="rounded-xl border-violet-200 text-violet-700 h-11"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={addCardMutation.isPending}
-                className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl h-11 px-5 font-semibold"
-              >
-                {addCardMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Cuenta'}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+            <form onSubmit={handleAddCardSubmit} className="p-4 space-y-4 overflow-y-auto h-full pb-10">
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-violet-900">Banco *</Label>
+                <Input
+                  value={bank}
+                  onChange={(e) => setBank(e.target.value)}
+                  placeholder="Ej. BBVA"
+                  className="h-12 rounded-xl border-violet-200 text-sm"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-violet-900">Beneficiario / Titular *</Label>
+                <Input
+                  value={beneficiary}
+                  onChange={(e) => setBeneficiary(e.target.value)}
+                  placeholder="Ej. Eventos Mendoza"
+                  className="h-12 rounded-xl border-violet-200 text-sm"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-violet-900">CLABE Interbancaria (18 dígitos)</Label>
+                <Input
+                  value={clabe}
+                  onChange={(e) => setClabe(e.target.value)}
+                  placeholder="012180000000000000"
+                  className="h-12 rounded-xl border-violet-200 text-sm font-mono"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-violet-900">Número de Tarjeta (16 dígitos)</Label>
+                <Input
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(e.target.value)}
+                  placeholder="4152 3138 0000 0000"
+                  className="h-12 rounded-xl border-violet-200 text-sm font-mono"
+                />
+              </div>
 
-      {/* Sheet Agregar Tarjeta - Móvil */}
-      <Sheet open={isCardModalOpen} onOpenChange={setIsCardModalOpen}>
-        <SheetContent side="bottom" className="sm:hidden h-[85vh] rounded-t-3xl border-t border-violet-100 bg-white p-0">
-          <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50">
-            <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
-            <SheetHeader className="text-left">
-              <SheetTitle className="text-lg font-bold text-violet-950">Agregar Cuenta Bancaria</SheetTitle>
-              <SheetDescription className="text-sm text-violet-500">
+              <div className="pt-4">
+                <Button
+                  type="submit"
+                  disabled={addCardMutation.isPending}
+                  className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl h-12 font-bold shadow-md shadow-violet-200 touch-manipulation"
+                >
+                  {addCardMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Guardar Cuenta'}
+                </Button>
+              </div>
+            </form>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={isCardModalOpen} onOpenChange={setIsCardModalOpen}>
+          <DialogContent className="sm:max-w-[440px] rounded-2xl p-6">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold text-violet-950">Agregar Cuenta Bancaria</DialogTitle>
+              <DialogDescription className="text-sm text-violet-500">
                 Registra una tarjeta o CLABE interbancaria para depósitos.
-              </SheetDescription>
-            </SheetHeader>
-          </div>
+              </DialogDescription>
+            </DialogHeader>
 
-          <form onSubmit={handleAddCardSubmit} className="p-4 space-y-4 overflow-y-auto h-full pb-10">
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-violet-900">Banco *</Label>
-              <Input
-                value={bank}
-                onChange={(e) => setBank(e.target.value)}
-                placeholder="Ej. BBVA"
-                className="h-12 rounded-xl border-violet-200 text-sm"
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-violet-900">Beneficiario / Titular *</Label>
-              <Input
-                value={beneficiary}
-                onChange={(e) => setBeneficiary(e.target.value)}
-                placeholder="Ej. Eventos Mendoza"
-                className="h-12 rounded-xl border-violet-200 text-sm"
-                required
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-violet-900">CLABE Interbancaria (18 dígitos)</Label>
-              <Input
-                value={clabe}
-                onChange={(e) => setClabe(e.target.value)}
-                placeholder="012180000000000000"
-                className="h-12 rounded-xl border-violet-200 text-sm font-mono"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm font-medium text-violet-900">Número de Tarjeta (16 dígitos)</Label>
-              <Input
-                value={cardNumber}
-                onChange={(e) => setCardNumber(e.target.value)}
-                placeholder="4152 3138 0000 0000"
-                className="h-12 rounded-xl border-violet-200 text-sm font-mono"
-              />
-            </div>
+            <form onSubmit={handleAddCardSubmit} className="space-y-4 pt-2">
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-violet-900">Banco *</Label>
+                <Input
+                  value={bank}
+                  onChange={(e) => setBank(e.target.value)}
+                  placeholder="Ej. BBVA / Santander"
+                  className="h-11 rounded-xl border-violet-200 text-sm"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-violet-900">Beneficiario / Titular *</Label>
+                <Input
+                  value={beneficiary}
+                  onChange={(e) => setBeneficiary(e.target.value)}
+                  placeholder="Ej. Eventos Mendoza SA de CV"
+                  className="h-11 rounded-xl border-violet-200 text-sm"
+                  required
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-violet-900">CLABE Interbancaria (18 dígitos)</Label>
+                <Input
+                  value={clabe}
+                  onChange={(e) => setClabe(e.target.value)}
+                  placeholder="012180000000000000"
+                  className="h-11 rounded-xl border-violet-200 text-sm font-mono"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-violet-900">Número de Tarjeta (16 dígitos)</Label>
+                <Input
+                  value={cardNumber}
+                  onChange={(e) => setCardNumber(e.target.value)}
+                  placeholder="4152 3138 0000 0000"
+                  className="h-11 rounded-xl border-violet-200 text-sm font-mono"
+                />
+              </div>
 
-            <div className="pt-4">
-              <Button
-                type="submit"
-                disabled={addCardMutation.isPending}
-                className="w-full bg-violet-600 hover:bg-violet-700 text-white rounded-xl h-12 font-bold shadow-md shadow-violet-200 touch-manipulation"
-              >
-                {addCardMutation.isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : 'Guardar Cuenta'}
-              </Button>
-            </div>
-          </form>
-        </SheetContent>
-      </Sheet>
+              <div className="pt-2 flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsCardModalOpen(false)}
+                  className="rounded-xl border-violet-200 text-violet-700 h-11"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={addCardMutation.isPending}
+                  className="bg-violet-600 hover:bg-violet-700 text-white rounded-xl h-11 px-5 font-semibold"
+                >
+                  {addCardMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Guardar Cuenta'}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }

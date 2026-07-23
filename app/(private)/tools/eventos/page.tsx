@@ -587,7 +587,11 @@ export default function EventosPage() {
 
       {/* Modal Contrato / Exportación a PDF e Imagen */}
       <Dialog open={contractEvent !== null} onOpenChange={(o) => !o && setContractEvent(null)}>
-        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 border-violet-100 bg-white">
+        <DialogContent
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 border-violet-100 bg-white"
+        >
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-violet-950">
               Contrato de Evento {contractEvent?.folio}
