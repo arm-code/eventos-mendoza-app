@@ -174,7 +174,7 @@ export default function NotesHistoryPage() {
                   className="hover:bg-violet-50/40 border-b border-violet-100/60 transition-colors"
                 >
                   <TableCell className="font-bold text-violet-950">{note.folio}</TableCell>
-                  <TableCell className="font-medium text-violet-900">{note.customer.name}</TableCell>
+                  <TableCell className="font-medium text-violet-900 capitalize">{note.customer.name}</TableCell>
                   <TableCell>
                     <Badge
                       variant="secondary"

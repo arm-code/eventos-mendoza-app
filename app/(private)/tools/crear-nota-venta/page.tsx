@@ -199,7 +199,7 @@ export default function CreateNotePage() {
                 value={customerName}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomerName(e.target.value)}
                 placeholder="Nombre completo o empresa"
-                className="h-12 rounded-xl border-violet-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-sm"
+                className="h-12 rounded-xl border-violet-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-sm uppercase"
               />
             </div>
             <div className="flex flex-col gap-2">
@@ -226,7 +226,7 @@ export default function CreateNotePage() {
                 value={customerAddress}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomerAddress(e.target.value)}
                 placeholder="Dirección de entrega"
-                className="h-12 rounded-xl border-violet-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-sm"
+                className="h-12 rounded-xl border-violet-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-sm uppercase"
               />
             </div>
           </CardContent>
@@ -286,8 +286,8 @@ export default function CreateNotePage() {
                       <Input
                         value={item.description}
                         onChange={(e: ChangeEvent<HTMLInputElement>) => updateItem(item.id, { description: e.target.value })}
-                        placeholder="Ej. Renta de Silla Tiffany Blanca"
-                        className="h-12 rounded-xl bg-white border-violet-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-sm"
+                        placeholder="Ej. Renta de Mesa G + 8 sillas"
+                        className="h-12 rounded-xl bg-white border-violet-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-sm uppercase"
                       />
                     </div>
                     <div className="flex flex-col gap-1.5 sm:col-span-2">
@@ -313,7 +313,7 @@ export default function CreateNotePage() {
                         onChange={(e: ChangeEvent<HTMLInputElement>) =>
                           updateItem(item.id, { unitPrice: Number(e.target.value) || 0 })
                         }
-                        className="h-12 rounded-xl bg-white border-violet-200 text-right font-semibold focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-sm"
+                        className="h-12 rounded-xl bg-white border-violet-200 text-center font-semibold focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-sm"
                       />
                     </div>
                     <div className="flex flex-col gap-1.5 sm:col-span-2">
