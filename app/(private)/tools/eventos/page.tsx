@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
 import { noteTotal } from '@/lib/calculations'
 import { formatCurrency, formatDate } from '@/lib/format'
-import { seedBusinessConfig } from '@/lib/mock-data'
+import { defaultBusinessConfig } from '@/lib/config'
 import { PageHeader } from '@/components/admin/page-header'
 import { DocumentActions } from '@/components/documents/document-actions'
 import { EventContractDocument, EventContractData } from '@/components/documents/event-contract-document'
@@ -591,7 +591,7 @@ export default function EventosPage() {
           {contractEvent && (
             <div className="space-y-4 pt-2">
               <DocumentActions filename={`contrato-evento-${contractEvent.folio}`}>
-                <EventContractDocument event={contractEvent as EventContractData} business={seedBusinessConfig} />
+                <EventContractDocument event={contractEvent as EventContractData} business={defaultBusinessConfig} />
               </DocumentActions>
             </div>
           )}

@@ -8,7 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
 import { noteTotal } from '@/lib/calculations'
 import { formatCurrency, formatDate } from '@/lib/format'
-import { seedBusinessConfig } from '@/lib/mock-data'
+import { defaultBusinessConfig } from '@/lib/config'
 import type { Note } from '@/lib/types'
 import type { SalesNote } from '@/types/finance'
 import { PageHeader } from '@/components/admin/page-header'
@@ -354,7 +354,7 @@ export default function NotesHistoryPage() {
           </DialogHeader>
           {selected && (
             <DocumentActions filename={`nota-${selected.folio}`}>
-              <SaleNoteDocument note={selected} business={seedBusinessConfig} />
+              <SaleNoteDocument note={selected} business={defaultBusinessConfig} />
             </DocumentActions>
           )}
         </DialogContent>
@@ -375,7 +375,7 @@ export default function NotesHistoryPage() {
           <div className="px-4 py-4 overflow-y-auto h-full pb-8">
             {selected && (
               <DocumentActions filename={`nota-${selected.folio}`}>
-                <SaleNoteDocument note={selected} business={seedBusinessConfig} />
+                <SaleNoteDocument note={selected} business={defaultBusinessConfig} />
               </DocumentActions>
             )}
           </div>

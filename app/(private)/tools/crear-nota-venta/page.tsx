@@ -8,7 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
 import { computeNoteTotals, itemAmount } from '@/lib/calculations'
 import { formatCurrency, genId } from '@/lib/format'
-import { seedBusinessConfig } from '@/lib/mock-data'
+import { defaultBusinessConfig } from '@/lib/config'
 import type { Note, NoteItem } from '@/lib/types'
 import type { CreateSalesNoteDto, SalesNoteStatus } from '@/types/finance'
 import { PageHeader } from '@/components/admin/page-header'
@@ -159,7 +159,7 @@ export default function CreateNotePage() {
         />
         <Card className="border-violet-100 bg-white shadow-sm p-4 sm:p-6 rounded-2xl">
           <DocumentActions filename={`nota-${savedNote.folio}`}>
-            <SaleNoteDocument note={savedNote} business={seedBusinessConfig} />
+            <SaleNoteDocument note={savedNote} business={defaultBusinessConfig} />
           </DocumentActions>
         </Card>
       </div>
