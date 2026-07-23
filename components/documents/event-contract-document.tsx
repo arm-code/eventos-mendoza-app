@@ -68,7 +68,7 @@ export const EventContractDocument = forwardRef<HTMLDivElement, EventContractDoc
           }}
         >
           <div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#5b21b6' }}>{business.name}</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: '#5b21b6', textTransform: 'uppercase' }}>{business.name}</div>
             <div style={{ fontSize: 13, color: '#6b6577', marginTop: 4 }}>
               Renta de Mobiliario para Eventos · Contrato y Nota de Servicio
             </div>
@@ -117,7 +117,7 @@ export const EventContractDocument = forwardRef<HTMLDivElement, EventContractDoc
             >
               Datos del Cliente
             </div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: '#1a1626' }}>
+            <div style={{ fontSize: 15, fontWeight: 600, color: '#1a1626', textTransform: 'uppercase' }}>
               {clientName}
             </div>
             {clientPhone && (
@@ -145,10 +145,10 @@ export const EventContractDocument = forwardRef<HTMLDivElement, EventContractDoc
             >
               Ubicación y Servicio
             </div>
-            <div style={{ fontSize: 13, color: '#1a1626', fontWeight: 600 }}>
+            <div style={{ fontSize: 13, color: '#1a1626', fontWeight: 600, textTransform: 'uppercase' }}>
               {event.eventAddress || 'Dirección de evento no especificada'}
             </div>
-            <div style={{ fontSize: 13, color: '#6b6577', marginTop: 6 }}>
+            <div style={{ fontSize: 13, color: '#6b6577', marginTop: 6, textTransform: 'uppercase' }}>
               <span style={{ fontWeight: 600, color: '#453f52' }}>Garantía:</span>{' '}
               {event.guaranteeDocument || event.contract?.guaranteeDocument || 'INE / Credencial de Elector'}
             </div>
@@ -179,6 +179,7 @@ export const EventContractDocument = forwardRef<HTMLDivElement, EventContractDoc
               color: '#1a1626',
               minHeight: 80,
               backgroundColor: '#ffffff',
+              textTransform: 'uppercase',
             }}
           >
             {event.serviceDescription || event.name || event.notes || 'Renta de mobiliario y equipo para evento.'}
@@ -232,7 +233,7 @@ export const EventContractDocument = forwardRef<HTMLDivElement, EventContractDoc
             <div style={{ borderTop: '1px solid #a78bfa', paddingTop: 8, fontSize: 12, fontWeight: 600, color: '#1a1626' }}>
               Firma de Conformidad del Cliente
             </div>
-            <div style={{ fontSize: 11, color: '#6b6577', marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: '#6b6577', marginTop: 2, textTransform: 'uppercase' }}>
               {clientName}
             </div>
           </div>

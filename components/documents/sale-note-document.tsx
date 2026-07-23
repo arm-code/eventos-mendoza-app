@@ -47,7 +47,7 @@ export const SaleNoteDocument = forwardRef<HTMLDivElement, SaleNoteDocumentProps
           }}
         >
           <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ fontSize: 'clamp(16px, 2.5vw, 22px)', fontWeight: 700, color: '#5b21b6' }}>
+            <div style={{ fontSize: 'clamp(16px, 2.5vw, 22px)', fontWeight: 700, color: '#5b21b6', textTransform: 'uppercase' }}>
               {business.name}
             </div>
             <div style={{ fontSize: 'clamp(11px, 1.5vw, 13px)', color: '#6b6577', marginTop: 4 }}>
@@ -98,7 +98,7 @@ export const SaleNoteDocument = forwardRef<HTMLDivElement, SaleNoteDocumentProps
           >
             Cliente
           </div>
-          <div style={{ fontSize: 'clamp(13px, 1.8vw, 15px)', fontWeight: 600 }}>
+          <div style={{ fontSize: 'clamp(13px, 1.8vw, 15px)', fontWeight: 600, textTransform: 'uppercase' }}>
             {note.customer.name}
           </div>
           {note.customer.phone && (
@@ -107,7 +107,7 @@ export const SaleNoteDocument = forwardRef<HTMLDivElement, SaleNoteDocumentProps
             </div>
           )}
           {note.customer.address && (
-            <div style={{ fontSize: 'clamp(11px, 1.5vw, 13px)', color: '#6b6577' }}>
+            <div style={{ fontSize: 'clamp(11px, 1.5vw, 13px)', color: '#6b6577', textTransform: 'uppercase' }}>
               {note.customer.address}
             </div>
           )}
@@ -127,7 +127,7 @@ export const SaleNoteDocument = forwardRef<HTMLDivElement, SaleNoteDocumentProps
             <tbody>
               {note.items.map((item) => (
                 <tr key={item.id} style={{ borderBottom: '1px solid #ececf2' }}>
-                  <td style={tdStyle('left')}>{item.description}</td>
+                  <td style={{ ...tdStyle('left'), textTransform: 'uppercase' }}>{item.description}</td>
                   <td style={tdStyle('center')}>{item.quantity}</td>
                   <td style={tdStyle('right')}>{formatCurrency(item.unitPrice)}</td>
                   <td style={tdStyle('right')}>{formatCurrency(itemAmount(item))}</td>
@@ -177,8 +177,8 @@ export const SaleNoteDocument = forwardRef<HTMLDivElement, SaleNoteDocumentProps
               color: '#6b6577',
             }}
           >
-            <div style={{ fontWeight: 600, color: '#1a1626', marginBottom: 4 }}>Notas</div>
-            {note.notes}
+            <div style={{ fontWeight: 600, color: '#1a1626', marginBottom: 4, textTransform: 'uppercase' }}>Notas</div>
+            <div style={{ textTransform: 'uppercase' }}>{note.notes}</div>
           </div>
         )}
 

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Save, Trash2, ArrowLeft, Loader2, Hash, User, Phone, MapPin, FileText, Calculator } from 'lucide-react'
+import { Plus, Save, Trash2, ArrowLeft, Hash, User, Phone, MapPin, FileText, Calculator } from 'lucide-react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
@@ -26,7 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { motion, AnimatePresence } from 'framer-motion'
-import { cn } from '@/lib/utils'
+import { Loader } from '@/components/Loaders/Loader.component'
 
 const IVA_RATE = 0.16
 
@@ -431,7 +431,7 @@ export default function CreateNotePage() {
                   onClick={handleSave}
                 >
                   {createMutation.isPending ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader />
                   ) : (
                     <Save className="h-5 w-5" />
                   )}

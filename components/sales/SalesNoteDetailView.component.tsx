@@ -217,7 +217,7 @@ export default function SalesNoteDetailView({ note }: Props) {
                                     <div className="p-1.5 rounded-lg bg-violet-100 flex-shrink-0 mt-0.5">
                                         <User className="h-4 w-4 text-violet-600" />
                                     </div>
-                                    <span className="text-violet-900 font-semibold text-base sm:text-lg">
+                                    <span className="text-violet-900 font-semibold text-base sm:text-lg uppercase">
                                         {note.client_name}
                                     </span>
                                 </div>
@@ -234,7 +234,7 @@ export default function SalesNoteDetailView({ note }: Props) {
                                         <div className="p-1.5 rounded-lg bg-violet-100 flex-shrink-0 mt-0.5">
                                             <MapPin className="h-4 w-4 text-violet-600" />
                                         </div>
-                                        <span className="text-sm flex-1">{note.client_address}</span>
+                                        <span className="text-sm flex-1 uppercase">{note.client_address}</span>
                                     </div>
                                 )}
                             </div>
@@ -261,7 +261,7 @@ export default function SalesNoteDetailView({ note }: Props) {
                                         <td className="py-3 sm:py-4 font-medium text-sm">
                                             {item.quantity}
                                         </td>
-                                        <td className="py-3 sm:py-4 text-sm">
+                                        <td className="py-3 sm:py-4 text-sm uppercase">
                                             {item.description}
                                         </td>
                                         <td className="py-3 sm:py-4 text-right text-sm">
