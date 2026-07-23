@@ -24,11 +24,11 @@ export const SaleNoteDocument = forwardRef<HTMLDivElement, SaleNoteDocumentProps
         style={{
           width: '100%',
           maxWidth: 794,
-          minHeight: 1000,
+          height: 'auto',
           backgroundColor: '#ffffff',
           color: '#1a1626',
           fontFamily: 'Geist, Arial, sans-serif',
-          padding: 'clamp(16px, 4vw, 48px)',
+          padding: 'clamp(20px, 4vw, 40px)',
           boxSizing: 'border-box',
           fontSize: 13,
         }}

@@ -1,5 +1,5 @@
 // Exportación de documentos (nota de venta / contrato) en el navegador.
-// Usa html-to-image para rasterizar el nodo y jsPDF para el PDF.
+// Usa html-to-image para rasterizar el nodo y jsPDF para exportar a Carta (Letter) / PNG.
 
 import { toPng } from 'html-to-image'
 
@@ -36,25 +36,32 @@ export async function exportNodeToPdf(node: HTMLElement, filename: string): Prom
     img.onerror = reject
   })
 
-  // Documento tamaño carta (216 x 279 mm)
+  // Documento tamaño Carta (215.9 mm x 279.4 mm)
   const pdf = new jsPDF({ unit: 'mm', format: 'letter', orientation: 'portrait' })
   const pageWidth = pdf.internal.pageSize.getWidth()
   const pageHeight = pdf.internal.pageSize.getHeight()
   const margin = 10
   const usableWidth = pageWidth - margin * 2
+  const usableHeight = pageHeight - margin * 2
 
   const imgRatio = img.height / img.width
   let renderWidth = usableWidth
   let renderHeight = usableWidth * imgRatio
 
-  // Si excede una página, ajustar a la altura
-  const usableHeight = pageHeight - margin * 2
-  if (renderHeight > usableHeight) {
-    renderHeight = usableHeight
-    renderWidth = usableHeight / imgRatio
+  if (renderHeight <= usableHeight) {
+    // Si cabe en una hoja carta, se centra horizontalmente con márgenes equilibrados
+    const x = (pageWidth - renderWidth) / 2
+    const y = margin
+    pdf.addImage(dataUrl, 'PNG', x, y, renderWidth, renderHeight)
+  } else {
+    // Si el contenido excede una hoja, se escala proporcionalmente dentro de la página Carta
+    const scaleFactor = Math.min(usableWidth / img.width, usableHeight / img.height)
+    renderWidth = img.width * scaleFactor
+    renderHeight = img.height * scaleFactor
+    const x = (pageWidth - renderWidth) / 2
+    const y = (pageHeight - renderHeight) / 2
+    pdf.addImage(dataUrl, 'PNG', x, y, renderWidth, renderHeight)
   }
 
-  const x = (pageWidth - renderWidth) / 2
-  pdf.addImage(dataUrl, 'PNG', x, margin, renderWidth, renderHeight)
   pdf.save(`${filename}.pdf`)
 }

@@ -84,14 +84,30 @@ export default function SalesNoteDetailView({ note }: Props) {
             const pdf = new jsPDF({
                 orientation: 'portrait',
                 unit: 'mm',
-                format: 'a4'
+                format: 'letter'
             });
 
-            const imgProps = pdf.getImageProperties(imgData);
-            const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            const margin = 10;
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            const usableWidth = pageWidth - margin * 2;
+            const usableHeight = pageHeight - margin * 2;
 
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            const imgProps = pdf.getImageProperties(imgData);
+            const imgRatio = imgProps.height / imgProps.width;
+            let renderWidth = usableWidth;
+            let renderHeight = usableWidth * imgRatio;
+
+            if (renderHeight > usableHeight) {
+                const scaleFactor = Math.min(usableWidth / imgProps.width, usableHeight / imgProps.height);
+                renderWidth = imgProps.width * scaleFactor;
+                renderHeight = imgProps.height * scaleFactor;
+            }
+
+            const x = (pageWidth - renderWidth) / 2;
+            const y = (pageHeight - renderHeight) / 2;
+
+            pdf.addImage(imgData, 'PNG', x, y, renderWidth, renderHeight);
             pdf.save(`Nota-${note.note_number}.pdf`);
         } catch (error) {
             console.error("Error exporting to PDF:", error);

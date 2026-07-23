@@ -45,13 +45,15 @@ export const EventContractDocument = forwardRef<HTMLDivElement, EventContractDoc
       <div
         ref={ref}
         style={{
-          width: 794,
-          minHeight: 1000,
+          width: '100%',
+          maxWidth: 794,
+          height: 'auto',
           backgroundColor: '#ffffff',
           color: '#1a1626',
           fontFamily: 'Geist, Arial, sans-serif',
-          padding: 48,
+          padding: 'clamp(20px, 4vw, 40px)',
           boxSizing: 'border-box',
+          fontSize: 13,
         }}
       >
         {/* Encabezado */}

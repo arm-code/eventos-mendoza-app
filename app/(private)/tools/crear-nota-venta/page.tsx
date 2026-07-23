@@ -307,9 +307,8 @@ export default function CreateNotePage() {
                       <Label className="text-xs font-semibold text-violet-900">P. Unitario ($)</Label>
                       <Input
                         type="number"
-                        inputMode="decimal"
+                        inputMode="numeric"
                         min={0}
-                        step="0.01"
                         value={item.unitPrice === 0 ? '' : item.unitPrice}
                         onChange={(e: ChangeEvent<HTMLInputElement>) =>
                           updateItem(item.id, { unitPrice: Number(e.target.value) || 0 })
