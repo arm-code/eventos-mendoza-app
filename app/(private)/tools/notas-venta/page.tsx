@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Eye, FilePlus2, Search, Trash2, Loader2, FileText, Calendar, User, ShieldAlert, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -47,6 +48,7 @@ import { Loader } from '@/components/Loaders/Loader.component'
 
 export default function NotesHistoryPage() {
   const isMobile = useIsMobile()
+  const router = useRouter()
   const queryClient = useQueryClient()
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Note | null>(null)
@@ -140,7 +142,7 @@ export default function NotesHistoryPage() {
             asChild
             className="hidden sm:inline-flex bg-violet-600 hover:bg-violet-700 text-white gap-2 font-semibold h-11 rounded-xl shadow-lg shadow-violet-600/20 active:scale-[0.98] transition-all touch-manipulation"
           >
-            <Link href="/tools/crear-nota-venta">
+            <Link href="/tools/notas-venta/crear-nota-venta">
               <FilePlus2 className="h-4 w-4" />
               <span>Nueva nota</span>
             </Link>
@@ -359,7 +361,7 @@ export default function NotesHistoryPage() {
 
       {/* FAB móvil (posicionado arriba del bottom nav) */}
       <div className="sm:hidden fixed bottom-[72px] right-4 z-30">
-        <Link href="/tools/crear-nota-venta">
+        <Link href="/tools/notas-venta/crear-nota-venta">
           <motion.button
             whileTap={{ scale: 0.88 }}
             className="flex items-center justify-center w-14 h-14 rounded-full bg-violet-600 text-white shadow-xl shadow-violet-600/30 active:bg-violet-700 touch-manipulation"
@@ -392,7 +394,10 @@ export default function NotesHistoryPage() {
                     <motion.div whileTap={{ scale: 0.94 }} className="flex-1 sm:flex-none">
                       <Button
                         variant="outline"
-                        onClick={() => setSelected(null)}
+                        onClick={() => {
+                          setSelected(null)
+                          router.push(`/tools/notas-venta/editar-nota-venta/${selected?.id}`)
+                        }}
                         className="w-full sm:w-auto h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
                       >
                         <Pencil className="h-4 w-4 text-violet-500" />
@@ -422,7 +427,10 @@ export default function NotesHistoryPage() {
                   <motion.div whileTap={{ scale: 0.94 }}>
                     <Button
                       variant="outline"
-                      onClick={() => setSelected(null)}
+                      onClick={() => {
+                        setSelected(null)
+                        router.push(`/tools/notas-venta/editar-nota-venta/${selected?.id}`)
+                      }}
                       className="h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
                     >
                       <Pencil className="h-4 w-4 text-violet-500" />

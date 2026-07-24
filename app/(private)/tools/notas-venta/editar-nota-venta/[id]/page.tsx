@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useState, ChangeEvent } from 'react'
+import { use, useMemo, useState, ChangeEvent, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Save, Trash2, ArrowLeft, Hash, User, Phone, MapPin, FileText, Calculator, Pencil } from 'lucide-react'
+import { Plus, Save, Trash2, ArrowLeft, User, Phone, MapPin, FileText, Calculator, Pencil, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
@@ -48,11 +48,16 @@ function emptyItem(): NoteItem {
   return { id: genId('it'), description: '', quantity: 1, unitPrice: 0 }
 }
 
-export default function CreateNotePage() {
+/* ─────────────────────────────────────────────────────────────────────────────
+   Página de edición de nota de venta
+   ───────────────────────────────────────────────────────────────────────────── */
+export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params)
   const router = useRouter()
   const queryClient = useQueryClient()
   const isMobile = useIsMobile()
 
+  /* ── State del formulario ── */
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerAddress, setCustomerAddress] = useState('')
@@ -62,7 +67,16 @@ export default function CreateNotePage() {
   const [status, setStatus] = useState<'quote' | 'issued'>('quote')
   const [eventId, setEventId] = useState<string>('none')
   const [savedNote, setSavedNote] = useState<Note | null>(null)
+  const [isLoaded, setIsLoaded] = useState(false)
 
+  /* ── Carga nota existente ── */
+  const { data: existingNote, isLoading: isLoadingNote } = useQuery({
+    queryKey: ['salesNote', resolvedParams.id],
+    queryFn: () => financeApi.getSalesNoteById(resolvedParams.id),
+    enabled: !!resolvedParams.id,
+  })
+
+  /* ── Carga datos de configuración y eventos ── */
   const { data: apiEvents = [] } = useQuery({
     queryKey: ['businessEvents'],
     queryFn: () => financeApi.getBusinessEvents(),
@@ -75,11 +89,37 @@ export default function CreateNotePage() {
   })
   const businessConfig: BusinessConfig = apiConfig || defaultBusinessConfig
 
-  const createMutation = useMutation({
-    mutationFn: (dto: CreateSalesNoteDto) => financeApi.createSalesNote(dto),
+  /* ── Precargar formulario con datos de la nota ── */
+  useEffect(() => {
+    if (!existingNote || isLoaded) return
+
+    setCustomerName(existingNote.customerName || existingNote.customer?.name || '')
+    setCustomerPhone(existingNote.customerPhone || existingNote.customer?.phone || '')
+    setCustomerAddress(existingNote.customerAddress || existingNote.customer?.address || '')
+    setApplyIva(Boolean(existingNote.applyIva))
+    setNotes(existingNote.notes || '')
+    setEventId(existingNote.eventId ? String(existingNote.eventId) : 'none')
+
+    const statusVal = existingNote.status === 'note' || existingNote.status === 'issued' ? 'issued' : 'quote'
+    setStatus(statusVal)
+
+    const mappedItems = (existingNote.items || []).map((it: any, idx: number) => ({
+      id: it.id || genId('it'),
+      description: it.concept || it.description || '',
+      quantity: Number(it.quantity) || 1,
+      unitPrice: Number(it.unitPrice) || 0,
+    }))
+    setItems(mappedItems.length > 0 ? mappedItems : [emptyItem()])
+    setIsLoaded(true)
+  }, [existingNote, isLoaded])
+
+  /* ── Mutación actualizar ── */
+  const updateMutation = useMutation({
+    mutationFn: (dto: CreateSalesNoteDto) => financeApi.updateSalesNote(resolvedParams.id, dto),
     onSuccess: (apiNote) => {
       queryClient.invalidateQueries({ queryKey: ['salesNotes'] })
-      toast.success(`Nota ${apiNote.folio || 'generada'} guardada correctamente`)
+      queryClient.invalidateQueries({ queryKey: ['salesNote', resolvedParams.id] })
+      toast.success(`Nota ${apiNote.folio || 'actualizada'} guardada correctamente`)
 
       const mappedNote: Note = {
         id: apiNote.id,
@@ -89,23 +129,23 @@ export default function CreateNotePage() {
           phone: apiNote.customerPhone || apiNote.customer?.phone || customerPhone.trim() || undefined,
           address: apiNote.customerAddress || apiNote.customer?.address || customerAddress.trim() || undefined,
         },
-        items: (apiNote.items || []).map((it, idx) => ({
+        items: (apiNote.items || []).map((it: any, idx: number) => ({
           id: it.id || `it_${idx}`,
-          description: it.concept || (it as any).description || '',
+          description: it.concept || it.description || '',
           quantity: it.quantity,
           unitPrice: Number(it.unitPrice),
         })),
         applyIva: Boolean(apiNote.applyIva),
         ivaRate: Number(apiNote.ivaRate || IVA_RATE),
         notes: apiNote.notes || notes.trim() || undefined,
-        status: (apiNote.status as any) === 'issued' ? 'issued' : 'quote',
+        status: (apiNote.status as any) === 'issued' || (apiNote.status as any) === 'note' ? 'issued' : 'quote',
         eventId: apiNote.eventId || (eventId === 'none' ? null : eventId),
         createdAt: apiNote.createdAt || new Date().toISOString(),
       }
       setSavedNote(mappedNote)
     },
     onError: (err: any) => {
-      toast.error(err.message || 'Error al guardar la nota')
+      toast.error(err.message || 'Error al actualizar la nota')
     },
   })
 
@@ -114,11 +154,9 @@ export default function CreateNotePage() {
   function updateItem(id: string, patch: Partial<NoteItem>) {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)))
   }
-
   function addItem() {
     setItems((prev) => [...prev, emptyItem()])
   }
-
   function removeItem(id: string) {
     setItems((prev) => (prev.length > 1 ? prev.filter((it) => it.id !== id) : prev))
   }
@@ -150,14 +188,34 @@ export default function CreateNotePage() {
       })),
     }
 
-    createMutation.mutate(dto)
+    updateMutation.mutate(dto)
+  }
+
+  /* ── Estado de carga ── */
+  if (isLoadingNote) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3 text-violet-400">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <p className="text-sm font-medium">Cargando nota...</p>
+      </div>
+    )
   }
 
   return (
     <div className="space-y-4 sm:space-y-6">
       <PageHeader
-        title="Crear nota de venta"
-        description="Genera notas de venta o cotizaciones profesionales."
+        title="Editar nota de venta"
+        description="Modifica los datos de la nota de venta."
+        action={
+          <Button
+            variant="outline"
+            onClick={() => router.push('/tools/notas-venta')}
+            className="w-full sm:w-auto h-11 border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 rounded-xl active:scale-[0.97] transition-all"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Volver
+          </Button>
+        }
       />
 
       <div className="flex flex-col gap-4 sm:gap-6">
@@ -213,7 +271,7 @@ export default function CreateNotePage() {
           </CardContent>
         </Card>
 
-        {/* Conceptos / Artículos */}
+        {/* Conceptos */}
         <Card className="border-violet-100 bg-white shadow-sm rounded-2xl overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-violet-50 bg-violet-50/30 pb-3">
             <CardTitle className="text-sm font-bold text-violet-950 flex items-center gap-2">
@@ -312,7 +370,6 @@ export default function CreateNotePage() {
 
         {/* Opciones y Resumen */}
         <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-          {/* Opciones */}
           <Card className="border-violet-100 bg-white shadow-sm rounded-2xl overflow-hidden">
             <CardHeader className="pb-3 border-b border-violet-50 bg-violet-50/30">
               <CardTitle className="text-sm font-bold text-violet-950 flex items-center gap-2">
@@ -377,7 +434,6 @@ export default function CreateNotePage() {
             </CardContent>
           </Card>
 
-          {/* Resumen & Acción */}
           <Card className="border-violet-100 bg-white shadow-sm rounded-2xl overflow-hidden flex flex-col justify-between">
             <div>
               <CardHeader className="pb-3 border-b border-violet-50 bg-violet-50/30">
@@ -407,16 +463,16 @@ export default function CreateNotePage() {
               <motion.div whileTap={{ scale: 0.98 }}>
                 <Button
                   size="lg"
-                  disabled={createMutation.isPending}
+                  disabled={updateMutation.isPending}
                   className="w-full h-14 bg-violet-600 hover:bg-violet-700 text-white font-bold text-base shadow-lg shadow-violet-600/20 transition-all gap-2 rounded-xl touch-manipulation"
                   onClick={handleSave}
                 >
-                  {createMutation.isPending ? (
+                  {updateMutation.isPending ? (
                     <Loader />
                   ) : (
                     <Save className="h-5 w-5" />
                   )}
-                  Guardar y generar documento
+                  Guardar cambios
                 </Button>
               </motion.div>
             </CardContent>
@@ -446,11 +502,14 @@ export default function CreateNotePage() {
                     <motion.div whileTap={{ scale: 0.94 }} className="flex-1 sm:flex-none">
                       <Button
                         variant="outline"
-                        onClick={() => setSavedNote(null)}
+                        onClick={() => {
+                          setSavedNote(null)
+                          router.push('/tools/notas-venta')
+                        }}
                         className="w-full sm:w-auto h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
                       >
-                        <Pencil className="h-4 w-4 text-violet-500" />
-                        Editar
+                        <ArrowLeft className="h-4 w-4 text-violet-500" />
+                        Volver al listado
                       </Button>
                     </motion.div>
                   }
@@ -478,11 +537,14 @@ export default function CreateNotePage() {
                   <motion.div whileTap={{ scale: 0.94 }}>
                     <Button
                       variant="outline"
-                      onClick={() => setSavedNote(null)}
+                      onClick={() => {
+                        setSavedNote(null)
+                        router.push('/tools/notas-venta')
+                      }}
                       className="h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
                     >
-                      <Pencil className="h-4 w-4 text-violet-500" />
-                      Editar
+                      <ArrowLeft className="h-4 w-4 text-violet-500" />
+                      Volver al listado
                     </Button>
                   </motion.div>
                 }
