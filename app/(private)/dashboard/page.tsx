@@ -24,7 +24,7 @@ const quickActions = [
   {
     label: 'Crear nota',
     description: 'Nueva nota de venta o cotización',
-    href: '/tools/crear-nota-venta',
+    href: '/tools/notas-venta/crear-nota-venta',
     icon: FilePlus2,
   },
   {

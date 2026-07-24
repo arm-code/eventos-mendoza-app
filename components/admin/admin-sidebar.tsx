@@ -5,14 +5,13 @@ import { usePathname } from 'next/navigation'
 import { Armchair, LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
-import { createNoteNav, isActive, primaryNav } from '@/lib/nav'
+import { isActive, primaryNav } from '@/lib/nav'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
 
 export function AdminSidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     const pathname = usePathname()
     const items = [...primaryNav]
-    items.splice(1, 0, createNoteNav)
 
     return (
         <nav className="flex flex-col gap-1 px-3 py-4">

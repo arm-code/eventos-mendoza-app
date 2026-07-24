@@ -44,14 +44,7 @@ export const primaryNav: NavItem[] = [
     { label: 'Configuración', shortLabel: 'Ajustes', href: '/configuracion', icon: Settings },
 ]
 
-// Acceso rápido adicional para crear nota (destacado)
-export const createNoteNav: NavItem = {
-    label: 'Crear nota',
-    shortLabel: 'Crear',
-    href: '/tools/notas-venta/crear-nota-venta',
-    icon: FilePlus2,
-    matchPrefix: '/tools/notas-venta/crear-nota-venta',
-}
+
 
 export function isActive(pathname: string, item: NavItem): boolean {
     if (item.matchPrefix) return pathname.startsWith(item.matchPrefix)

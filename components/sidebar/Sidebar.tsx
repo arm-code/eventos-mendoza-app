@@ -73,7 +73,6 @@ export default function SidebarLayout({
       icon: <Wrench className='w-5 h-5' />,
       subItems: [
         { id: 'tools', label: 'Panel General', icon: <LayoutDashboard className='w-4 h-4' /> },
-        { id: 'crear-nota-venta', label: 'Crear Nota', icon: <FileText className='w-4 h-4' /> },
         { id: 'notas-venta', label: 'Historial Notas', icon: <FileText className='w-4 h-4' /> },
         { id: 'finanzas', label: 'Finanzas', icon: <DollarSign className='w-4 h-4' /> }
       ]
@@ -92,7 +91,7 @@ export default function SidebarLayout({
     <div className="flex min-h-screen bg-violet-50">
       {/* Overlay para móvil */}
       {isMobile && isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
           onClick={closeSidebar}
         />
@@ -101,8 +100,8 @@ export default function SidebarLayout({
       {/* Sidebar */}
       <aside
         className={`fixed top-0 left-0 flex flex-col h-screen transition-all duration-300 bg-white border-r border-violet-200 shadow-lg z-50
-          ${isMobile ? 
-            (isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full') : 
+          ${isMobile ?
+            (isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full') :
             sidebarWidth
           }
         `}
@@ -140,8 +139,8 @@ export default function SidebarLayout({
           ${isMobile ? 'ml-0' : (isSidebarOpen ? 'ml-64' : 'ml-20')}
         `}
       >
-        <Topbar 
-          session={session} 
+        <Topbar
+          session={session}
           onMenuToggle={toggleSidebar}
           isSidebarOpen={isSidebarOpen}
           isMobile={isMobile}
