@@ -1,7 +1,11 @@
 'use client'
 
 import { useState, useMemo, useEffect, ChangeEvent } from 'react'
-import { Plus, Search, Calendar, MapPin, User, Phone, FileText, Edit2, FileDown, CheckCircle2, Clock, XCircle, Loader2 } from 'lucide-react'
+import {
+  Plus, Search, Calendar, MapPin, User, Phone, FileText, Edit2, FileDown,
+  CheckCircle2, Clock, XCircle, Loader2, X, ChevronRight, Filter,
+  ArrowUpDown, MoreHorizontal
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
@@ -30,18 +34,42 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { motion, AnimatePresence } from 'framer-motion'
+import { cn } from '@/lib/utils'
 
+/* ────────────────────────────────────────────────────────────────────────────
+   CONSTANTES UX
+   ─────────────────────────────────────────────────────────────────────────── */
+const TABS = [
+  { key: 'upcoming' as const, label: 'Próximos', short: 'Próx.', icon: Clock },
+  { key: 'finished' as const, label: 'Terminados', short: 'Fin.', icon: CheckCircle2 },
+  { key: 'cancelled' as const, label: 'Cancelados', short: 'Canc.', icon: XCircle },
+  { key: 'all' as const, label: 'Todos', short: 'Todos', icon: Filter },
+] as const
+
+const STATUS_CYCLE: EventStatus[] = ['pending', 'delivered', 'collected', 'cancelled']
+
+const STATUS_META: Record<EventStatus, { label: string; bg: string; text: string; border: string; icon: typeof Clock }> = {
+  pending: { label: 'Pendiente', bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200', icon: Clock },
+  delivered: { label: 'Entregado', bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-200', icon: CheckCircle2 },
+  collected: { label: 'Recogido', bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200', icon: CheckCircle2 },
+  cancelled: { label: 'Cancelado', bg: 'bg-red-50', text: 'text-red-800', border: 'border-red-200', icon: XCircle },
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   COMPONENTE: EventosPage
+   ─────────────────────────────────────────────────────────────────────────── */
 export default function EventosPage() {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'upcoming' | 'finished' | 'cancelled' | 'all'>('upcoming')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Modal States
+  /* ── Modal States ── */
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingEvent, setEditingEvent] = useState<BusinessEvent | null>(null)
   const [contractEvent, setContractEvent] = useState<BusinessEvent | null>(null)
 
-  // Form Fields
+  /* ── Form Fields ── */
   const [formName, setFormName] = useState('')
   const [formClientName, setFormClientName] = useState('')
   const [formClientPhone, setFormClientPhone] = useState('')
@@ -53,7 +81,7 @@ export default function EventosPage() {
   const [formGuarantee, setFormGuarantee] = useState('INE / Credencial de Elector')
   const [formNotes, setFormNotes] = useState('')
 
-  // Query events 100% from NestJS API Database
+  /* ── Queries ── */
   const { data: rawEvents = [], isLoading, isError } = useQuery({
     queryKey: ['businessEvents', activeTab, searchQuery],
     queryFn: () => financeApi.getBusinessEvents({ tab: activeTab, search: searchQuery }),
@@ -65,28 +93,29 @@ export default function EventosPage() {
   })
   const businessConfig: BusinessConfig = apiConfig || defaultBusinessConfig
 
-  // Normalize API Events list
+  /* ── Normalize Events ── */
   const eventsList = useMemo<BusinessEvent[]>(() => {
     const list = Array.isArray(rawEvents) ? rawEvents : []
-    return list.map((ev) => ({
-      ...ev,
-      id: String(ev.id),
-      folio: ev.folio || `EV-${String(ev.id).slice(0, 4)}`,
-      name: ev.name || ev.serviceDescription || 'Evento de Renta',
-      serviceDescription: ev.serviceDescription || ev.name || 'Renta de mobiliario',
-      cost: Number(ev.cost) || 0,
-      date: ev.eventDate || ev.date || new Date().toISOString(),
-      clientName: ev.clientName || 'Cliente',
-      clientPhone: ev.clientPhone || '',
-      eventAddress: ev.eventAddress || 'Dirección por definir',
-      status: (ev.status as EventStatus) || 'pending',
-    })).sort((a, b) => +new Date(b.date || 0) - +new Date(a.date || 0))
+    return list
+      .map((ev) => ({
+        ...ev,
+        id: String(ev.id),
+        folio: ev.folio || `EV-${String(ev.id).slice(0, 4)}`,
+        name: ev.name || ev.serviceDescription || 'Evento de Renta',
+        serviceDescription: ev.serviceDescription || ev.name || 'Renta de mobiliario',
+        cost: Number(ev.cost) || 0,
+        date: ev.eventDate || ev.date || new Date().toISOString(),
+        clientName: ev.clientName || 'Cliente',
+        clientPhone: ev.clientPhone || '',
+        eventAddress: ev.eventAddress || 'Dirección por definir',
+        status: (ev.status as EventStatus) || 'pending',
+      }))
+      .sort((a, b) => +new Date(b.date || 0) - +new Date(a.date || 0))
   }, [rawEvents])
 
-  // Filter local tab/search if backend sends raw array
+  /* ── Filter local ── */
   const filteredEvents = useMemo(() => {
     let list = eventsList
-
     if (activeTab === 'upcoming') {
       list = list.filter((e) => e.status === 'pending' || e.status === 'delivered')
     } else if (activeTab === 'finished') {
@@ -94,7 +123,6 @@ export default function EventosPage() {
     } else if (activeTab === 'cancelled') {
       list = list.filter((e) => e.status === 'cancelled')
     }
-
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase()
       list = list.filter(
@@ -105,20 +133,19 @@ export default function EventosPage() {
           (e.folio && e.folio.toLowerCase().includes(q))
       )
     }
-
     return list
   }, [eventsList, activeTab, searchQuery])
 
-  // API Mutations for NestJS backend
+  /* ── Mutations ── */
   const createMutation = useMutation({
     mutationFn: (dto: CreateBusinessEventDto) => financeApi.createBusinessEvent(dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['businessEvents'] })
-      toast.success('Evento agendado exitosamente en la base de datos')
+      toast.success('Evento agendado exitosamente')
       setIsFormOpen(false)
     },
     onError: (err: any) => {
-      toast.error(err.message || 'Error al guardar el evento en la API')
+      toast.error(err.message || 'Error al guardar el evento')
     },
   })
 
@@ -140,26 +167,25 @@ export default function EventosPage() {
       financeApi.updateEventStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['businessEvents'] })
-      toast.success('Estado del evento actualizado')
+      toast.success('Estado actualizado')
     },
     onError: (err: any) => {
       toast.error(err.message || 'Error al actualizar el estado')
     },
   })
 
-  // Notes from localStorage for optional linking
+  /* ── Notes from localStorage ── */
   const [availableNotes, setAvailableNotes] = useState<any[]>([])
   useEffect(() => {
     try {
       const stored = localStorage.getItem('eventos_mendoza_notes')
-      if (stored) {
-        setAvailableNotes(JSON.parse(stored))
-      }
-    } catch (e) {
+      if (stored) setAvailableNotes(JSON.parse(stored))
+    } catch {
       // ignore
     }
   }, [isFormOpen])
 
+  /* ── Helpers ── */
   function resetForm() {
     setFormName('')
     setFormClientName('')
@@ -185,7 +211,11 @@ export default function EventosPage() {
     setFormClientName(event.clientName || '')
     setFormClientPhone(event.clientPhone || '')
     setFormAddress(event.eventAddress || '')
-    setFormDate(event.date || event.eventDate ? (event.date || event.eventDate)!.split('T')[0] : new Date().toISOString().split('T')[0])
+    setFormDate(
+      event.date || event.eventDate
+        ? (event.date || event.eventDate)!.split('T')[0]
+        : new Date().toISOString().split('T')[0]
+    )
     setFormCost(String(event.cost || ''))
     setFormStatus(event.status || 'pending')
     setFormNoteId(event.noteId || 'none')
@@ -227,274 +257,322 @@ export default function EventosPage() {
     }
   }
 
-  function handleStatusChange(event: BusinessEvent, newStatus: EventStatus) {
-    statusMutation.mutate({ id: event.id, status: newStatus })
+  function cycleStatus(event: BusinessEvent) {
+    const idx = STATUS_CYCLE.indexOf(event.status || 'pending')
+    const next = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length]
+    statusMutation.mutate({ id: event.id, status: next })
   }
 
-  const getStatusBadge = (status?: EventStatus) => {
-    switch (status) {
-      case 'pending':
-        return <Badge className="bg-amber-100 text-amber-800 border-amber-200 font-semibold gap-1"><Clock className="w-3 h-3" /> Pendiente</Badge>
-      case 'delivered':
-        return <Badge className="bg-blue-100 text-blue-800 border-blue-200 font-semibold gap-1"><CheckCircle2 className="w-3 h-3" /> Entregado</Badge>
-      case 'collected':
-        return <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 font-semibold gap-1"><CheckCircle2 className="w-3 h-3" /> Recogido</Badge>
-      case 'cancelled':
-        return <Badge className="bg-red-100 text-red-800 border-red-200 font-semibold gap-1"><XCircle className="w-3 h-3" /> Cancelado</Badge>
-      default:
-        return <Badge className="bg-gray-100 text-gray-800 border-gray-200 font-semibold gap-1">Pendiente</Badge>
-    }
-  }
-
+  /* ── Render ── */
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-5 pb-16 sm:pb-12">
+      {/* ═══════════════════════════════════════════════════════════════════
+         HEADER
+         ═══════════════════════════════════════════════════════════════════ */}
       <PageHeader
         title="Gestión de Eventos"
-        description="Agenda de eventos en base de datos real, control de entregas y emisión de contratos."
+        description="Agenda, contratos y control de entregas en tiempo real."
         action={
-          <Button onClick={openCreateModal} className="w-full sm:w-auto bg-violet-600 hover:bg-violet-700 text-white font-bold h-11 gap-2 shadow-sm shadow-violet-200">
+          <Button
+            onClick={openCreateModal}
+            className="w-full sm:w-auto bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white font-bold h-12 gap-2 shadow-sm shadow-violet-200 active:scale-[0.97] transition-all"
+          >
             <Plus className="h-5 w-5" />
-            Nuevo Evento
+            <span className="hidden sm:inline">Nuevo Evento</span>
+            <span className="sm:hidden">Nuevo</span>
           </Button>
         }
       />
 
-      {/* Buscador y Filtro Móvil */}
+      {/* ═══════════════════════════════════════════════════════════════════
+         BÚSQUEDA + TABS
+         ═══════════════════════════════════════════════════════════════════ */}
       <div className="space-y-3">
+        {/* Buscador con botón limpiar */}
         <div className="relative">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-violet-400" />
           <Input
             value={searchQuery}
             onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-            placeholder="Buscar evento, cliente o dirección en base de datos..."
-            className="h-11 pl-10 border-violet-100 bg-white focus:border-violet-500 shadow-sm"
+            placeholder="Buscar evento, cliente o dirección..."
+            className="h-12 pl-10 pr-10 border-violet-100 bg-white focus:border-violet-500 shadow-sm text-base"
           />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full hover:bg-violet-50 active:bg-violet-100 transition-colors"
+              aria-label="Limpiar búsqueda"
+            >
+              <X className="h-4 w-4 text-violet-400" />
+            </button>
+          )}
         </div>
 
-        {/* Pestañas de Estado (Filtro Móvil Primero) */}
-        <div className="flex overflow-x-auto gap-2 pb-1 no-scrollbar">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setActiveTab('upcoming')}
-            className={`rounded-full px-4 text-xs font-semibold shrink-0 transition-all ${
-              activeTab === 'upcoming'
-                ? 'bg-violet-600 text-white shadow-sm'
-                : 'bg-white text-violet-700 border border-violet-100 hover:bg-violet-50'
-            }`}
-          >
-            Próximos (Pendientes)
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setActiveTab('finished')}
-            className={`rounded-full px-4 text-xs font-semibold shrink-0 transition-all ${
-              activeTab === 'finished'
-                ? 'bg-violet-600 text-white shadow-sm'
-                : 'bg-white text-violet-700 border border-violet-100 hover:bg-violet-50'
-            }`}
-          >
-            Terminados (Recogidos)
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setActiveTab('cancelled')}
-            className={`rounded-full px-4 text-xs font-semibold shrink-0 transition-all ${
-              activeTab === 'cancelled'
-                ? 'bg-violet-600 text-white shadow-sm'
-                : 'bg-white text-violet-700 border border-violet-100 hover:bg-violet-50'
-            }`}
-          >
-            Cancelados
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setActiveTab('all')}
-            className={`rounded-full px-4 text-xs font-semibold shrink-0 transition-all ${
-              activeTab === 'all'
-                ? 'bg-violet-600 text-white shadow-sm'
-                : 'bg-white text-violet-700 border border-violet-100 hover:bg-violet-50'
-            }`}
-          >
-            Todos ({eventsList.length})
-          </Button>
+        {/* Tabs con indicador de scroll */}
+        <div className="relative">
+          <div className="flex overflow-x-auto gap-2 pb-1 no-scrollbar snap-x snap-mandatory">
+            {TABS.map((tab) => {
+              const count =
+                tab.key === 'all'
+                  ? eventsList.length
+                  : tab.key === 'upcoming'
+                    ? eventsList.filter((e) => e.status === 'pending' || e.status === 'delivered').length
+                    : tab.key === 'finished'
+                      ? eventsList.filter((e) => e.status === 'collected').length
+                      : eventsList.filter((e) => e.status === 'cancelled').length
+
+              const isActive = activeTab === tab.key
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={cn(
+                    'snap-start flex items-center gap-1.5 shrink-0 rounded-full px-4 py-2.5 text-sm font-semibold transition-all duration-150',
+                    'active:scale-95 min-h-[44px]',
+                    isActive
+                      ? 'bg-violet-600 text-white shadow-sm'
+                      : 'bg-white text-violet-700 border border-violet-100 hover:bg-violet-50 active:bg-violet-100'
+                  )}
+                >
+                  <tab.icon className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span className="sm:hidden">{tab.short}</span>
+                  <span
+                    className={cn(
+                      'ml-1 text-[11px] px-1.5 py-0.5 rounded-full font-bold',
+                      isActive ? 'bg-white/20 text-white' : 'bg-violet-100 text-violet-700'
+                    )}
+                  >
+                    {count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          {/* Indicador de scroll en móvil */}
+          <div className="sm:hidden absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none" />
         </div>
       </div>
 
-      {/* Lista de Eventos - Database Driven */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {filteredEvents.map((evt) => (
-          <Card key={evt.id} className="border-violet-100 bg-white shadow-sm hover:border-violet-200 transition-all flex flex-col justify-between">
-            <CardContent className="p-4 space-y-3">
-              {/* Header de la tarjeta */}
-              <div className="flex items-start justify-between gap-2 border-b border-violet-50 pb-2.5">
-                <div>
-                  <div className="text-xs font-bold text-violet-600">{evt.folio}</div>
-                  <h3 className="font-bold text-violet-950 text-base leading-tight mt-0.5">{evt.name}</h3>
-                </div>
-                <div>{getStatusBadge(evt.status)}</div>
-              </div>
+      {/* ═══════════════════════════════════════════════════════════════════
+         LISTA DE EVENTOS — CARDS REDISEÑADAS
+         ═══════════════════════════════════════════════════════════════════ */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <AnimatePresence mode="popLayout">
+          {filteredEvents.map((evt) => {
+            const meta = STATUS_META[evt.status || 'pending']
+            const StatusIcon = meta.icon
 
-              {/* Detalles */}
-              <div className="space-y-1.5 text-xs text-violet-900">
-                <div className="flex items-center gap-2">
-                  <User className="w-3.5 h-3.5 text-violet-500 shrink-0" />
-                  <span className="font-semibold text-violet-950 truncate">{evt.clientName}</span>
-                </div>
-                {evt.clientPhone && (
-                  <div className="flex items-center gap-2">
-                    <Phone className="w-3.5 h-3.5 text-violet-500 shrink-0" />
-                    <span>{evt.clientPhone}</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-3.5 h-3.5 text-violet-500 shrink-0" />
-                  <span className="font-medium text-violet-700">
-                    {evt.date ? formatDate(evt.date) : 'Por definir'}
-                  </span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <MapPin className="w-3.5 h-3.5 text-violet-500 shrink-0 mt-0.5" />
-                  <span className="line-clamp-2 text-violet-600">{evt.eventAddress}</span>
-                </div>
-                {evt.noteFolio && (
-                  <div className="flex items-center gap-2 text-violet-700 font-semibold pt-1">
-                    <FileText className="w-3.5 h-3.5 text-violet-600 shrink-0" />
-                    <span>Nota: {evt.noteFolio}</span>
-                  </div>
-                )}
-              </div>
+            return (
+              <motion.div
+                key={evt.id}
+                layout
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Card className="border-violet-100/80 bg-white shadow-sm hover:shadow-md hover:border-violet-200 transition-all duration-200 active:scale-[0.99] overflow-hidden">
+                  <CardContent className="p-0">
+                    {/* ── Header: Folio + Status ── */}
+                    <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-bold text-violet-500 tracking-wider uppercase">
+                          {evt.folio}
+                        </div>
+                        <h3 className="font-bold text-violet-950 text-[15px] leading-tight truncate">
+                          {evt.name}
+                        </h3>
+                      </div>
+                      <button
+                        onClick={() => cycleStatus(evt)}
+                        className={cn(
+                          'shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wide border transition-all duration-150',
+                          'active:scale-90 min-h-[36px]',
+                          meta.bg, meta.text, meta.border
+                        )}
+                        title={`Clic para cambiar estado (actual: ${meta.label})`}
+                      >
+                        <StatusIcon className="w-3 h-3" />
+                        <span className="hidden sm:inline">{meta.label}</span>
+                      </button>
+                    </div>
 
-              {/* Monto y Selector de Estado */}
-              <div className="pt-2 border-t border-violet-50 flex items-center justify-between">
-                <div>
-                  <span className="text-xs text-violet-500 block">Costo total</span>
-                  <span className="text-lg font-bold text-violet-950">{formatCurrency(evt.cost || 0)}</span>
-                </div>
+                    {/* ── Info clave ── */}
+                    <div className="px-4 space-y-1.5 pb-3">
+                      <div className="flex items-center gap-2 text-[13px] text-violet-900">
+                        <User className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                        <span className="font-semibold truncate">{evt.clientName}</span>
+                      </div>
+                      {evt.clientPhone && (
+                        <div className="flex items-center gap-2 text-[13px] text-violet-700">
+                          <Phone className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                          <a
+                            href={`tel:${evt.clientPhone}`}
+                            className="hover:text-violet-900 hover:underline active:text-violet-950"
+                          >
+                            {evt.clientPhone}
+                          </a>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-[13px] text-violet-700">
+                        <Calendar className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                        <span className="font-medium">
+                          {evt.date ? formatDate(evt.date) : 'Por definir'}
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-2 text-[12px] text-violet-600">
+                        <MapPin className="w-3.5 h-3.5 text-violet-400 shrink-0 mt-0.5" />
+                        <span className="line-clamp-2">{evt.eventAddress}</span>
+                      </div>
+                      {evt.noteFolio && (
+                        <div className="flex items-center gap-2 text-[12px] text-violet-700 font-semibold pt-0.5">
+                          <FileText className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+                          <span>Nota: {evt.noteFolio}</span>
+                        </div>
+                      )}
+                    </div>
 
-                <Select value={evt.status} onValueChange={(val) => handleStatusChange(evt, val as EventStatus)}>
-                  <SelectTrigger className="h-8 text-xs border-violet-100 bg-violet-50/50 w-28">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pendiente</SelectItem>
-                    <SelectItem value="delivered">Entregado</SelectItem>
-                    <SelectItem value="collected">Recogido</SelectItem>
-                    <SelectItem value="cancelled">Cancelar</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                    {/* ── Costo + Acciones ── */}
+                    <div className="border-t border-violet-50 px-4 py-3">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <span className="text-[11px] text-violet-400 font-medium block">Costo total</span>
+                          <span className="text-xl font-bold text-violet-950">
+                            {formatCurrency(evt.cost || 0)}
+                          </span>
+                        </div>
+                      </div>
 
-              {/* Botones de acción táctiles */}
-              <div className="grid grid-cols-2 gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setContractEvent(evt)}
-                  className="w-full border-violet-200 text-violet-700 hover:bg-violet-50 text-xs font-semibold h-9 gap-1"
-                >
-                  <FileDown className="w-3.5 h-3.5 text-violet-600" />
-                  Contrato
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => openEditModal(evt)}
-                  className="w-full text-violet-600 hover:bg-violet-50 text-xs font-semibold h-9 gap-1"
-                >
-                  <Edit2 className="w-3.5 h-3.5" />
-                  Editar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+                      {/* Botones de acción: apilados en móvil, lado a lado en desktop */}
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setContractEvent(evt)}
+                          className="w-full sm:w-auto h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 active:bg-violet-100 active:scale-[0.97] text-sm font-semibold gap-2 transition-all"
+                        >
+                          <FileDown className="w-4 h-4 text-violet-600" />
+                          Ver Contrato
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEditModal(evt)}
+                          className="w-full sm:w-auto h-11 rounded-xl text-violet-600 hover:bg-violet-50 active:bg-violet-100 active:scale-[0.97] text-sm font-semibold gap-2 transition-all"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                          Editar
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )
+          })}
+        </AnimatePresence>
 
         {filteredEvents.length === 0 && (
           <Card className="col-span-full border-violet-100 bg-white p-8 text-center">
             {isLoading ? (
               <div className="flex items-center justify-center gap-2 text-violet-600 font-semibold py-4">
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Cargando eventos desde la API...</span>
+                <span>Cargando eventos...</span>
               </div>
             ) : (
-              <>
-                <Calendar className="w-12 h-12 text-violet-300 mx-auto mb-3 opacity-60" />
-                <p className="text-violet-900 font-bold text-base">No hay eventos guardados en la base de datos.</p>
-                <p className="text-xs text-violet-500 mt-1">Presiona "Nuevo Evento" para agendar el primer servicio.</p>
-              </>
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-3"
+              >
+                <Calendar className="w-12 h-12 text-violet-300 mx-auto opacity-60" />
+                <p className="text-violet-900 font-bold text-base">
+                  No hay eventos {activeTab !== 'all' ? 'en esta categoría' : 'guardados'}.
+                </p>
+                <p className="text-sm text-violet-500">
+                  Presiona "Nuevo Evento" para agendar el primer servicio.
+                </p>
+              </motion.div>
             )}
           </Card>
         )}
       </div>
 
-      {/* Modal Crear / Editar Evento */}
+      {/* ═══════════════════════════════════════════════════════════════════
+         MODAL: CREAR / EDITAR EVENTO
+         ═══════════════════════════════════════════════════════════════════ */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6 border-violet-100 bg-white">
+        <DialogContent className="w-[95vw] max-w-lg max-h-[92vh] overflow-y-auto p-4 sm:p-6 border-violet-100 bg-white">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-violet-950">
               {editingEvent ? 'Editar Evento' : 'Nuevo Evento'}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 pt-2">
+          <div className="space-y-5 pt-2">
+            {/* Nombre del evento */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-violet-900">Nombre del Evento / Servicio *</Label>
+              <Label className="text-sm font-semibold text-violet-900">
+                Nombre del Evento / Servicio <span className="text-red-500">*</span>
+              </Label>
               <Input
                 value={formName}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setFormName(e.target.value)}
                 placeholder="Ej. Renta Mobiliario Fiesta Cumpleaños"
-                className="h-11 border-violet-100 focus:border-violet-500"
+                className="h-12 border-violet-100 focus:border-violet-500 text-base"
               />
             </div>
 
+            {/* Cliente + Teléfono */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-violet-900">Nombre del Cliente *</Label>
+                <Label className="text-sm font-semibold text-violet-900">
+                  Nombre del Cliente <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   value={formClientName}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setFormClientName(e.target.value)}
                   placeholder="Nombre completo"
-                  className="h-11 border-violet-100 focus:border-violet-500"
+                  className="h-12 border-violet-100 focus:border-violet-500 text-base"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-violet-900">Teléfono de Contacto</Label>
+                <Label className="text-sm font-semibold text-violet-900">Teléfono</Label>
                 <Input
                   inputMode="tel"
                   value={formClientPhone}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setFormClientPhone(e.target.value)}
                   placeholder="656 123 4567"
-                  className="h-11 border-violet-100 focus:border-violet-500"
+                  className="h-12 border-violet-100 focus:border-violet-500 text-base"
                 />
               </div>
             </div>
 
+            {/* Dirección */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-violet-900">Dirección del Evento</Label>
+              <Label className="text-sm font-semibold text-violet-900">Dirección del Evento</Label>
               <Input
                 value={formAddress}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setFormAddress(e.target.value)}
                 placeholder="Calle, número, colonia, referencias..."
-                className="h-11 border-violet-100 focus:border-violet-500"
+                className="h-12 border-violet-100 focus:border-violet-500 text-base"
               />
             </div>
 
+            {/* Fecha + Costo */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-violet-900">Fecha del Evento</Label>
+                <Label className="text-sm font-semibold text-violet-900">Fecha del Evento</Label>
                 <Input
                   type="date"
                   value={formDate}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setFormDate(e.target.value)}
-                  className="h-11 border-violet-100 focus:border-violet-500"
+                  className="h-12 border-violet-100 focus:border-violet-500 text-base"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-violet-900">Costo Total ($)</Label>
+                <Label className="text-sm font-semibold text-violet-900">Costo Total ($)</Label>
                 <Input
                   type="number"
                   inputMode="decimal"
@@ -503,16 +581,17 @@ export default function EventosPage() {
                   value={formCost}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setFormCost(e.target.value)}
                   placeholder="0.00"
-                  className="h-11 border-violet-100 focus:border-violet-500 font-semibold"
+                  className="h-12 border-violet-100 focus:border-violet-500 text-base font-semibold"
                 />
               </div>
             </div>
 
+            {/* Estado + Nota vinculada */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-violet-900">Estado del Evento</Label>
+                <Label className="text-sm font-semibold text-violet-900">Estado</Label>
                 <Select value={formStatus} onValueChange={(val) => setFormStatus(val as EventStatus)}>
-                  <SelectTrigger className="h-11 border-violet-100 bg-white">
+                  <SelectTrigger className="h-12 border-violet-100 bg-white text-base">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -523,18 +602,17 @@ export default function EventosPage() {
                   </SelectContent>
                 </Select>
               </div>
-
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold text-violet-900">Vincular a Nota de Venta (Opcional)</Label>
+                <Label className="text-sm font-semibold text-violet-900">Vincular Nota (Opcional)</Label>
                 <Select value={formNoteId} onValueChange={setFormNoteId}>
-                  <SelectTrigger className="h-11 border-violet-100 bg-white">
+                  <SelectTrigger className="h-12 border-violet-100 bg-white text-base">
                     <SelectValue placeholder="Sin nota vinculada" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Sin nota</SelectItem>
                     {availableNotes.map((note) => (
                       <SelectItem key={note.id} value={note.id}>
-                        {note.folio} - {note.customer?.name} (${noteTotal(note)})
+                        {note.folio} — {note.customer?.name} (${noteTotal(note)})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -542,10 +620,11 @@ export default function EventosPage() {
               </div>
             </div>
 
+            {/* Garantía */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-violet-900">Documento de Garantía del Cliente</Label>
+              <Label className="text-sm font-semibold text-violet-900">Documento de Garantía</Label>
               <Select value={formGuarantee} onValueChange={setFormGuarantee}>
-                <SelectTrigger className="h-11 border-violet-100 bg-white">
+                <SelectTrigger className="h-12 border-violet-100 bg-white text-base">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -558,26 +637,34 @@ export default function EventosPage() {
               </Select>
             </div>
 
+            {/* Notas */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-violet-900">Notas / Términos de entrega</Label>
+              <Label className="text-sm font-semibold text-violet-900">Notas / Términos de entrega</Label>
               <Input
                 value={formNotes}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setFormNotes(e.target.value)}
                 placeholder="Detalles sobre horario de entrega o recolección..."
-                className="h-11 border-violet-100 focus:border-violet-500"
+                className="h-12 border-violet-100 focus:border-violet-500 text-base"
               />
             </div>
 
-            <div className="pt-4 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsFormOpen(false)} className="h-11 border-violet-100">
+            {/* Botones */}
+            <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setIsFormOpen(false)}
+                className="h-12 border-violet-100 text-base font-semibold active:scale-[0.97] transition-all"
+              >
                 Cancelar
               </Button>
               <Button
                 onClick={handleFormSubmit}
                 disabled={createMutation.isPending || updateMutation.isPending}
-                className="h-11 bg-violet-600 hover:bg-violet-700 text-white font-bold px-6"
+                className="h-12 bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white font-bold px-8 text-base active:scale-[0.97] transition-all"
               >
-                {(createMutation.isPending || updateMutation.isPending) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {(createMutation.isPending || updateMutation.isPending) && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 {editingEvent ? 'Guardar Cambios' : 'Agendar Evento'}
               </Button>
             </div>
@@ -585,16 +672,18 @@ export default function EventosPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal Contrato / Exportación a PDF e Imagen */}
+      {/* ═══════════════════════════════════════════════════════════════════
+         MODAL: CONTRATO / EXPORTACIÓN
+         ═══════════════════════════════════════════════════════════════════ */}
       <Dialog open={contractEvent !== null} onOpenChange={(o) => !o && setContractEvent(null)}>
         <DialogContent
           onPointerDownOutside={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
-          className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6 border-violet-100 bg-white"
+          className="w-[95vw] max-w-4xl max-h-[92vh] overflow-y-auto p-3 sm:p-6 border-violet-100 bg-white"
         >
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-violet-950">
-              Contrato de Evento {contractEvent?.folio}
+            <DialogTitle className="text-lg sm:text-xl font-bold text-violet-950">
+              Contrato {contractEvent?.folio}
             </DialogTitle>
           </DialogHeader>
 
@@ -602,9 +691,17 @@ export default function EventosPage() {
             <div className="space-y-4 pt-2">
               <DocumentActions
                 filename={`contrato-evento-${contractEvent.folio}`}
-                exportNode={<PrintEventContractDocument event={contractEvent as EventContractData} business={businessConfig} />}
+                exportNode={
+                  <PrintEventContractDocument
+                    event={contractEvent as EventContractData}
+                    business={businessConfig}
+                  />
+                }
               >
-                <EventContractDocument event={contractEvent as EventContractData} business={businessConfig} />
+                <EventContractDocument
+                  event={contractEvent as EventContractData}
+                  business={businessConfig}
+                />
               </DocumentActions>
             </div>
           )}
