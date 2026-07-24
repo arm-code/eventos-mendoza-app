@@ -4,14 +4,13 @@ import { useState, ChangeEvent, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Loader2, Save, ArrowLeft, Pencil } from 'lucide-react'
+import { Loader2, Save, ArrowLeft } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 import { financeApi } from '@/lib/api/finance'
 import { noteTotal } from '@/lib/calculations'
 import { defaultBusinessConfig } from '@/lib/config'
 import type { BusinessEvent, CreateBusinessEventDto, EventStatus, BusinessConfig } from '@/types/finance'
-import { useIsMobile } from '@/hooks/useIsMobile'
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,15 +18,10 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { PageHeader } from '@/components/admin/page-header'
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { DocumentActions } from '@/components/documents/document-actions'
-import { EventContractDocument, PrintEventContractDocument, EventContractData } from '@/components/documents/event-contract-document'
 
 export default function CrearEventoPage() {
     const router = useRouter()
     const queryClient = useQueryClient()
-    const isMobile = useIsMobile()
 
     // Form State
     const [formName, setFormName] = useState('')
@@ -41,9 +35,6 @@ export default function CrearEventoPage() {
     const [formGuarantee, setFormGuarantee] = useState('INE / Credencial de Elector')
     const [formNotes, setFormNotes] = useState('')
 
-    // State for the saved event (triggers the export bottom sheet)
-    const [savedEvent, setSavedEvent] = useState<BusinessEvent | null>(null)
-
     // Load available notes from localStorage
     const [availableNotes, setAvailableNotes] = useState<any[]>([])
     useEffect(() => {
@@ -53,7 +44,7 @@ export default function CrearEventoPage() {
         } catch { }
     }, [])
 
-    // Business Config for Document Generation
+    // Business Config
     const { data: apiConfig } = useQuery({
         queryKey: ['businessConfig'],
         queryFn: () => financeApi.getConfig(),
@@ -66,24 +57,8 @@ export default function CrearEventoPage() {
         onSuccess: (apiEvent) => {
             queryClient.invalidateQueries({ queryKey: ['businessEvents'] })
             toast.success('Evento agendado exitosamente')
-            
-            // Format the saved event for the document preview
-            const mappedEvent: BusinessEvent = {
-                ...apiEvent,
-                id: String(apiEvent.id),
-                folio: apiEvent.folio || `EV-${String(apiEvent.id).slice(0, 4)}`,
-                name: apiEvent.name || apiEvent.serviceDescription || formName,
-                serviceDescription: apiEvent.serviceDescription || apiEvent.name || formName,
-                cost: Number(apiEvent.cost) || Number(formCost) || 0,
-                date: apiEvent.eventDate || apiEvent.date || formDate,
-                clientName: apiEvent.clientName || formClientName,
-                clientPhone: apiEvent.clientPhone || formClientPhone,
-                eventAddress: apiEvent.eventAddress || formAddress,
-                status: (apiEvent.status as EventStatus) || formStatus,
-                guaranteeDocument: apiEvent.guaranteeDocument || formGuarantee,
-                notes: apiEvent.notes || formNotes
-            }
-            setSavedEvent(mappedEvent)
+            // Redirigir al listado donde puede ver detalles y exportar contrato
+            router.push('/tools/eventos')
         },
         onError: (err: any) => {
             toast.error(err.message || 'Error al guardar el evento')
@@ -113,15 +88,15 @@ export default function CrearEventoPage() {
         <div className="space-y-4 sm:space-y-6 pb-24 sm:pb-0">
             <PageHeader
                 title="Nuevo Evento"
-                description="Registra un nuevo servicio de renta y genera su contrato."
+                description="Registra un nuevo servicio de renta."
                 action={
                     <Button
                         variant="outline"
                         onClick={() => router.push('/tools/eventos')}
-                        className="w-full sm:w-auto h-11 border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 rounded-xl"
+                        className="w-full sm:w-auto h-11 border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 rounded-xl active:scale-[0.97] transition-all"
                     >
                         <ArrowLeft className="w-4 h-4" />
-                        Volver a eventos
+                        Volver
                     </Button>
                 }
             />
@@ -138,7 +113,7 @@ export default function CrearEventoPage() {
                                 value={formName}
                                 onChange={(e: ChangeEvent<HTMLInputElement>) => setFormName(e.target.value)}
                                 placeholder="Ej. Renta Mobiliario Fiesta Cumpleaños"
-                                className="h-12 border-violet-100 focus:border-violet-500 text-base"
+                                className="h-12 border-violet-100 focus:border-violet-500 text-base rounded-xl"
                             />
                         </div>
 
@@ -152,7 +127,7 @@ export default function CrearEventoPage() {
                                     value={formClientName}
                                     onChange={(e: ChangeEvent<HTMLInputElement>) => setFormClientName(e.target.value)}
                                     placeholder="Nombre completo"
-                                    className="h-12 border-violet-100 focus:border-violet-500 text-base"
+                                    className="h-12 border-violet-100 focus:border-violet-500 text-base rounded-xl"
                                 />
                             </div>
                             <div className="space-y-1.5">
@@ -162,7 +137,7 @@ export default function CrearEventoPage() {
                                     value={formClientPhone}
                                     onChange={(e: ChangeEvent<HTMLInputElement>) => setFormClientPhone(e.target.value)}
                                     placeholder="656 123 4567"
-                                    className="h-12 border-violet-100 focus:border-violet-500 text-base"
+                                    className="h-12 border-violet-100 focus:border-violet-500 text-base rounded-xl"
                                 />
                             </div>
                         </div>
@@ -174,7 +149,7 @@ export default function CrearEventoPage() {
                                 value={formAddress}
                                 onChange={(e: ChangeEvent<HTMLInputElement>) => setFormAddress(e.target.value)}
                                 placeholder="Calle, número, colonia, referencias..."
-                                className="h-12 border-violet-100 focus:border-violet-500 text-base"
+                                className="h-12 border-violet-100 focus:border-violet-500 text-base rounded-xl"
                             />
                         </div>
 
@@ -186,7 +161,7 @@ export default function CrearEventoPage() {
                                     type="date"
                                     value={formDate}
                                     onChange={(e: ChangeEvent<HTMLInputElement>) => setFormDate(e.target.value)}
-                                    className="h-12 border-violet-100 focus:border-violet-500 text-base"
+                                    className="h-12 border-violet-100 focus:border-violet-500 text-base rounded-xl"
                                 />
                             </div>
                             <div className="space-y-1.5">
@@ -199,7 +174,7 @@ export default function CrearEventoPage() {
                                     value={formCost}
                                     onChange={(e: ChangeEvent<HTMLInputElement>) => setFormCost(e.target.value)}
                                     placeholder="0.00"
-                                    className="h-12 border-violet-100 focus:border-violet-500 text-base font-semibold"
+                                    className="h-12 border-violet-100 focus:border-violet-500 text-base font-semibold rounded-xl"
                                 />
                             </div>
                         </div>
@@ -209,7 +184,7 @@ export default function CrearEventoPage() {
                             <div className="space-y-1.5">
                                 <Label className="text-sm font-semibold text-violet-900">Estado</Label>
                                 <Select value={formStatus} onValueChange={(val) => setFormStatus(val as EventStatus)}>
-                                    <SelectTrigger className="h-12 border-violet-100 bg-white text-base">
+                                    <SelectTrigger className="h-12 border-violet-100 bg-white text-base rounded-xl">
                                         <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -223,7 +198,7 @@ export default function CrearEventoPage() {
                             <div className="space-y-1.5">
                                 <Label className="text-sm font-semibold text-violet-900">Vincular Nota (Opcional)</Label>
                                 <Select value={formNoteId} onValueChange={setFormNoteId}>
-                                    <SelectTrigger className="h-12 border-violet-100 bg-white text-base">
+                                    <SelectTrigger className="h-12 border-violet-100 bg-white text-base rounded-xl">
                                         <SelectValue placeholder="Sin nota vinculada" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -242,7 +217,7 @@ export default function CrearEventoPage() {
                         <div className="space-y-1.5">
                             <Label className="text-sm font-semibold text-violet-900">Documento de Garantía</Label>
                             <Select value={formGuarantee} onValueChange={setFormGuarantee}>
-                                <SelectTrigger className="h-12 border-violet-100 bg-white text-base">
+                                <SelectTrigger className="h-12 border-violet-100 bg-white text-base rounded-xl">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -262,7 +237,7 @@ export default function CrearEventoPage() {
                                 value={formNotes}
                                 onChange={(e: ChangeEvent<HTMLInputElement>) => setFormNotes(e.target.value)}
                                 placeholder="Detalles sobre horario de entrega o recolección..."
-                                className="h-12 border-violet-100 focus:border-violet-500 text-base"
+                                className="h-12 border-violet-100 focus:border-violet-500 text-base rounded-xl"
                             />
                         </div>
 
@@ -285,92 +260,12 @@ export default function CrearEventoPage() {
                                 ) : (
                                     <Save className="mr-2 h-4 w-4" />
                                 )}
-                                Agendar Evento y Generar Contrato
+                                Agendar Evento
                             </Button>
                         </div>
                     </div>
                 </Card>
             </div>
-
-            {/* ── Sheet mobile: evento guardado ── */}
-            {isMobile && (
-                <Sheet open={savedEvent !== null} onOpenChange={(o) => {
-                    if (!o) {
-                        setSavedEvent(null)
-                        router.push('/tools/eventos')
-                    }
-                }}>
-                    <SheetContent
-                        side="bottom"
-                        className="h-[92vh] max-h-[92dvh] rounded-t-3xl border-t border-violet-100 bg-white p-0 flex flex-col overflow-hidden"
-                    >
-                        <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50 flex-shrink-0">
-                            <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
-                            <SheetHeader className="text-left">
-                                <SheetTitle className="text-lg font-bold text-violet-950">Evento Guardado: {savedEvent?.folio}</SheetTitle>
-                            </SheetHeader>
-                        </div>
-                        <div className="px-4 py-4 overflow-y-auto flex-1 pb-4">
-                            {savedEvent && (
-                                <DocumentActions
-                                    filename={`contrato-evento-${savedEvent.folio}`}
-                                    exportNode={<PrintEventContractDocument event={savedEvent as EventContractData} business={businessConfig} />}
-                                    extraActions={
-                                        <motion.div whileTap={{ scale: 0.94 }} className="flex-1 sm:flex-none">
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => router.push(`/tools/eventos/editar-evento/${savedEvent.id}`)}
-                                                className="w-full sm:w-auto h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
-                                            >
-                                                <Pencil className="h-4 w-4 text-violet-500" />
-                                                Editar
-                                            </Button>
-                                        </motion.div>
-                                    }
-                                >
-                                    <EventContractDocument event={savedEvent as EventContractData} business={businessConfig} />
-                                </DocumentActions>
-                            )}
-                        </div>
-                    </SheetContent>
-                </Sheet>
-            )}
-
-            {/* ── Dialog desktop: evento guardado ── */}
-            {!isMobile && (
-                <Dialog open={savedEvent !== null} onOpenChange={(o) => {
-                    if (!o) {
-                        setSavedEvent(null)
-                        router.push('/tools/eventos')
-                    }
-                }}>
-                    <DialogContent className="max-h-[90dvh] max-w-4xl overflow-y-auto rounded-2xl border-violet-100 bg-white p-4 sm:p-6">
-                        <DialogHeader>
-                            <DialogTitle className="text-xl font-bold text-violet-950">Evento Guardado: {savedEvent?.folio}</DialogTitle>
-                        </DialogHeader>
-                        {savedEvent && (
-                            <DocumentActions
-                                filename={`contrato-evento-${savedEvent.folio}`}
-                                exportNode={<PrintEventContractDocument event={savedEvent as EventContractData} business={businessConfig} />}
-                                extraActions={
-                                    <motion.div whileTap={{ scale: 0.94 }}>
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => router.push(`/tools/eventos/editar-evento/${savedEvent.id}`)}
-                                            className="h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
-                                        >
-                                            <Pencil className="h-4 w-4 text-violet-500" />
-                                            Editar
-                                        </Button>
-                                    </motion.div>
-                                }
-                            >
-                                <EventContractDocument event={savedEvent as EventContractData} business={businessConfig} />
-                            </DocumentActions>
-                        )}
-                    </DialogContent>
-                </Dialog>
-            )}
         </div>
     )
 }

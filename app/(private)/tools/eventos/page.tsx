@@ -3,48 +3,24 @@
 import { useState, useMemo, useEffect, ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Plus, Search, Calendar, MapPin, User, Phone, FileText, Edit2, FileDown,
-  CheckCircle2, Clock, XCircle, Loader2, X, ChevronRight, Filter,
-  ArrowUpDown, MoreHorizontal, ReceiptText
+  Plus, Search, Calendar, MapPin, User, Phone, FileText, Edit2,
+  CheckCircle2, Clock, XCircle, Loader2, X, Filter, Eye
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
-import { noteTotal } from '@/lib/calculations'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { defaultBusinessConfig } from '@/lib/config'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { PageHeader } from '@/components/admin/page-header'
-import { DocumentActions } from '@/components/documents/document-actions'
-import { EventContractDocument, PrintEventContractDocument, EventContractData } from '@/components/documents/event-contract-document'
+import { EventDetailSheet } from '@/components/events/EventDetailSheet'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
-import type { EventStatus, CreateBusinessEventDto, UpdateBusinessEventDto, BusinessEvent, BusinessConfig } from '@/types/finance'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import type { EventStatus, BusinessEvent, BusinessConfig } from '@/types/finance'
 import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { ListaEventos } from '@/components/events/ListaEventos'
 
 /* ────────────────────────────────────────────────────────────────────────────
    CONSTANTES UX
@@ -56,30 +32,51 @@ const TABS = [
   { key: 'all' as const, label: 'Todos', short: 'Todos', icon: Filter },
 ] as const
 
-const STATUS_CYCLE: EventStatus[] = ['pending', 'delivered', 'collected', 'cancelled']
-
-const STATUS_META: Record<EventStatus, { label: string; bg: string; text: string; border: string; icon: typeof Clock }> = {
-  pending: { label: 'Pendiente', bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200', icon: Clock },
-  delivered: { label: 'Entregado', bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-200', icon: CheckCircle2 },
-  collected: { label: 'Recogido', bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200', icon: CheckCircle2 },
-  cancelled: { label: 'Cancelado', bg: 'bg-red-50', text: 'text-red-800', border: 'border-red-200', icon: XCircle },
+const STATUS_META: Record<EventStatus, {
+  label: string
+  shortLabel: string
+  bg: string
+  text: string
+  border: string
+  icon: typeof Clock
+  dot: string
+}> = {
+  pending: {
+    label: 'Pendiente', shortLabel: 'Pend.',
+    bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200',
+    icon: Clock, dot: 'bg-amber-500'
+  },
+  delivered: {
+    label: 'Entregado', shortLabel: 'Entr.',
+    bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-200',
+    icon: CheckCircle2, dot: 'bg-blue-500'
+  },
+  collected: {
+    label: 'Recogido', shortLabel: 'Rec.',
+    bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200',
+    icon: CheckCircle2, dot: 'bg-emerald-500'
+  },
+  cancelled: {
+    label: 'Cancelado', shortLabel: 'Canc.',
+    bg: 'bg-red-50', text: 'text-red-800', border: 'border-red-200',
+    icon: XCircle, dot: 'bg-red-500'
+  },
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
-   COMPONENTE: EventosPage
+   COMPONENTE: EventosPage (Listado)
    ─────────────────────────────────────────────────────────────────────────── */
 export default function EventosPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const isMobile = useIsMobile()
+
   const [activeTab, setActiveTab] = useState<'upcoming' | 'finished' | 'cancelled' | 'all'>('upcoming')
   const [searchQuery, setSearchQuery] = useState('')
-
-  /* ── Modal States ── */
-  const [contractEvent, setContractEvent] = useState<BusinessEvent | null>(null)
+  const [detailEvent, setDetailEvent] = useState<BusinessEvent | null>(null)
 
   /* ── Queries ── */
-  const { data: rawEvents = [], isLoading, isError } = useQuery({
+  const { data: rawEvents = [], isLoading } = useQuery({
     queryKey: ['businessEvents', activeTab, searchQuery],
     queryFn: () => financeApi.getBusinessEvents({ tab: activeTab, search: searchQuery }),
   })
@@ -133,9 +130,7 @@ export default function EventosPage() {
     return list
   }, [eventsList, activeTab, searchQuery])
 
-  /* ── Mutations ── */
-
-
+  /* ── Status mutation (para cambio rápido desde card) ── */
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: EventStatus }) =>
       financeApi.updateEventStatus(id, status),
@@ -148,48 +143,34 @@ export default function EventosPage() {
     },
   })
 
-  /* ── Notes from localStorage ── */
-  const [availableNotes, setAvailableNotes] = useState<any[]>([])
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('eventos_mendoza_notes')
-      if (stored) setAvailableNotes(JSON.parse(stored))
-    } catch {
-      // ignore
+  /* ── Quick status advance (solo en cards) ── */
+  function quickAdvanceStatus(evt: BusinessEvent, e: React.MouseEvent) {
+    e.stopPropagation()
+    const flow: EventStatus[] = ['pending', 'delivered', 'collected']
+    const idx = flow.indexOf(evt.status || 'pending')
+    if (idx >= 0 && idx < flow.length - 1) {
+      statusMutation.mutate({ id: evt.id, status: flow[idx + 1] })
     }
-  }, [])
-
-  /* ── Helpers ── */
-  function openCreateModal() {
-    router.push('/tools/eventos/crear-evento')
   }
 
-
-
-  function cycleStatus(event: BusinessEvent) {
-    const idx = STATUS_CYCLE.indexOf(event.status || 'pending')
-    const next = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length]
-    statusMutation.mutate({ id: event.id, status: next })
-  }
-
-  /* ── Render ── */
   return (
-    <div className="space-y-5 pb-16 sm:pb-12">
+    <div className="space-y-4 pb-6 sm:pb-12">
       {/* ═══════════════════════════════════════════════════════════════════
-         HEADER
+         HEADER (sin botón de acción — el FAB lo reemplaza en móvil)
          ═══════════════════════════════════════════════════════════════════ */}
       <PageHeader
         title="Gestión de Eventos"
-        description="Agenda, contratos y control de entregas en tiempo real."
+        description="Agenda, contratos y control de entregas."
         action={
-          <Button
-            onClick={openCreateModal}
-            className="w-full sm:w-auto bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white font-bold h-12 gap-2 shadow-sm shadow-violet-200 active:scale-[0.97] transition-all"
-          >
-            <Plus className="h-5 w-5" />
-            <span className="hidden sm:inline">Nuevo Evento</span>
-            <span className="sm:hidden">Nuevo</span>
-          </Button>
+          !isMobile ? (
+            <Button
+              onClick={() => router.push('/tools/eventos/crear-evento')}
+              className="bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white font-bold h-11 gap-2 shadow-sm shadow-violet-200 active:scale-[0.97] transition-all rounded-xl"
+            >
+              <Plus className="h-5 w-5" />
+              Nuevo Evento
+            </Button>
+          ) : undefined
         }
       />
 
@@ -197,14 +178,14 @@ export default function EventosPage() {
          BÚSQUEDA + TABS
          ═══════════════════════════════════════════════════════════════════ */}
       <div className="space-y-3">
-        {/* Buscador con botón limpiar */}
+        {/* Buscador */}
         <div className="relative">
           <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-violet-400" />
           <Input
             value={searchQuery}
             onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
             placeholder="Buscar evento, cliente o dirección..."
-            className="h-12 pl-10 pr-10 border-violet-100 bg-white focus:border-violet-500 shadow-sm text-base"
+            className="h-12 pl-10 pr-10 border-violet-100 bg-white focus:border-violet-500 shadow-sm text-base rounded-xl"
           />
           {searchQuery && (
             <button
@@ -217,7 +198,7 @@ export default function EventosPage() {
           )}
         </div>
 
-        {/* Tabs con indicador de scroll */}
+        {/* Tabs con contador y scroll hint */}
         <div className="relative">
           <div className="flex overflow-x-auto gap-2 pb-1 no-scrollbar snap-x snap-mandatory">
             {TABS.map((tab) => {
@@ -258,103 +239,188 @@ export default function EventosPage() {
               )
             })}
           </div>
-          {/* Indicador de scroll en móvil */}
           <div className="sm:hidden absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none" />
         </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
-         LISTA DE EVENTOS — CARDS REDISEÑADAS
+         LISTA DE EVENTOS — CARDS MINIMALISTAS
          ═══════════════════════════════════════════════════════════════════ */}
-      <ListaEventos
-        filteredEvents={filteredEvents}
-        STATUS_META={STATUS_META}
-        cycleStatus={cycleStatus}
-        setContractEvent={setContractEvent}
-        isLoading={isLoading}
-        activeTab={activeTab}
-      />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <AnimatePresence mode="popLayout">
+          {filteredEvents.map((evt) => {
+            const meta = STATUS_META[evt.status || 'pending']
+            const StatusIcon = meta.icon
+            const canAdvance = evt.status === 'pending' || evt.status === 'delivered'
 
-      {/* ═══════════════════════════════════════════════════════════════════
-         MODAL: CREAR / EDITAR EVENTO
-         ═══════════════════════════════════════════════════════════════════ */}
-
-
-      {/* ═══════════════════════════════════════════════════════════════════
-         MODAL: CONTRATO / EXPORTACIÓN  (Sheet mobile · Dialog desktop)
-         ═══════════════════════════════════════════════════════════════════ */}
-
-      {/* ── Sheet móvil ── */}
-      {isMobile && (
-        <Sheet open={contractEvent !== null} onOpenChange={(o) => { if (!o) setContractEvent(null) }}>
-          <SheetContent
-            side="bottom"
-            className="h-[92vh] max-h-[92dvh] rounded-t-3xl border-t border-violet-100 bg-white p-0 flex flex-col overflow-hidden"
-          >
-            <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50 flex-shrink-0">
-              <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
-              <SheetHeader className="text-left">
-                <SheetTitle className="text-lg font-bold text-violet-950">
-                  Contrato {contractEvent?.folio}
-                </SheetTitle>
-              </SheetHeader>
-            </div>
-            <div className="px-4 py-4 overflow-y-auto flex-1 pb-4">
-              {contractEvent && (
-                <DocumentActions
-                  filename={`contrato-evento-${contractEvent.folio}`}
-                  exportNode={<PrintEventContractDocument event={contractEvent as EventContractData} business={businessConfig} />}
-                  extraActions={
-                    <motion.div whileTap={{ scale: 0.94 }} className="flex-1 sm:flex-none">
-                      <Button
-                        variant="outline"
-                        onClick={() => setContractEvent(null)}
-                        className="w-full sm:w-auto h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
-                      >
-                        Cerrar
-                      </Button>
-                    </motion.div>
-                  }
-                >
-                  <EventContractDocument event={contractEvent as EventContractData} business={businessConfig} />
-                </DocumentActions>
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
-      )}
-
-      {/* ── Dialog desktop ── */}
-      {!isMobile && (
-        <Dialog open={contractEvent !== null} onOpenChange={(o) => { if (!o) setContractEvent(null) }}>
-          <DialogContent className="max-h-[90dvh] max-w-4xl overflow-y-auto rounded-2xl border-violet-100 bg-white p-4 sm:p-6">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-violet-950">
-                Contrato {contractEvent?.folio}
-              </DialogTitle>
-            </DialogHeader>
-            {contractEvent && (
-              <DocumentActions
-                filename={`contrato-evento-${contractEvent.folio}`}
-                exportNode={<PrintEventContractDocument event={contractEvent as EventContractData} business={businessConfig} />}
-                extraActions={
-                  <motion.div whileTap={{ scale: 0.94 }}>
-                    <Button
-                      variant="outline"
-                      onClick={() => setContractEvent(null)}
-                      className="h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
-                    >
-                      Cerrar
-                    </Button>
-                  </motion.div>
-                }
+            return (
+              <motion.div
+                key={evt.id}
+                layout
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96 }}
+                transition={{ duration: 0.2 }}
               >
-                <EventContractDocument event={contractEvent as EventContractData} business={businessConfig} />
-              </DocumentActions>
+                <Card
+                  className="border-violet-100/70 bg-white shadow-sm hover:shadow-md hover:border-violet-200 transition-all duration-200 overflow-hidden cursor-pointer active:scale-[0.99]"
+                  onClick={() => setDetailEvent(evt)}
+                >
+                  <CardContent className="p-0">
+                    {/* ── Color strip según status ── */}
+                    <div className={cn('h-1 w-full', meta.dot)} />
+
+                    <div className="p-4 space-y-3">
+                      {/* Header: Folio + Status */}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-bold text-violet-400 tracking-wider uppercase">
+                            {evt.folio}
+                          </p>
+                          <h3 className="font-bold text-violet-950 text-[15px] leading-tight truncate mt-0.5">
+                            {evt.name}
+                          </h3>
+                        </div>
+                        <div className={cn('shrink-0 flex items-center gap-1 px-2 py-1 rounded-md border', meta.bg, meta.text, meta.border)}>
+                          <StatusIcon className="w-3 h-3" />
+                          <span className="text-[10px] font-bold hidden sm:inline">{meta.label}</span>
+                        </div>
+                      </div>
+
+                      {/* Info minimalista: Cliente + Fecha + Costo */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 text-[13px] text-violet-900">
+                          <User className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                          <span className="font-semibold truncate">{evt.clientName}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-[12px] text-violet-600">
+                          <Calendar className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                          <span>{evt.date ? formatDate(evt.date) : 'Por definir'}</span>
+                        </div>
+                        <div className="flex items-start gap-2 text-[12px] text-violet-500">
+                          <MapPin className="w-3.5 h-3.5 text-violet-400 shrink-0 mt-0.5" />
+                          <span className="line-clamp-1">{evt.eventAddress}</span>
+                        </div>
+                      </div>
+
+                      {/* Footer: Costo + Acciones */}
+                      <div className="flex items-center justify-between pt-2 border-t border-violet-50">
+                        <span className="text-lg font-bold text-violet-950">
+                          {formatCurrency(evt.cost || 0)}
+                        </span>
+
+                        <div className="flex items-center gap-2">
+                          {/* Botón avance rápido de estado (solo si aplica) */}
+                          {canAdvance && (
+                            <button
+                              onClick={(e) => quickAdvanceStatus(evt, e)}
+                              disabled={statusMutation.isPending}
+                              className={cn(
+                                'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-all',
+                                'active:scale-90 touch-manipulation',
+                                evt.status === 'pending'
+                                  ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                                  : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                              )}
+                              title={evt.status === 'pending' ? 'Marcar como Entregado' : 'Marcar como Recogido'}
+                            >
+                              {statusMutation.isPending ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <CheckCircle2 className="w-3 h-3" />
+                              )}
+                              <span className="hidden sm:inline">
+                                {evt.status === 'pending' ? 'Entregar' : 'Recoger'}
+                              </span>
+                            </button>
+                          )}
+
+                          {/* Botón Ver Detalles */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDetailEvent(evt)
+                            }}
+                            className={cn(
+                              'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold',
+                              'bg-violet-600 text-white hover:bg-violet-700 active:bg-violet-800',
+                              'active:scale-90 transition-all shadow-sm'
+                            )}
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Ver Detalles</span>
+                            <span className="sm:hidden">Detalles</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )
+          })}
+        </AnimatePresence>
+
+        {filteredEvents.length === 0 && (
+          <Card className="col-span-full border-violet-100 bg-white p-8 text-center">
+            {isLoading ? (
+              <div className="flex items-center justify-center gap-2 text-violet-600 font-semibold py-4">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>Cargando eventos...</span>
+              </div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-3"
+              >
+                <Calendar className="w-12 h-12 text-violet-300 mx-auto opacity-60" />
+                <p className="text-violet-900 font-bold text-base">
+                  No hay eventos {activeTab !== 'all' ? 'en esta categoría' : 'guardados'}.
+                </p>
+                <p className="text-sm text-violet-500">
+                  Presiona el botón + para agendar el primer servicio.
+                </p>
+              </motion.div>
             )}
-          </DialogContent>
-        </Dialog>
+          </Card>
+        )}
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+         FAB (Floating Action Button) — Móvil únicamente
+         Posicionado por encima del bottom nav (bottom-20 = 5rem = 80px)
+         El bottom nav tiene 56px + safe-area, así que 80px da margen cómodo.
+         ═══════════════════════════════════════════════════════════════════ */}
+      {isMobile && (
+        <motion.button
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => router.push('/tools/eventos/crear-evento')}
+          className={cn(
+            'fixed right-4 z-40 flex items-center justify-center',
+            'h-14 w-14 rounded-full bg-violet-600 text-white',
+            'shadow-xl shadow-violet-600/30',
+            'hover:bg-violet-700 active:bg-violet-800',
+            'transition-colors duration-150',
+            'bottom-20' /* 80px — justo por encima del bottom nav (56px) */
+          )}
+          aria-label="Nuevo Evento"
+        >
+          <Plus className="h-6 w-6" strokeWidth={2.5} />
+        </motion.button>
       )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+         SHEET / DIALOG DE DETALLES
+         ═══════════════════════════════════════════════════════════════════ */}
+      <EventDetailSheet
+        event={detailEvent}
+        open={detailEvent !== null}
+        onOpenChange={(o) => !o && setDetailEvent(null)}
+        businessConfig={businessConfig}
+      />
     </div>
   )
 }
