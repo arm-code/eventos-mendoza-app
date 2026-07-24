@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 interface DocumentActionsProps {
   filename: string
   /** El nodo visible en pantalla (responsive, adapta al viewport) */
-  children: React.ReactNode
+  children?: React.ReactNode
   /** El nodo que se captura al exportar (siempre 794px desktop) */
   exportNode: React.ReactNode
   /** Botones adicionales junto a Imagen/PDF (ej. Editar) */
@@ -133,16 +133,18 @@ export function DocumentActions({ filename, children, exportNode, extraActions }
 
       {/* ── Visible Preview ── */}
       <AnimatePresence mode="wait">
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="overflow-hidden"
-        >
-          <div className="w-full rounded-2xl border border-violet-100 bg-violet-50/30 p-2 sm:p-4">
-            {children}
-          </div>
-        </motion.div>
+        {children && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <div className="w-full rounded-2xl border border-violet-100 bg-violet-50/30 p-2 sm:p-4">
+              {children}
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       {/* ── Floating Action Bar (Mobile-Optimized) ── */}

@@ -326,10 +326,7 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig }: 
 
             {/* ── Contrato Exportable ── */}
             <div className="space-y-3">
-                <h3 className="text-[11px] font-bold text-violet-600 uppercase tracking-wider flex items-center gap-2">
-                    <ReceiptText className="w-3.5 h-3.5" />
-                    Contrato de Servicio
-                </h3>
+
                 <DocumentActions
                     filename={`contrato-evento-${event.folio}`}
                     exportNode={
@@ -338,12 +335,7 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig }: 
                             business={config}
                         />
                     }
-                >
-                    <EventContractDocument
-                        event={event as EventContractData}
-                        business={config}
-                    />
-                </DocumentActions>
+                />
             </div>
         </div>
     )
