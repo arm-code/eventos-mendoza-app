@@ -10,7 +10,7 @@ const toolsList = [
   {
     title: 'Crear Nota de Venta',
     description: 'Genera cotizaciones y notas de venta digitales con exportación a PDF o Imagen.',
-    href: '/tools/crear-nota-venta',
+    href: '/tools/notas-venta/crear-nota-venta',
     icon: FilePlus2,
     btnLabel: 'Crear Nota',
     primary: true,

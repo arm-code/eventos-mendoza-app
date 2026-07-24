@@ -48,9 +48,9 @@ export const primaryNav: NavItem[] = [
 export const createNoteNav: NavItem = {
     label: 'Crear nota',
     shortLabel: 'Crear',
-    href: '/tools/crear-nota-venta',
+    href: '/tools/notas-venta/crear-nota-venta',
     icon: FilePlus2,
-    matchPrefix: '/tools/crear-nota-venta',
+    matchPrefix: '/tools/notas-venta/crear-nota-venta',
 }
 
 export function isActive(pathname: string, item: NavItem): boolean {

@@ -325,18 +325,15 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig }: 
             </div>
 
             {/* ── Contrato Exportable ── */}
-            <div className="space-y-3">
-
-                <DocumentActions
-                    filename={`contrato-evento-${event.folio}`}
-                    exportNode={
-                        <PrintEventContractDocument
-                            event={event as EventContractData}
-                            business={config}
-                        />
-                    }
-                />
-            </div>
+            <DocumentActions
+                filename={`contrato-evento-${event.folio}`}
+                exportNode={
+                    <PrintEventContractDocument
+                        event={event as EventContractData}
+                        business={config}
+                    />
+                }
+            />
         </div>
     )
 
@@ -346,7 +343,7 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig }: 
             <Sheet open={open} onOpenChange={onOpenChange}>
                 <SheetContent
                     side="bottom"
-                    className="h-[92dvh] rounded-t-3xl border-t border-violet-100 bg-white p-0 flex flex-col overflow-hidden"
+                    className="max-h-[92dvh] h-auto rounded-t-3xl border-t border-violet-100 bg-white p-0 flex flex-col overflow-hidden"
                 >
                     {/* Handle nativo iOS-style */}
                     <div className="sticky top-0 z-10 bg-white px-4 pt-3 pb-2 flex-shrink-0">

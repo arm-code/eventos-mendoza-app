@@ -111,14 +111,14 @@ export function DocumentActions({ filename, children, exportNode, extraActions }
   }
 
   return (
-    <div className="flex flex-col gap-4 relative pb-24 sm:pb-0">
+    <div className={cn("relative", children ? "flex flex-col gap-4 pb-24 sm:pb-0" : "")}>
       {/* ── Off-screen Export Node ── */}
       <div
         aria-hidden="true"
         style={{
           position: 'absolute',
           left: '-9999px',
-          top: 0,
+          top: '-9999px',
           zIndex: -1,
           width: 794,
           minWidth: 794,
