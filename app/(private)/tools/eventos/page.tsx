@@ -227,6 +227,7 @@ export default function EventosPage() {
         open={detailEvent !== null}
         onOpenChange={(o) => !o && setDetailEvent(null)}
         businessConfig={businessConfig}
+        onUpdate={(updatedEvent) => setDetailEvent(updatedEvent)}
       />
     </div>
   )
