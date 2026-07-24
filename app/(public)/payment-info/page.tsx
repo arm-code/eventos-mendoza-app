@@ -1,8 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { CreditCard, Building2, User, Copy, CheckCircle2, Banknote, ArrowRight, Phone } from 'lucide-react';
+import {
+  CreditCard, Building2, User, Copy, CheckCircle2, Banknote,
+  ArrowRight, Phone, Share2
+} from 'lucide-react';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 const WHATS = '526567788565';
 
@@ -28,226 +33,317 @@ const bankAccounts: BankAccount[] = [
   },
 ];
 
+/* ────────────────────────────────────────────────────────────────────────────
+   COMPONENTE: CopyField
+   Campo copiable con feedback táctil y accesibilidad.
+   ─────────────────────────────────────────────────────────────────────────── */
+function CopyField({
+  label,
+  value,
+  icon: Icon,
+  fieldId,
+  copiedField,
+  onCopy,
+  monospace = false,
+}: {
+  label: string;
+  value: string;
+  icon: React.ElementType;
+  fieldId: string;
+  copiedField: string | null;
+  onCopy: (text: string, field: string) => void;
+  monospace?: boolean;
+}) {
+  const copied = copiedField === fieldId;
+  const isUnavailable = value.toLowerCase().includes('no disponible');
+
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-3 p-3.5 rounded-xl border transition-all',
+        isUnavailable
+          ? 'bg-gray-50 border-gray-100 opacity-60'
+          : 'bg-violet-50/60 border-violet-100'
+      )}
+    >
+      <div className={cn(
+        'flex h-10 w-10 items-center justify-center rounded-lg shrink-0',
+        isUnavailable ? 'bg-gray-100 text-gray-400' : 'bg-violet-100 text-violet-600'
+      )}>
+        <Icon className="w-5 h-5" />
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <p className="text-[10px] font-bold text-violet-400 uppercase tracking-wider">
+          {label}
+        </p>
+        <p className={cn(
+          'font-semibold text-violet-950 text-sm truncate',
+          monospace && 'font-mono'
+        )}>
+          {value}
+        </p>
+      </div>
+
+      {!isUnavailable && (
+        <motion.button
+          whileTap={{ scale: 0.92 }}
+          onClick={() => onCopy(value, fieldId)}
+          className={cn(
+            'flex items-center justify-center gap-1.5 h-10 px-3 rounded-lg text-xs font-bold transition-all duration-200 shrink-0',
+            'active:scale-95 touch-manipulation min-w-[80px]',
+            copied
+              ? 'bg-green-100 text-green-700 border border-green-300'
+              : 'bg-white text-violet-700 border border-violet-200 hover:bg-violet-50 shadow-sm'
+          )}
+        >
+          <AnimatePresence mode="wait">
+            {copied ? (
+              <motion.span
+                key="check"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0 }}
+                className="flex items-center gap-1"
+              >
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Listo</span>
+              </motion.span>
+            ) : (
+              <motion.span
+                key="copy"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0 }}
+                className="flex items-center gap-1"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>Copiar</span>
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
+      )}
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   COMPONENTE: PaymentInfoPage
+   ─────────────────────────────────────────────────────────────────────────── */
 export default function PaymentInfoPage() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   const copyToClipboard = async (text: string, field: string) => {
+    const clean = text.replace(/\s/g, '');
     try {
-      await navigator.clipboard.writeText(text.replace(/\s/g, ''));
+      await navigator.clipboard.writeText(clean);
       setCopiedField(field);
-      setTimeout(() => setCopiedField(null), 2000);
+      setTimeout(() => setCopiedField(null), 2500);
     } catch {
-      // fallback para navegadores sin clipboard API
       const el = document.createElement('textarea');
-      el.value = text.replace(/\s/g, '');
+      el.value = clean;
       document.body.appendChild(el);
       el.select();
       document.execCommand('copy');
       document.body.removeChild(el);
       setCopiedField(field);
-      setTimeout(() => setCopiedField(null), 2000);
+      setTimeout(() => setCopiedField(null), 2500);
     }
   };
 
-  const CopyButton = ({ text, fieldId }: { text: string; fieldId: string }) => {
-    const copied = copiedField === fieldId;
-    return (
-      <button
-        onClick={() => copyToClipboard(text, fieldId)}
-        title="Copiar"
-        className={`flex items-center justify-center gap-1.5 text-[11px] sm:text-xs px-2 sm:px-3 py-1.5 rounded-lg font-medium transition-all duration-200 flex-shrink-0 min-w-[76px] sm:min-w-[84px] ${copied
-          ? 'bg-green-100 text-green-700 border border-green-300'
-          : 'bg-violet-100 text-violet-700 border border-violet-200 hover:bg-violet-200'
-          }`}
-      >
-        {copied ? (
-          <>
-            <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>Copiado</span>
-          </>
-        ) : (
-          <>
-            <Copy className="w-3.5 h-3.5 flex-shrink-0" />
-            <span>Copiar</span>
-          </>
-        )}
-      </button>
-    );
+  const sharePaymentInfo = async () => {
+    const account = bankAccounts[0];
+    const text = `Datos para transferencia — Eventos Mendoza\n\nBanco: ${account.bank}\nTarjeta: ${account.cardNumber}\nBeneficiario: ${account.beneficiary}\nCLABE: ${account.clabe}\n\nEnvía tu comprobante por WhatsApp.`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Datos de transferencia', text });
+      } catch {
+        // User cancelled
+      }
+    } else {
+      await navigator.clipboard.writeText(text);
+      setCopiedField('share-all');
+      setTimeout(() => setCopiedField(null), 2500);
+    }
   };
 
   return (
-    <div className="min-h-screen py-10 px-4 sm:px-6 lg:px-8 mt-8">
-      {/* Hero */}
-      <div className="max-w-2xl mx-auto text-center mb-10">
-        <div className="inline-flex items-center justify-center w-16 h-16 bg-violet-100 rounded-2xl mb-4">
-          <Banknote className="w-8 h-8 text-violet-600" />
-        </div>
-        <h1 className="text-3xl sm:text-4xl font-bold text-violet-900 mb-3">
+    <div className="min-h-screen py-6 px-4 sm:px-6 lg:px-8">
+      {/* Header compacto */}
+      <div className="max-w-xl mx-auto text-center mb-8">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="inline-flex items-center justify-center w-14 h-14 bg-violet-100 rounded-2xl mb-3"
+        >
+          <Banknote className="w-7 h-7 text-violet-600" />
+        </motion.div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-violet-900 mb-2">
           Datos para transferencia
         </h1>
-        <p className="text-violet-600 text-lg max-w-xl mx-auto">
-          Realiza tu pago de forma rápida y segura directamente a nuestra cuenta bancaria.
+        <p className="text-violet-600 text-sm sm:text-base max-w-md mx-auto">
+          Realiza tu pago de forma rápida y segura.
         </p>
       </div>
 
-      {/* Cards */}
-      <div className="max-w-xl mx-auto space-y-6">
+      <div className="max-w-xl mx-auto space-y-5">
         {bankAccounts.map((account) => (
-          <div
+          <motion.div
             key={account.id}
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.1 }}
             className="bg-white rounded-2xl shadow-sm border border-violet-100 overflow-hidden"
           >
             {/* Tarjeta decorativa */}
-            <div className={`bg-gradient-to-br ${account.color} p-6 text-white relative overflow-hidden`}>
-              {/* Círculos decorativos de fondo */}
+            <div className={`bg-gradient-to-br ${account.color} p-5 sm:p-6 text-white relative overflow-hidden`}>
               <div className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full" />
               <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-white/10 rounded-full" />
 
               <div className="relative z-10">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-5">
                   <div className="flex items-center gap-2">
-                    <CreditCard className="w-6 h-6 text-white/80" />
-                    <span className="font-bold text-xl tracking-wide">{account.bank}</span>
+                    <CreditCard className="w-5 h-5 text-white/80" />
+                    <span className="font-bold text-lg tracking-wide">{account.bank}</span>
                   </div>
-                  <span className="text-3xl">{account.logo}</span>
+                  <span className="text-2xl">{account.logo}</span>
                 </div>
 
-                {/* Número de tarjeta */}
-                <div className="mb-4">
-                  <p className="text-white/60 text-xs uppercase tracking-wider mb-1">
+                <div className="mb-3">
+                  <p className="text-white/60 text-[10px] uppercase tracking-wider mb-1">
                     Número de tarjeta
                   </p>
-                  <p className="text-xl sm:text-2xl font-mono font-semibold tracking-wider sm:tracking-widest break-all">
+                  <p className="text-xl sm:text-2xl font-mono font-semibold tracking-wider">
                     {account.cardNumber}
                   </p>
                 </div>
 
-                {/* Beneficiario */}
                 <div>
-                  <p className="text-white/60 text-xs uppercase tracking-wider mb-1">
-                    Titular / Beneficiario
+                  <p className="text-white/60 text-[10px] uppercase tracking-wider mb-1">
+                    Titular
                   </p>
-                  <p className="font-semibold text-base sm:text-lg leading-tight sm:leading-normal">
+                  <p className="font-semibold text-base sm:text-lg">
                     {account.beneficiary}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Detalles copiables */}
-            <div className="p-6 space-y-4">
-              {/* Banco */}
-              <div className="flex items-center justify-between p-2.5 sm:p-3 bg-violet-50 rounded-xl border border-violet-100 gap-2">
-                <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] sm:text-xs text-violet-500 font-medium uppercase tracking-wider truncate">
-                      Banco
-                    </p>
-                    <p className="font-semibold text-violet-900 text-sm sm:text-base truncate sm:whitespace-normal break-words">{account.bank}</p>
-                  </div>
-                </div>
-                <div className="flex-shrink-0">
-                  <CopyButton text={account.bank} fieldId={`${account.id}-bank`} />
-                </div>
-              </div>
-
-              {/* Número de tarjeta */}
-              <div className="flex items-center justify-between p-2.5 sm:p-3 bg-violet-50 rounded-xl border border-violet-100 gap-2">
-                <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <CreditCard className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] sm:text-xs text-violet-500 font-medium uppercase tracking-wider truncate">
-                      Número de tarjeta
-                    </p>
-                    <p className="font-mono font-semibold text-violet-900 text-sm sm:text-base truncate sm:whitespace-normal break-all">
-                      {account.cardNumber}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex-shrink-0">
-                  <CopyButton text={account.cardNumber} fieldId={`${account.id}-card`} />
-                </div>
-              </div>
-
-              {/* CLABE (si existe) */}
+            {/* Campos copiables */}
+            <div className="p-4 sm:p-5 space-y-2.5">
+              <CopyField
+                label="Banco"
+                value={account.bank}
+                icon={Building2}
+                fieldId={`${account.id}-bank`}
+                copiedField={copiedField}
+                onCopy={copyToClipboard}
+              />
+              <CopyField
+                label="Número de tarjeta"
+                value={account.cardNumber}
+                icon={CreditCard}
+                fieldId={`${account.id}-card`}
+                copiedField={copiedField}
+                onCopy={copyToClipboard}
+                monospace
+              />
               {account.clabe && (
-                <div className="flex items-center justify-between p-2.5 sm:p-3 bg-violet-50 rounded-xl border border-violet-100 gap-2">
-                  <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
-                    <div className="w-8 h-8 sm:w-9 sm:h-9 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Banknote className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] sm:text-xs text-violet-500 font-medium uppercase tracking-wider truncate">
-                        CLABE interbancaria
-                      </p>
-                      <p className="font-mono font-semibold text-violet-900 text-xs sm:text-sm truncate sm:whitespace-normal break-all">
-                        {account.clabe}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex-shrink-0">
-                    <CopyButton text={account.clabe} fieldId={`${account.id}-clabe`} />
-                  </div>
-                </div>
+                <CopyField
+                  label="CLABE interbancaria"
+                  value={account.clabe}
+                  icon={Banknote}
+                  fieldId={`${account.id}-clabe`}
+                  copiedField={copiedField}
+                  onCopy={copyToClipboard}
+                  monospace
+                />
               )}
-
-              {/* Beneficiario */}
-              <div className="flex items-center justify-between p-2.5 sm:p-3 bg-violet-50 rounded-xl border border-violet-100 gap-2">
-                <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
-                  <div className="w-8 h-8 sm:w-9 sm:h-9 bg-violet-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <User className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] sm:text-xs text-violet-500 font-medium uppercase tracking-wider truncate">
-                      Beneficiario
-                    </p>
-                    <p className="font-semibold text-violet-900 text-sm sm:text-base leading-tight truncate sm:whitespace-normal break-words">{account.beneficiary}</p>
-                  </div>
-                </div>
-                <div className="flex-shrink-0">
-                  <CopyButton text={account.beneficiary} fieldId={`${account.id}-beneficiary`} />
-                </div>
-              </div>
+              <CopyField
+                label="Beneficiario"
+                value={account.beneficiary}
+                icon={User}
+                fieldId={`${account.id}-beneficiary`}
+                copiedField={copiedField}
+                onCopy={copyToClipboard}
+              />
             </div>
-          </div>
+
+            {/* Botón compartir todo */}
+            <div className="px-4 sm:px-5 pb-4 sm:pb-5">
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={sharePaymentInfo}
+                className={cn(
+                  'w-full flex items-center justify-center gap-2 h-12 rounded-xl font-semibold text-sm',
+                  'bg-violet-600 text-white hover:bg-violet-700 active:bg-violet-800',
+                  'transition-colors shadow-sm'
+                )}
+              >
+                {copiedField === 'share-all' ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>¡Copiado al portapapeles!</span>
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-4 h-4" />
+                    <span>Copiar todos los datos</span>
+                  </>
+                )}
+              </motion.button>
+            </div>
+          </motion.div>
         ))}
 
         {/* Aviso importante */}
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className="bg-amber-50 border border-amber-200 rounded-2xl p-4 sm:p-5"
+        >
           <div className="flex items-start gap-3">
-            <span className="text-2xl flex-shrink-0">⚠️</span>
+            <span className="text-xl flex-shrink-0 mt-0.5">⚠️</span>
             <div>
-              <p className="font-semibold text-amber-800 mb-1">Importante</p>
-              <ul className="text-amber-700 text-sm space-y-1 list-disc list-inside">
-                <li>Envía tu comprobante de transferencia por WhatsApp para confirmar tu reserva.</li>
-                <li>Verifica bien el número antes de realizar la transferencia.</li>
-                <li>Solo transferencias bancarias, no depósitos en efectivo a cuenta.</li>
+              <p className="font-bold text-amber-800 text-sm mb-1">Importante</p>
+              <ul className="text-amber-700 text-xs sm:text-sm space-y-1">
+                <li>• Envía tu comprobante por WhatsApp para confirmar tu reserva.</li>
+                <li>• Verifica bien el número antes de transferir.</li>
+                <li>• Solo transferencias bancarias, no depósitos en efectivo.</li>
               </ul>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* CTA WhatsApp */}
-        <div className="bg-white border border-violet-100 rounded-2xl p-6 text-center shadow-sm">
-          <p className="text-violet-700 font-medium mb-4">
-            ¿Hiciste tu transferencia? Envíanos el comprobante 📲
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="bg-white border border-violet-100 rounded-2xl p-5 sm:p-6 text-center shadow-sm"
+        >
+          <p className="text-violet-700 font-semibold text-sm mb-4">
+            ¿Ya hiciste tu transferencia?
           </p>
           <Link
             href={`https://wa.me/${WHATS}?text=Hola,%20realicé%20mi%20transferencia%20y%20quiero%20confirmar%20mi%20reserva`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 bg-green-600 text-white px-4 sm:px-6 py-3 w-full sm:w-auto rounded-xl font-semibold hover:bg-green-700 transition-colors text-sm sm:text-base"
+            className={cn(
+              'flex items-center justify-center gap-2 h-12 rounded-xl font-bold text-sm',
+              'bg-green-600 text-white hover:bg-green-700 active:bg-green-800',
+              'transition-colors shadow-md shadow-green-600/20',
+              'w-full'
+            )}
           >
-            <Phone className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
-            <span className="truncate sm:whitespace-normal">Enviar comprobante por WhatsApp</span>
-            <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+            <Phone className="w-5 h-5" />
+            <span>Enviar comprobante por WhatsApp</span>
+            <ArrowRight className="w-4 h-4" />
           </Link>
-        </div>
+        </motion.div>
       </div>
     </div>
   );

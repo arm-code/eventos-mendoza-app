@@ -1,8 +1,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Metadata } from 'next';
-import { Phone, Mail, MapPin, Clock, Shield, Users, Truck, CheckCircle } from 'lucide-react';
+import {
+  Phone, Mail, MapPin, Clock, Shield, Users, Truck, CheckCircle,
+  ChevronDown, Star, ArrowRight
+} from 'lucide-react';
 import ProductCarousel from '@/components/products/ProductCarousel';
+import { cn } from '@/lib/utils';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const BUSINESS_NAME = 'Eventos Mendoza';
@@ -18,13 +22,10 @@ export const metadata: Metadata = {
   title: `${BUSINESS_NAME} – Renta de Mobiliario para Eventos en ${ADDRESS}`,
   description:
     'Renta de mesas, sillas, carpas, mantelería y artículos para fiestas en Ciudad Juárez, Chihuahua. Entrega puntual, montaje cuidado y precios justos. ¡Cotiza por WhatsApp!',
-  alternates: {
-    canonical: BASE_URL,
-  },
+  alternates: { canonical: BASE_URL },
   openGraph: {
     title: `${BUSINESS_NAME} – Renta de Mobiliario para Eventos`,
-    description:
-      'Renta de mesas, sillas, carpas y más. Entrega, montaje y retiro en Ciudad Juárez.',
+    description: 'Renta de mesas, sillas, carpas y más. Entrega, montaje y retiro en Ciudad Juárez.',
     url: BASE_URL,
     images: [{ url: '/products/IMG-20260501-WA0001.jpg', width: 1200, height: 630 }],
   },
@@ -35,8 +36,7 @@ const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'LocalBusiness',
   name: BUSINESS_NAME,
-  description:
-    'Renta de mesas, sillas, carpas, mantelería y artículos para fiestas en Ciudad Juárez, Chihuahua.',
+  description: 'Renta de mesas, sillas, carpas, mantelería y artículos para fiestas en Ciudad Juárez, Chihuahua.',
   url: BASE_URL,
   telephone: PHONE_RAW,
   email: EMAIL,
@@ -86,9 +86,9 @@ const STATS = [
 ];
 
 const TESTIMONIALS = [
-  { text: 'Llegaron puntual y el montaje quedó perfecto para el bautizo.', author: 'María P.' },
-  { text: 'Todo limpio y como nuevo. Buen precio por paquete de 100 personas.', author: 'César R.' },
-  { text: 'Nos salvaron con una carpa extra por la lluvia. ¡Gracias!', author: 'Lupita G.' },
+  { text: 'Llegaron puntual y el montaje quedó perfecto para el bautizo.', author: 'María P.', rating: 5 },
+  { text: 'Todo limpio y como nuevo. Buen precio por paquete de 100 personas.', author: 'César R.', rating: 5 },
+  { text: 'Nos salvaron con una carpa extra por la lluvia. ¡Gracias!', author: 'Lupita G.', rating: 5 },
 ];
 
 const FAQS = [
@@ -106,134 +106,154 @@ const FAQS = [
   },
 ];
 
+// ─── FAQ Accordion Item ───────────────────────────────────────────────────────
+function FaqItem({ question, answer, index }: { question: string; answer: string; index: number }) {
+  return (
+    <details className="group border border-violet-200 rounded-xl bg-white overflow-hidden">
+      <summary className="flex items-center justify-between gap-4 p-4 cursor-pointer list-none hover:bg-violet-50/50 active:bg-violet-100/50 transition-colors">
+        <span className="font-semibold text-violet-900 text-sm">{question}</span>
+        <ChevronDown className="w-4 h-4 text-violet-500 shrink-0 transition-transform group-open:rotate-180" />
+      </summary>
+      <div className="px-4 pb-4 text-violet-600 text-sm border-t border-violet-100 pt-3">
+        {answer}
+      </div>
+    </details>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function HomePage() {
   const waLink = `https://wa.me/${WHATS_NUMBER}?text=Hola,%20quiero%20cotizar%20renta%20de%20mobiliario%20para%20mi%20evento`;
 
   return (
     <>
-      {/* JSON-LD */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
 
-      <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
-
+      <div className="min-h-screen">
         {/* ── HERO ──────────────────────────────────────────────────────── */}
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center py-6">
-            {/* Logo */}
-            <div className="flex justify-center mb-6">
-              <div className="relative w-24 h-24 sm:w-28 sm:h-28">
-                <Image
-                  src="/images/eventos-mendoza.png"
-                  alt={`Logotipo de ${BUSINESS_NAME}`}
-                  fill
-                  className="object-contain"
-                  priority
-                />
+        <section className="relative bg-gradient-to-b from-violet-50 to-white pt-8 pb-12 px-4 sm:px-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center">
+              {/* Logo */}
+              <div className="flex justify-center mb-5">
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24">
+                  <Image
+                    src="/images/eventos-mendoza.png"
+                    alt={`Logotipo de ${BUSINESS_NAME}`}
+                    fill
+                    className="object-contain"
+                    priority
+                  />
+                </div>
               </div>
-            </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-violet-900 mb-4">
-              {BUSINESS_NAME}
-            </h1>
-            <p className="text-lg text-violet-600 max-w-3xl mx-auto leading-relaxed">
-              Renta de{' '}
-              <strong className="text-violet-700">mesas, sillas, carpas, mantelería y artículos para fiestas</strong>.
-              Entrega puntual, montaje cuidado y atención cálida en{' '}
-              <strong className="text-violet-700">{ADDRESS} y alrededores</strong>.
-            </p>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-violet-900 mb-3">
+                {BUSINESS_NAME}
+              </h1>
+              <p className="text-base sm:text-lg text-violet-600 max-w-2xl mx-auto leading-relaxed">
+                Renta de{' '}
+                <strong className="text-violet-700">mesas, sillas, carpas, mantelería y artículos para fiestas</strong>.
+                Entrega puntual, montaje cuidado y atención cálida en{' '}
+                <strong className="text-violet-700">{ADDRESS}</strong>.
+              </p>
 
-            {/* Trust badges */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm">
-              {[
-                { icon: CheckCircle, label: 'Entrega puntual' },
-                { icon: Shield, label: 'Equipo limpio y sanitizado' },
-                { icon: Truck, label: 'Montaje y retiro' },
-              ].map(({ icon: Icon, label }) => (
-                <span
-                  key={label}
-                  className="flex items-center gap-2 bg-violet-50 text-violet-700 px-4 py-2 rounded-full border border-violet-200"
+              {/* Trust badges */}
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-2 text-xs sm:text-sm">
+                {[
+                  { icon: CheckCircle, label: 'Entrega puntual' },
+                  { icon: Shield, label: 'Equipo limpio' },
+                  { icon: Truck, label: 'Montaje y retiro' },
+                ].map(({ icon: Icon, label }) => (
+                  <span
+                    key={label}
+                    className="flex items-center gap-1.5 bg-white text-violet-700 px-3 py-1.5 rounded-full border border-violet-200 shadow-sm"
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {label}
+                  </span>
+                ))}
+              </div>
+
+              {/* CTAs */}
+              <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
+                <Link
+                  href={waLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    'inline-flex items-center justify-center gap-2 h-12 px-6 rounded-xl font-bold text-sm',
+                    'bg-green-600 text-white hover:bg-green-700 active:bg-green-800',
+                    'transition-colors shadow-lg shadow-green-600/20',
+                    'active:scale-[0.97]'
+                  )}
                 >
-                  <Icon className="w-4 h-4" />
-                  {label}
-                </span>
-              ))}
-            </div>
-
-            {/* CTA */}
-            <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
-              <Link
-                href={waLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors shadow-sm"
-              >
-                <Phone className="w-4 h-4" />
-                Cotizar por WhatsApp
-              </Link>
-              <a
-                href={`tel:${PHONE_RAW}`}
-                className="inline-flex items-center justify-center gap-2 bg-violet-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-violet-700 transition-colors shadow-sm"
-              >
-                <Phone className="w-4 h-4" />
-                Llamar {PHONE_DISPLAY}
-              </a>
+                  <Phone className="w-4 h-4" />
+                  Cotizar por WhatsApp
+                </Link>
+                <a
+                  href={`tel:${PHONE_RAW}`}
+                  className={cn(
+                    'inline-flex items-center justify-center gap-2 h-12 px-6 rounded-xl font-bold text-sm',
+                    'bg-violet-600 text-white hover:bg-violet-700 active:bg-violet-800',
+                    'transition-colors shadow-lg shadow-violet-600/20',
+                    'active:scale-[0.97]'
+                  )}
+                >
+                  <Phone className="w-4 h-4" />
+                  Llamar {PHONE_DISPLAY}
+                </a>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* ── CARRUSEL DE PRODUCTOS ─────────────────────────────────────── */}
-        <div className="max-w-6xl mx-auto mt-4">
-          <ProductCarousel />
-        </div>
+        {/* ── CARRUSEL ────────────────────────────────────────────────── */}
+        <ProductCarousel />
 
-        {/* ── CONTENT GRID ──────────────────────────────────────────────── */}
-        <div className="mt-10 max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* ── CONTENT ─────────────────────────────────────────────────── */}
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pb-16 space-y-8">
+          {/* Historia + Misión grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <section className="bg-white rounded-2xl shadow-sm border border-violet-100 p-5 sm:p-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-violet-900 mb-3">Nuestra historia</h2>
+              <p className="text-violet-600 text-sm leading-relaxed">
+                Nacimos como un negocio familiar para resolver algo simple: que cada evento en {ADDRESS}{' '}
+                tenga mobiliario seguro, limpio y a tiempo. Con los años crecimos en inventario,
+                rutas de entrega y equipo de montaje; hoy atendemos desde pequeñas reuniones hasta
+                eventos masivos, siempre con la misma atención que nos distingue.
+              </p>
+            </section>
 
-          {/* Historia */}
-          <section className="bg-white rounded-2xl shadow-sm border border-violet-100 p-6">
-            <h2 className="text-2xl font-bold text-violet-900 mb-4">Nuestra historia</h2>
-            <p className="text-violet-600 leading-relaxed">
-              Nacimos como un negocio familiar para resolver algo simple: que cada evento en {ADDRESS}{' '}
-              tenga mobiliario seguro, limpio y a tiempo. Con los años crecimos en inventario,
-              rutas de entrega y equipo de montaje; hoy atendemos desde pequeñas reuniones hasta
-              eventos masivos, siempre con la misma atención que nos distingue.
-            </p>
-          </section>
-
-          {/* Misión y visión */}
-          <section className="bg-white rounded-2xl shadow-sm border border-violet-100 p-6">
-            <h2 className="text-2xl font-bold text-violet-900 mb-4">Misión y visión</h2>
-            <div className="space-y-3">
-              <div>
-                <h3 className="font-semibold text-violet-700">Misión:</h3>
-                <p className="text-violet-600">
-                  Facilitar eventos memorables con renta confiable de mobiliario y servicio honesto.
-                </p>
+            <section className="bg-white rounded-2xl shadow-sm border border-violet-100 p-5 sm:p-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-violet-900 mb-3">Misión y visión</h2>
+              <div className="space-y-2.5">
+                <div>
+                  <h3 className="font-semibold text-violet-700 text-sm">Misión:</h3>
+                  <p className="text-violet-600 text-sm">
+                    Facilitar eventos memorables con renta confiable de mobiliario y servicio honesto.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-semibold text-violet-700 text-sm">Visión:</h3>
+                  <p className="text-violet-600 text-sm">
+                    Ser el proveedor de renta de mobiliario más recomendado en {ADDRESS}, destacando
+                    por puntualidad, limpieza y precio justo.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-semibold text-violet-700">Visión:</h3>
-                <p className="text-violet-600">
-                  Ser el proveedor de renta de mobiliario más recomendado en {ADDRESS}, destacando
-                  por puntualidad, limpieza y precio justo.
-                </p>
-              </div>
-            </div>
-          </section>
+            </section>
+          </div>
 
           {/* Valores */}
-          <section className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-violet-100 p-6">
-            <h2 className="text-2xl font-bold text-violet-900 mb-6 text-center">Nuestros valores</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <section className="bg-white rounded-2xl shadow-sm border border-violet-100 p-5 sm:p-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-violet-900 mb-6 text-center">Nuestros valores</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
               {VALUES.map(({ icon: Icon, title, text }) => (
                 <div key={title} className="text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-violet-100 flex items-center justify-center text-violet-600">
-                    <Icon className="w-8 h-8" />
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-violet-100 flex items-center justify-center text-violet-600">
+                    <Icon className="w-7 h-7" />
                   </div>
-                  <h3 className="font-semibold text-violet-900 mb-2">{title}</h3>
+                  <h3 className="font-bold text-violet-900 text-sm mb-1">{title}</h3>
                   <p className="text-violet-600 text-sm">{text}</p>
                 </div>
               ))}
@@ -241,13 +261,18 @@ export default function HomePage() {
           </section>
 
           {/* Catálogo */}
-          <section className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-violet-100 p-6">
-            <h2 className="text-2xl font-bold text-violet-900 mb-6">¿Qué rentamos?</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <section className="bg-white rounded-2xl shadow-sm border border-violet-100 p-5 sm:p-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-violet-900 mb-5">¿Qué rentamos?</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {CATALOG.map(({ emoji, label }) => (
                 <div
                   key={label}
-                  className="bg-violet-50 border border-violet-200 rounded-xl p-4 text-center text-violet-700 font-medium hover:bg-violet-100 transition-colors"
+                  className={cn(
+                    'bg-violet-50 border border-violet-200 rounded-xl p-4 text-center',
+                    'text-violet-700 font-medium text-sm',
+                    'hover:bg-violet-100 active:bg-violet-200 active:scale-[0.98]',
+                    'transition-all cursor-pointer select-none'
+                  )}
                 >
                   <span className="text-2xl block mb-1">{emoji}</span>
                   {label}
@@ -256,105 +281,120 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* Métricas */}
-          <section className="bg-white rounded-2xl shadow-sm border border-violet-100 p-6">
-            <h2 className="text-2xl font-bold text-violet-900 mb-6">En números</h2>
-            <dl className="grid grid-cols-3 gap-4 text-center">
-              {STATS.map(({ value, label }) => (
-                <div key={label}>
-                  <dt className="text-2xl sm:text-3xl font-bold text-violet-900">{value}</dt>
-                  <dd className="text-violet-600 text-sm mt-1">{label}</dd>
-                </div>
-              ))}
-            </dl>
-          </section>
+          {/* Métricas + Cobertura */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <section className="bg-white rounded-2xl shadow-sm border border-violet-100 p-5 sm:p-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-violet-900 mb-5">En números</h2>
+              <dl className="grid grid-cols-3 gap-4 text-center">
+                {STATS.map(({ value, label }) => (
+                  <div key={label}>
+                    <dt className="text-2xl sm:text-3xl font-bold text-violet-900">{value}</dt>
+                    <dd className="text-violet-600 text-xs sm:text-sm mt-1">{label}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
 
-          {/* Cobertura */}
-          <section className="bg-white rounded-2xl shadow-sm border border-violet-100 p-6">
-            <h2 className="text-2xl font-bold text-violet-900 mb-4">Cobertura</h2>
-            <div className="flex items-start gap-3">
-              <MapPin className="w-5 h-5 text-violet-600 mt-0.5 flex-shrink-0" />
-              <p className="text-violet-600">
-                <strong className="text-violet-700">{ADDRESS}</strong>. También llegamos a{' '}
-                <strong className="text-violet-700">
-                  Area Talamas, Las Torres, Riveras del Bravo, Haciendas, Senderos de San Isidro
-                </strong>{' '}
-                y alrededores.
-              </p>
-            </div>
-          </section>
+            <section className="bg-white rounded-2xl shadow-sm border border-violet-100 p-5 sm:p-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-violet-900 mb-3">Cobertura</h2>
+              <div className="flex items-start gap-3">
+                <MapPin className="w-5 h-5 text-violet-600 mt-0.5 flex-shrink-0" />
+                <p className="text-violet-600 text-sm">
+                  <strong className="text-violet-700">{ADDRESS}</strong>. También llegamos a{' '}
+                  <strong className="text-violet-700">
+                    Area Talamas, Las Torres, Riveras del Bravo, Haciendas, Senderos de San Isidro
+                  </strong>{' '}
+                  y alrededores.
+                </p>
+              </div>
+            </section>
+          </div>
 
-          {/* Testimonios */}
-          <section className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-violet-100 p-6">
-            <h2 className="text-2xl font-bold text-violet-900 mb-6">Lo que dicen nuestros clientes</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {TESTIMONIALS.map(({ text, author }) => (
+          {/* Testimonios con estrellas */}
+          <section className="bg-white rounded-2xl shadow-sm border border-violet-100 p-5 sm:p-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-violet-900 mb-5">Lo que dicen nuestros clientes</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {TESTIMONIALS.map(({ text, author, rating }) => (
                 <div key={author} className="bg-violet-50 border border-violet-200 rounded-xl p-4">
-                  <p className="text-violet-700 mb-3 italic">&ldquo;{text}&rdquo;</p>
-                  <p className="text-violet-900 font-semibold text-sm">— {author}</p>
+                  <div className="flex gap-0.5 mb-2">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        className={cn(
+                          'w-3.5 h-3.5',
+                          i < rating ? 'text-amber-400 fill-amber-400' : 'text-violet-200'
+                        )}
+                      />
+                    ))}
+                  </div>
+                  <p className="text-violet-700 text-sm mb-3 italic">&ldquo;{text}&rdquo;</p>
+                  <p className="text-violet-900 font-bold text-xs">— {author}</p>
                 </div>
               ))}
             </div>
           </section>
 
           {/* FAQ */}
-          <section className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-violet-100 p-6">
-            <h2 className="text-2xl font-bold text-violet-900 mb-6">Preguntas frecuentes</h2>
-            <div className="space-y-4">
-              {FAQS.map(({ question, answer }, index) => (
-                <details
-                  key={index}
-                  className="group border border-violet-200 rounded-xl bg-white p-4 hover:bg-violet-50 transition-colors"
-                >
-                  <summary className="font-semibold text-violet-900 cursor-pointer list-none">
-                    <div className="flex justify-between items-center">
-                      {question}
-                      <span className="w-5 h-5 text-violet-500 group-open:rotate-180 transition-transform inline-block">
-                        ▼
-                      </span>
-                    </div>
-                  </summary>
-                  <p className="mt-3 text-violet-600 border-t border-violet-100 pt-3">{answer}</p>
-                </details>
+          <section className="bg-white rounded-2xl shadow-sm border border-violet-100 p-5 sm:p-6">
+            <h2 className="text-xl sm:text-2xl font-bold text-violet-900 mb-5">Preguntas frecuentes</h2>
+            <div className="space-y-2.5">
+              {FAQS.map((faq, index) => (
+                <FaqItem key={index} {...faq} index={index} />
               ))}
             </div>
           </section>
         </div>
 
         {/* ── CTA FINAL ─────────────────────────────────────────────────── */}
-        <div className="max-w-4xl mx-auto mt-12 mb-6">
-          <div className="bg-gradient-to-br from-violet-600 to-violet-800 rounded-2xl shadow-lg p-8 text-center">
+        <section className="bg-gradient-to-br from-violet-600 to-violet-800 px-4 sm:px-6 py-10">
+          <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">¿Listo para tu evento?</h2>
-            <p className="text-violet-200 mb-6 max-w-2xl mx-auto">
+            <p className="text-violet-200 mb-6 max-w-xl mx-auto text-sm sm:text-base">
               Escríbenos por WhatsApp o llámanos. Te cotizamos en minutos.
             </p>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <div className="flex flex-col sm:flex-row justify-center gap-3">
               <Link
                 href={waLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 text-white px-6 py-3 rounded-lg font-semibold transition-colors shadow-sm"
+                className={cn(
+                  'inline-flex items-center justify-center gap-2 h-12 px-6 rounded-xl font-bold text-sm',
+                  'bg-green-500 hover:bg-green-400 active:bg-green-600 text-white',
+                  'transition-colors shadow-lg',
+                  'active:scale-[0.97]'
+                )}
               >
                 <Phone className="w-4 h-4" />
                 WhatsApp {PHONE_DISPLAY}
               </Link>
               <a
                 href={`tel:${PHONE_RAW}`}
-                className="inline-flex items-center justify-center gap-2 bg-white text-violet-700 border border-white px-6 py-3 rounded-lg font-semibold hover:bg-violet-50 transition-colors shadow-sm"
+                className={cn(
+                  'inline-flex items-center justify-center gap-2 h-12 px-6 rounded-xl font-bold text-sm',
+                  'bg-white text-violet-700 hover:bg-violet-50 active:bg-violet-100',
+                  'transition-colors shadow-lg',
+                  'active:scale-[0.97]'
+                )}
               >
                 <Phone className="w-4 h-4" />
                 Llamar {PHONE_DISPLAY}
               </a>
               <a
                 href={`mailto:${EMAIL}`}
-                className="inline-flex items-center justify-center gap-2 bg-violet-700 hover:bg-violet-600 text-white border border-violet-500 px-6 py-3 rounded-lg font-semibold transition-colors shadow-sm"
+                className={cn(
+                  'inline-flex items-center justify-center gap-2 h-12 px-6 rounded-xl font-bold text-sm',
+                  'bg-violet-700 hover:bg-violet-600 active:bg-violet-800 text-white',
+                  'border border-violet-500',
+                  'transition-colors shadow-lg',
+                  'active:scale-[0.97]'
+                )}
               >
                 <Mail className="w-4 h-4" />
                 {EMAIL}
               </a>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </>
   );
