@@ -119,13 +119,13 @@ export function ListaEventos({ filteredEvents, isLoading, activeTab, onSelectEve
                                                 <p className="text-[10px] font-bold text-violet-400 tracking-wider uppercase">
                                                     {evt.folio}
                                                 </p>
-                                                <h3 className="font-bold text-violet-950 text-[15px] leading-tight truncate mt-0.5">
+                                                <h3 className="font-bold text-violet-950 text-[15px] leading-tight truncate mt-0.5 capitalize">
                                                     {evt.name}
                                                 </h3>
                                             </div>
                                             <div className={cn('shrink-0 flex items-center gap-1 px-2 py-1 rounded-md border', meta.bg, meta.text, meta.border)}>
                                                 <StatusIcon className="w-3 h-3" />
-                                                <span className="text-[10px] font-bold hidden sm:inline">{meta.label}</span>
+                                                <span className="text-[10px] font-bold  sm:inline">{meta.label}</span>
                                             </div>
                                         </div>
 
@@ -133,15 +133,15 @@ export function ListaEventos({ filteredEvents, isLoading, activeTab, onSelectEve
                                         <div className="space-y-1.5">
                                             <div className="flex items-center gap-2 text-[13px] text-violet-900">
                                                 <User className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                                                <span className="font-semibold truncate">{evt.clientName}</span>
+                                                <span className="font-semibold truncate capitalize">{evt.clientName}</span>
                                             </div>
                                             <div className="flex items-center gap-2 text-[12px] text-violet-600">
                                                 <Calendar className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                                                <span>{evt.date ? formatDate(evt.date) : 'Por definir'}</span>
+                                                <span className='capitalize'>{evt.date ? formatDate(evt.date) : 'Por definir'}</span>
                                             </div>
                                             <div className="flex items-start gap-2 text-[12px] text-violet-500">
                                                 <MapPin className="w-3.5 h-3.5 text-violet-400 shrink-0 mt-0.5" />
-                                                <span className="line-clamp-1">{evt.eventAddress}</span>
+                                                <span className="line-clamp-1 capitalize">{evt.eventAddress}</span>
                                             </div>
                                         </div>
 
