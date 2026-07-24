@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import React from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '../ui/card'
 import { Calendar, Edit2, FileDown, FileText, MapPin, Phone, User, CheckCircle2, Clock, XCircle } from 'lucide-react'
 import { Button } from '../ui/button'
@@ -13,7 +14,6 @@ interface ListaEventosProps {
     STATUS_META: Record<string, { label: string; bg: string; text: string; border: string; icon: any }>
     cycleStatus: (event: BusinessEvent) => void
     setContractEvent: (event: BusinessEvent) => void
-    openEditModal: (event: BusinessEvent) => void
     isLoading: boolean
     activeTab: 'upcoming' | 'finished' | 'cancelled' | 'all'
 }
@@ -23,10 +23,11 @@ export const ListaEventos = ({
     STATUS_META,
     cycleStatus,
     setContractEvent,
-    openEditModal,
     isLoading,
     activeTab,
 }: ListaEventosProps) => {
+    const router = useRouter()
+    
     return (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence mode="popLayout">
@@ -129,7 +130,7 @@ export const ListaEventos = ({
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => openEditModal(evt)}
+                                                onClick={() => router.push(`/tools/eventos/editar-evento/${evt.id}`)}
                                                 className="w-full sm:w-auto h-11 rounded-xl text-violet-600 hover:bg-violet-50 active:bg-violet-100 active:scale-[0.97] text-sm font-semibold gap-2 transition-all"
                                             >
                                                 <Edit2 className="w-4 h-4" />
