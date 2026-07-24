@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import {
   Plus, Search, Calendar, MapPin, User, Phone, FileText, Edit2, FileDown,
   CheckCircle2, Clock, XCircle, Loader2, X, ChevronRight, Filter,
-  ArrowUpDown, MoreHorizontal
+  ArrowUpDown, MoreHorizontal, ReceiptText
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -13,6 +13,7 @@ import { financeApi } from '@/lib/api/finance'
 import { noteTotal } from '@/lib/calculations'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { defaultBusinessConfig } from '@/lib/config'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { PageHeader } from '@/components/admin/page-header'
 import { DocumentActions } from '@/components/documents/document-actions'
 import { EventContractDocument, PrintEventContractDocument, EventContractData } from '@/components/documents/event-contract-document'
@@ -28,6 +29,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 import {
   Select,
   SelectContent,
@@ -64,6 +71,7 @@ const STATUS_META: Record<EventStatus, { label: string; bg: string; text: string
 export default function EventosPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
+  const isMobile = useIsMobile()
   const [activeTab, setActiveTab] = useState<'upcoming' | 'finished' | 'cancelled' | 'all'>('upcoming')
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -273,40 +281,80 @@ export default function EventosPage() {
 
 
       {/* ═══════════════════════════════════════════════════════════════════
-         MODAL: CONTRATO / EXPORTACIÓN
+         MODAL: CONTRATO / EXPORTACIÓN  (Sheet mobile · Dialog desktop)
          ═══════════════════════════════════════════════════════════════════ */}
-      <Dialog open={contractEvent !== null} onOpenChange={(o) => !o && setContractEvent(null)}>
-        <DialogContent
-          onPointerDownOutside={(e) => e.preventDefault()}
-          onInteractOutside={(e) => e.preventDefault()}
-          className="w-[95vw] max-w-4xl max-h-[92vh] overflow-y-auto p-3 sm:p-6 border-violet-100 bg-white"
-        >
-          <DialogHeader>
-            <DialogTitle className="text-lg sm:text-xl font-bold text-violet-950">
-              Contrato {contractEvent?.folio}
-            </DialogTitle>
-          </DialogHeader>
 
-          {contractEvent && (
-            <div className="space-y-4 pt-2">
+      {/* ── Sheet móvil ── */}
+      {isMobile && (
+        <Sheet open={contractEvent !== null} onOpenChange={(o) => { if (!o) setContractEvent(null) }}>
+          <SheetContent
+            side="bottom"
+            className="h-[92vh] max-h-[92dvh] rounded-t-3xl border-t border-violet-100 bg-white p-0 flex flex-col overflow-hidden"
+          >
+            <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50 flex-shrink-0">
+              <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
+              <SheetHeader className="text-left">
+                <SheetTitle className="text-lg font-bold text-violet-950">
+                  Contrato {contractEvent?.folio}
+                </SheetTitle>
+              </SheetHeader>
+            </div>
+            <div className="px-4 py-4 overflow-y-auto flex-1 pb-4">
+              {contractEvent && (
+                <DocumentActions
+                  filename={`contrato-evento-${contractEvent.folio}`}
+                  exportNode={<PrintEventContractDocument event={contractEvent as EventContractData} business={businessConfig} />}
+                  extraActions={
+                    <motion.div whileTap={{ scale: 0.94 }} className="flex-1 sm:flex-none">
+                      <Button
+                        variant="outline"
+                        onClick={() => setContractEvent(null)}
+                        className="w-full sm:w-auto h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
+                      >
+                        Cerrar
+                      </Button>
+                    </motion.div>
+                  }
+                >
+                  <EventContractDocument event={contractEvent as EventContractData} business={businessConfig} />
+                </DocumentActions>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
+
+      {/* ── Dialog desktop ── */}
+      {!isMobile && (
+        <Dialog open={contractEvent !== null} onOpenChange={(o) => { if (!o) setContractEvent(null) }}>
+          <DialogContent className="max-h-[90dvh] max-w-4xl overflow-y-auto rounded-2xl border-violet-100 bg-white p-4 sm:p-6">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-violet-950">
+                Contrato {contractEvent?.folio}
+              </DialogTitle>
+            </DialogHeader>
+            {contractEvent && (
               <DocumentActions
                 filename={`contrato-evento-${contractEvent.folio}`}
-                exportNode={
-                  <PrintEventContractDocument
-                    event={contractEvent as EventContractData}
-                    business={businessConfig}
-                  />
+                exportNode={<PrintEventContractDocument event={contractEvent as EventContractData} business={businessConfig} />}
+                extraActions={
+                  <motion.div whileTap={{ scale: 0.94 }}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setContractEvent(null)}
+                      className="h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
+                    >
+                      Cerrar
+                    </Button>
+                  </motion.div>
                 }
               >
-                <EventContractDocument
-                  event={contractEvent as EventContractData}
-                  business={businessConfig}
-                />
+                <EventContractDocument event={contractEvent as EventContractData} business={businessConfig} />
               </DocumentActions>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+            )}
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }
