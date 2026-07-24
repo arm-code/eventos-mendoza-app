@@ -1,39 +1,97 @@
-import { AnimatePresence, motion } from 'framer-motion'
-import React from 'react'
-import { useRouter } from 'next/navigation'
-import { Card, CardContent } from '../ui/card'
-import { Calendar, Edit2, FileDown, FileText, MapPin, Phone, User, CheckCircle2, Clock, XCircle } from 'lucide-react'
-import { Button } from '../ui/button'
-import { Loader } from '../Loaders/Loader.component'
-import { cn } from '@/lib/utils'
-import type { BusinessEvent } from '@/types/finance'
-import { formatCurrency, formatDate } from '@/lib/format'
+'use client'
 
-interface ListaEventosProps {
-    filteredEvents: BusinessEvent[]
-    STATUS_META: Record<string, { label: string; bg: string; text: string; border: string; icon: any }>
-    cycleStatus: (event: BusinessEvent) => void
-    setContractEvent: (event: BusinessEvent) => void
-    isLoading: boolean
-    activeTab: 'upcoming' | 'finished' | 'cancelled' | 'all'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import {
+    Calendar, MapPin, User, CheckCircle2, Clock, XCircle, Loader2, Eye,
+} from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
+import type { BusinessEvent, EventStatus } from '@/types/finance'
+import { formatCurrency, formatDate } from '@/lib/format'
+import { financeApi } from '@/lib/api/finance'
+
+/* ────────────────────────────────────────────────────────────────────────────
+   CONSTANTES
+   ─────────────────────────────────────────────────────────────────────────── */
+const STATUS_META: Record<EventStatus, {
+    label: string
+    shortLabel: string
+    bg: string
+    text: string
+    border: string
+    icon: typeof Clock
+    dot: string
+}> = {
+    pending: {
+        label: 'Pendiente', shortLabel: 'Pend.',
+        bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200',
+        icon: Clock, dot: 'bg-amber-500',
+    },
+    delivered: {
+        label: 'Entregado', shortLabel: 'Entr.',
+        bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-200',
+        icon: CheckCircle2, dot: 'bg-blue-500',
+    },
+    collected: {
+        label: 'Recogido', shortLabel: 'Rec.',
+        bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200',
+        icon: CheckCircle2, dot: 'bg-emerald-500',
+    },
+    cancelled: {
+        label: 'Cancelado', shortLabel: 'Canc.',
+        bg: 'bg-red-50', text: 'text-red-800', border: 'border-red-200',
+        icon: XCircle, dot: 'bg-red-500',
+    },
 }
 
-export const ListaEventos = ({
-    filteredEvents,
-    STATUS_META,
-    cycleStatus,
-    setContractEvent,
-    isLoading,
-    activeTab,
-}: ListaEventosProps) => {
-    const router = useRouter()
-    
+/* ────────────────────────────────────────────────────────────────────────────
+   PROPS
+   ─────────────────────────────────────────────────────────────────────────── */
+interface ListaEventosProps {
+    filteredEvents: BusinessEvent[]
+    isLoading: boolean
+    activeTab: 'upcoming' | 'finished' | 'cancelled' | 'all'
+    onSelectEvent: (event: BusinessEvent) => void
+}
+
+/* ────────────────────────────────────────────────────────────────────────────
+   COMPONENTE
+   ─────────────────────────────────────────────────────────────────────────── */
+export function ListaEventos({ filteredEvents, isLoading, activeTab, onSelectEvent }: ListaEventosProps) {
+    const queryClient = useQueryClient()
+
+    /* ── Mutación de cambio rápido de estado ── */
+    const statusMutation = useMutation({
+        mutationFn: ({ id, status }: { id: string; status: EventStatus }) =>
+            financeApi.updateEventStatus(id, status),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['businessEvents'] })
+            toast.success('Estado actualizado')
+        },
+        onError: (err: any) => {
+            toast.error(err.message || 'Error al actualizar el estado')
+        },
+    })
+
+    function quickAdvanceStatus(evt: BusinessEvent, e: React.MouseEvent) {
+        e.stopPropagation()
+        const flow: EventStatus[] = ['pending', 'delivered', 'collected']
+        const idx = flow.indexOf(evt.status || 'pending')
+        if (idx >= 0 && idx < flow.length - 1) {
+            statusMutation.mutate({ id: evt.id, status: flow[idx + 1] })
+        }
+    }
+
+    /* ── Render ── */
     return (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence mode="popLayout">
                 {filteredEvents.map((evt) => {
                     const meta = STATUS_META[evt.status || 'pending']
                     const StatusIcon = meta.icon
+                    const canAdvance = evt.status === 'pending' || evt.status === 'delivered'
 
                     return (
                         <motion.div
@@ -44,98 +102,96 @@ export const ListaEventos = ({
                             exit={{ opacity: 0, scale: 0.96 }}
                             transition={{ duration: 0.2 }}
                         >
-                            <Card className="border-violet-100/80 bg-white shadow-sm hover:shadow-md hover:border-violet-200 transition-all duration-200 active:scale-[0.99] overflow-hidden">
+                            <Card
+                                className="border-violet-100/70 bg-white shadow-sm hover:shadow-md hover:border-violet-200 transition-all duration-200 overflow-hidden cursor-pointer active:scale-[0.99]"
+                                onClick={() => onSelectEvent(evt)}
+                            >
                                 <CardContent className="p-0">
-                                    {/* ── Header: Folio + Status ── */}
-                                    <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-2">
-                                        <div className="min-w-0">
-                                            <div className="text-[11px] font-bold text-violet-500 tracking-wider uppercase">
-                                                {evt.folio}
-                                            </div>
-                                            <h3 className="font-bold text-violet-950 text-[15px] leading-tight truncate">
-                                                {evt.name}
-                                            </h3>
-                                        </div>
-                                        <button
-                                            onClick={() => cycleStatus(evt)}
-                                            className={cn(
-                                                'shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wide border transition-all duration-150',
-                                                'active:scale-90 min-h-[36px]',
-                                                meta.bg, meta.text, meta.border
-                                            )}
-                                            title={`Clic para cambiar estado (actual: ${meta.label})`}
-                                        >
-                                            <StatusIcon className="w-3 h-3" />
-                                            <span className="hidden sm:inline">{meta.label}</span>
-                                        </button>
-                                    </div>
+                                    {/* ── Color strip según status ── */}
+                                    <div className={cn('h-1 w-full', meta.dot)} />
 
-                                    {/* ── Info clave ── */}
-                                    <div className="px-4 space-y-1.5 pb-3">
-                                        <div className="flex items-center gap-2 text-[13px] text-violet-900">
-                                            <User className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                                            <span className="font-semibold truncate">{evt.clientName}</span>
-                                        </div>
-                                        {evt.clientPhone && (
-                                            <div className="flex items-center gap-2 text-[13px] text-violet-700">
-                                                <Phone className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                                                <a
-                                                    href={`tel:${evt.clientPhone}`}
-                                                    className="hover:text-violet-900 hover:underline active:text-violet-950"
-                                                >
-                                                    {evt.clientPhone}
-                                                </a>
+                                    <div className="p-4 space-y-3">
+                                        {/* Header: Folio + Status */}
+                                        <div className="flex items-start justify-between gap-2">
+                                            <div className="min-w-0">
+                                                <p className="text-[10px] font-bold text-violet-400 tracking-wider uppercase">
+                                                    {evt.folio}
+                                                </p>
+                                                <h3 className="font-bold text-violet-950 text-[15px] leading-tight truncate mt-0.5">
+                                                    {evt.name}
+                                                </h3>
                                             </div>
-                                        )}
-                                        <div className="flex items-center gap-2 text-[13px] text-violet-700">
-                                            <Calendar className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                                            <span className="font-medium">
-                                                {evt.date ? formatDate(evt.date) : 'Por definir'}
+                                            <div className={cn('shrink-0 flex items-center gap-1 px-2 py-1 rounded-md border', meta.bg, meta.text, meta.border)}>
+                                                <StatusIcon className="w-3 h-3" />
+                                                <span className="text-[10px] font-bold hidden sm:inline">{meta.label}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Info minimalista: Cliente + Fecha + Dirección */}
+                                        <div className="space-y-1.5">
+                                            <div className="flex items-center gap-2 text-[13px] text-violet-900">
+                                                <User className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                                                <span className="font-semibold truncate">{evt.clientName}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-[12px] text-violet-600">
+                                                <Calendar className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                                                <span>{evt.date ? formatDate(evt.date) : 'Por definir'}</span>
+                                            </div>
+                                            <div className="flex items-start gap-2 text-[12px] text-violet-500">
+                                                <MapPin className="w-3.5 h-3.5 text-violet-400 shrink-0 mt-0.5" />
+                                                <span className="line-clamp-1">{evt.eventAddress}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* Footer: Costo + Acciones */}
+                                        <div className="flex items-center justify-between pt-2 border-t border-violet-50">
+                                            <span className="text-lg font-bold text-violet-950">
+                                                {formatCurrency(evt.cost || 0)}
                                             </span>
-                                        </div>
-                                        <div className="flex items-start gap-2 text-[12px] text-violet-600">
-                                            <MapPin className="w-3.5 h-3.5 text-violet-400 shrink-0 mt-0.5" />
-                                            <span className="line-clamp-2">{evt.eventAddress}</span>
-                                        </div>
-                                        {evt.noteFolio && (
-                                            <div className="flex items-center gap-2 text-[12px] text-violet-700 font-semibold pt-0.5">
-                                                <FileText className="w-3.5 h-3.5 text-violet-500 shrink-0" />
-                                                <span>Nota: {evt.noteFolio}</span>
-                                            </div>
-                                        )}
-                                    </div>
 
-                                    {/* ── Costo + Acciones ── */}
-                                    <div className="border-t border-violet-50 px-4 py-3">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <div>
-                                                <span className="text-[11px] text-violet-400 font-medium block">Costo total</span>
-                                                <span className="text-xl font-bold text-violet-950">
-                                                    {formatCurrency(evt.cost || 0)}
-                                                </span>
-                                            </div>
-                                        </div>
+                                            <div className="flex items-center gap-2">
+                                                {/* Botón avance rápido de estado */}
+                                                {canAdvance && (
+                                                    <button
+                                                        onClick={(e) => quickAdvanceStatus(evt, e)}
+                                                        disabled={statusMutation.isPending}
+                                                        className={cn(
+                                                            'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold border transition-all',
+                                                            'active:scale-90 touch-manipulation',
+                                                            evt.status === 'pending'
+                                                                ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                                                                : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                                        )}
+                                                        title={evt.status === 'pending' ? 'Marcar como Entregado' : 'Marcar como Recogido'}
+                                                    >
+                                                        {statusMutation.isPending ? (
+                                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                                        ) : (
+                                                            <CheckCircle2 className="w-3 h-3" />
+                                                        )}
+                                                        <span className="hidden sm:inline">
+                                                            {evt.status === 'pending' ? 'Entregar' : 'Recoger'}
+                                                        </span>
+                                                    </button>
+                                                )}
 
-                                        {/* Botones de acción: apilados en móvil, lado a lado en desktop */}
-                                        <div className="flex flex-col sm:flex-row gap-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => setContractEvent(evt)}
-                                                className="w-full sm:w-auto h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 active:bg-violet-100 active:scale-[0.97] text-sm font-semibold gap-2 transition-all"
-                                            >
-                                                <FileDown className="w-4 h-4 text-violet-600" />
-                                                Ver Contrato
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => router.push(`/tools/eventos/editar-evento/${evt.id}`)}
-                                                className="w-full sm:w-auto h-11 rounded-xl text-violet-600 hover:bg-violet-50 active:bg-violet-100 active:scale-[0.97] text-sm font-semibold gap-2 transition-all"
-                                            >
-                                                <Edit2 className="w-4 h-4" />
-                                                Editar
-                                            </Button>
+                                                {/* Botón Ver Detalles */}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        onSelectEvent(evt)
+                                                    }}
+                                                    className={cn(
+                                                        'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold',
+                                                        'bg-violet-600 text-white hover:bg-violet-700 active:bg-violet-800',
+                                                        'active:scale-90 transition-all shadow-sm'
+                                                    )}
+                                                >
+                                                    <Eye className="w-3.5 h-3.5" />
+                                                    <span className="hidden sm:inline">Ver Detalles</span>
+                                                    <span className="sm:hidden">Detalles</span>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -145,11 +201,12 @@ export const ListaEventos = ({
                 })}
             </AnimatePresence>
 
+            {/* ── Estado vacío ── */}
             {filteredEvents.length === 0 && (
                 <Card className="col-span-full border-violet-100 bg-white p-8 text-center">
                     {isLoading ? (
                         <div className="flex items-center justify-center gap-2 text-violet-600 font-semibold py-4">
-                            <Loader />
+                            <Loader2 className="w-5 h-5 animate-spin" />
                             <span>Cargando eventos...</span>
                         </div>
                     ) : (
@@ -163,7 +220,7 @@ export const ListaEventos = ({
                                 No hay eventos {activeTab !== 'all' ? 'en esta categoría' : 'guardados'}.
                             </p>
                             <p className="text-sm text-violet-500">
-                                Presiona "Nuevo Evento" para agendar el primer servicio.
+                                Presiona el botón + para agendar el primer servicio.
                             </p>
                         </motion.div>
                     )}
