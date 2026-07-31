@@ -307,9 +307,9 @@ export default function TransactionsTab() {
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetContent
             side="bottom"
-            className="h-[85vh] rounded-t-3xl border-t border-violet-100 bg-white p-0"
+            className="max-h-[92dvh] h-auto rounded-t-3xl border-t border-violet-100 bg-white p-0 flex flex-col overflow-hidden"
           >
-            <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50">
+            <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50 flex-shrink-0">
               <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
               <SheetHeader className="text-left space-y-1">
                 <SheetTitle className="text-lg font-bold text-violet-950">Registrar Transacción</SheetTitle>
@@ -318,7 +318,7 @@ export default function TransactionsTab() {
                 </SheetDescription>
               </SheetHeader>
             </div>
-            <div className="px-4 py-4 overflow-y-auto h-full pb-8">
+            <div className="flex-1 overflow-y-auto px-4 py-4 pb-8">
               <TransactionForm
                 onSubmit={handleSubmit(onSubmit)}
                 register={register}
