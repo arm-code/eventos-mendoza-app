@@ -7,8 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { PlusCircle, CreditCard, Loader2, Wallet } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AppBottomSheet } from "@/components/ui/app-bottom-sheet";
+import { FabButton } from "@/components/ui/fab-button";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Input } from "@/components/ui/input";
@@ -120,15 +120,11 @@ export default function PaymentMethodsTab() {
       </Card>
 
       {/* FAB móvil */}
-      <div className="sm:hidden fixed bottom-[72px] right-4 z-30">
-        <motion.button
-          whileTap={{ scale: 0.88 }}
-          onClick={() => setIsOpen(true)}
-          className="flex items-center justify-center w-14 h-14 rounded-full bg-violet-600 text-white shadow-xl shadow-violet-600/30 active:bg-violet-700 touch-manipulation"
-        >
-          <PlusCircle className="h-6 w-6" />
-        </motion.button>
-      </div>
+      <FabButton
+        icon={<PlusCircle className="h-6 w-6" />}
+        title="Crear nuevo método de pago"
+        onClick={() => setIsOpen(true)}
+      />
 
       {/* Botón desktop */}
       <div className="hidden sm:flex justify-end">

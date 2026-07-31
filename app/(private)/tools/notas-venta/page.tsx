@@ -28,6 +28,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { AppBottomSheet } from '@/components/ui/app-bottom-sheet'
+import { FabButton } from '@/components/ui/fab-button'
 import {
   Table,
   TableBody,
@@ -352,18 +353,13 @@ export default function NotesHistoryPage() {
         )}
       </div>
 
-      {/* FAB móvil (posicionado arriba del bottom nav) */}
-      <div className="sm:hidden fixed bottom-[72px] right-4 z-30">
-        <Link href="/tools/notas-venta/crear-nota-venta">
-          <motion.button
-            whileTap={{ scale: 0.88 }}
-            className="flex items-center justify-center w-14 h-14 rounded-full bg-violet-600 text-white shadow-xl shadow-violet-600/30 active:bg-violet-700 touch-manipulation"
-            aria-label="Nueva nota"
-          >
-            <FilePlus2 className="h-6 w-6" />
-          </motion.button>
-        </Link>
-      </div>
+      {/* FAB móvil */}
+      <FabButton
+        icon={<FilePlus2 className="h-6 w-6" />}
+        title="Crear nueva nota de venta"
+        href="/tools/notas-venta/crear-nota-venta"
+        ariaLabel="Nueva nota"
+      />
 
       {/* Vista y exportación de nota */}
       <AppBottomSheet

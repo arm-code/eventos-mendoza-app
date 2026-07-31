@@ -12,6 +12,7 @@ import {
 import { useToast } from "@/hooks/useToast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AppBottomSheet } from "@/components/ui/app-bottom-sheet";
+import { FabButton } from "@/components/ui/fab-button";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -280,16 +281,12 @@ export default function TransactionsTab() {
         </CardContent>
       </Card>
 
-      {/* FAB móvil (posicionado considerando el bottom nav de 56px + safe area) */}
-      <div className="sm:hidden fixed bottom-[72px] right-4 z-30">
-        <motion.button
-          whileTap={{ scale: 0.88 }}
-          onClick={() => setIsOpen(true)}
-          className="flex items-center justify-center w-14 h-14 rounded-full bg-violet-600 text-white shadow-xl shadow-violet-600/30 active:bg-violet-700 touch-manipulation"
-        >
-          <PlusCircle className="h-6 w-6" />
-        </motion.button>
-      </div>
+      {/* FAB móvil */}
+      <FabButton
+        icon={<PlusCircle className="h-6 w-6" />}
+        title="Registrar nuevo movimiento"
+        onClick={() => setIsOpen(true)}
+      />
 
       {/* Botón desktop */}
       <div className="hidden sm:flex justify-end">
