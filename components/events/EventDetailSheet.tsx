@@ -135,125 +135,125 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig, on
                     </button>
                 </div>
 
-                            <p className="text-xs text-violet-500 mb-3">
-                                Selecciona el estado que corresponde al evento.
-                            </p>
+                <p className="text-xs text-violet-500 mb-3">
+                    Selecciona el estado que corresponde al evento.
+                </p>
+            </div>
+
+            {/* Opciones de estado */}
+            <div className="space-y-2">
+                {STATUS_FLOW.map((status) => {
+                    const sMeta = STATUS_META[status]
+                    const SIcon = sMeta.icon
+                    const isCurrent = event.status === status
+                    return (
+                        <button
+                            key={status}
+                            type="button"
+                            onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                if (!isCurrent) {
+                                    statusMutation.mutate({ id: event.id, status })
+                                }
+                            }}
+                            disabled={statusMutation.isPending}
+                            className={cn(
+                                'w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all duration-150',
+                                'active:scale-[0.98] touch-manipulation',
+                                isCurrent
+                                    ? 'border-violet-600 bg-violet-50 shadow-sm'
+                                    : 'border-transparent bg-violet-50/40 hover:bg-violet-50 hover:border-violet-200'
+                            )}
+                        >
+                            <div className={cn(
+                                'flex h-10 w-10 items-center justify-center rounded-full shrink-0',
+                                sMeta.bg
+                            )}>
+                                <SIcon className={cn('w-5 h-5', sMeta.text)} />
+                            </div>
+                            <div className="text-left flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <p className={cn('text-sm font-bold', isCurrent ? 'text-violet-900' : 'text-violet-950')}>
+                                        {sMeta.label}
+                                    </p>
+                                    {isCurrent && (
+                                        <span className="text-[10px] font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full">
+                                            Actual
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs text-violet-500">
+                                    {sMeta.description}
+                                </p>
+                            </div>
+                            {statusMutation.isPending && !isCurrent && (
+                                <Loader2 className="w-4 h-4 animate-spin text-violet-400 shrink-0" />
+                            )}
+                            {!isCurrent && !statusMutation.isPending && (
+                                <ChevronRight className="w-4 h-4 text-violet-300 shrink-0" />
+                            )}
+                        </button>
+                    )
+                })}
+
+                {/* Separador */}
+                <div className="h-px bg-violet-100 my-2" />
+
+                {/* Cancelar / Reactivar */}
+                {event.status !== 'cancelled' ? (
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            statusMutation.mutate({ id: event.id, status: 'cancelled' })
+                        }}
+                        disabled={statusMutation.isPending}
+                        className={cn(
+                            'w-full flex items-center gap-3 p-3.5 rounded-xl border-2 border-transparent',
+                            'bg-red-50 hover:bg-red-100 hover:border-red-200',
+                            'active:scale-[0.98] touch-manipulation transition-all duration-150'
+                        )}
+                    >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 shrink-0">
+                            <X className="w-5 h-5 text-red-600" />
                         </div>
-
-                            {/* Opciones de estado */}
-                            <div className="space-y-2">
-                                {STATUS_FLOW.map((status) => {
-                                    const sMeta = STATUS_META[status]
-                                    const SIcon = sMeta.icon
-                                    const isCurrent = event.status === status
-                                    return (
-                                        <button
-                                            key={status}
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.preventDefault()
-                                                e.stopPropagation()
-                                                if (!isCurrent) {
-                                                    statusMutation.mutate({ id: event.id, status })
-                                                }
-                                            }}
-                                            disabled={statusMutation.isPending}
-                                            className={cn(
-                                                'w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all duration-150',
-                                                'active:scale-[0.98] touch-manipulation',
-                                                isCurrent
-                                                    ? 'border-violet-600 bg-violet-50 shadow-sm'
-                                                    : 'border-transparent bg-violet-50/40 hover:bg-violet-50 hover:border-violet-200'
-                                            )}
-                                        >
-                                            <div className={cn(
-                                                'flex h-10 w-10 items-center justify-center rounded-full shrink-0',
-                                                sMeta.bg
-                                            )}>
-                                                <SIcon className={cn('w-5 h-5', sMeta.text)} />
-                                            </div>
-                                            <div className="text-left flex-1 min-w-0">
-                                                <div className="flex items-center gap-2">
-                                                    <p className={cn('text-sm font-bold', isCurrent ? 'text-violet-900' : 'text-violet-950')}>
-                                                        {sMeta.label}
-                                                    </p>
-                                                    {isCurrent && (
-                                                        <span className="text-[10px] font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full">
-                                                            Actual
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <p className="text-xs text-violet-500">
-                                                    {sMeta.description}
-                                                </p>
-                                            </div>
-                                            {statusMutation.isPending && !isCurrent && (
-                                                <Loader2 className="w-4 h-4 animate-spin text-violet-400 shrink-0" />
-                                            )}
-                                            {!isCurrent && !statusMutation.isPending && (
-                                                <ChevronRight className="w-4 h-4 text-violet-300 shrink-0" />
-                                            )}
-                                        </button>
-                                    )
-                                })}
-
-                                {/* Separador */}
-                                <div className="h-px bg-violet-100 my-2" />
-
-                                {/* Cancelar / Reactivar */}
-                                {event.status !== 'cancelled' ? (
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.preventDefault()
-                                            e.stopPropagation()
-                                            statusMutation.mutate({ id: event.id, status: 'cancelled' })
-                                        }}
-                                        disabled={statusMutation.isPending}
-                                        className={cn(
-                                            'w-full flex items-center gap-3 p-3.5 rounded-xl border-2 border-transparent',
-                                            'bg-red-50 hover:bg-red-100 hover:border-red-200',
-                                            'active:scale-[0.98] touch-manipulation transition-all duration-150'
-                                        )}
-                                    >
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 shrink-0">
-                                            <X className="w-5 h-5 text-red-600" />
-                                        </div>
-                                        <div className="text-left flex-1">
-                                            <p className="text-sm font-bold text-red-800">Cancelar Evento</p>
-                                            <p className="text-xs text-red-500">Marcar como cancelado permanentemente</p>
-                                        </div>
-                                        {statusMutation.isPending && (
-                                            <Loader2 className="w-4 h-4 animate-spin text-red-400 shrink-0" />
-                                        )}
-                                    </button>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.preventDefault()
-                                            e.stopPropagation()
-                                            statusMutation.mutate({ id: event.id, status: 'pending' })
-                                        }}
-                                        disabled={statusMutation.isPending}
-                                        className={cn(
-                                            'w-full flex items-center gap-3 p-3.5 rounded-xl border-2 border-transparent',
-                                            'bg-amber-50 hover:bg-amber-100 hover:border-amber-200',
-                                            'active:scale-[0.98] touch-manipulation transition-all duration-150'
-                                        )}
-                                    >
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 shrink-0">
-                                            <Clock className="w-5 h-5 text-amber-600" />
-                                        </div>
-                                        <div className="text-left flex-1">
-                                            <p className="text-sm font-bold text-amber-800">Reactivar Evento</p>
-                                            <p className="text-xs text-amber-500">Volver a estado Pendiente</p>
-                                        </div>
-                                        {statusMutation.isPending && (
-                                            <Loader2 className="w-4 h-4 animate-spin text-amber-400 shrink-0" />
-                                        )}
-                                    </button>
-                                )}
+                        <div className="text-left flex-1">
+                            <p className="text-sm font-bold text-red-800">Cancelar Evento</p>
+                            <p className="text-xs text-red-500">Marcar como cancelado permanentemente</p>
+                        </div>
+                        {statusMutation.isPending && (
+                            <Loader2 className="w-4 h-4 animate-spin text-red-400 shrink-0" />
+                        )}
+                    </button>
+                ) : (
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            statusMutation.mutate({ id: event.id, status: 'pending' })
+                        }}
+                        disabled={statusMutation.isPending}
+                        className={cn(
+                            'w-full flex items-center gap-3 p-3.5 rounded-xl border-2 border-transparent',
+                            'bg-amber-50 hover:bg-amber-100 hover:border-amber-200',
+                            'active:scale-[0.98] touch-manipulation transition-all duration-150'
+                        )}
+                    >
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 shrink-0">
+                            <Clock className="w-5 h-5 text-amber-600" />
+                        </div>
+                        <div className="text-left flex-1">
+                            <p className="text-sm font-bold text-amber-800">Reactivar Evento</p>
+                            <p className="text-xs text-amber-500">Volver a estado Pendiente</p>
+                        </div>
+                        {statusMutation.isPending && (
+                            <Loader2 className="w-4 h-4 animate-spin text-amber-400 shrink-0" />
+                        )}
+                    </button>
+                )}
             </div>
         </motion.div>
     )
@@ -412,13 +412,15 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig, on
                             <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
                             <div className="flex items-center justify-between">
                                 <h2 className="text-lg font-bold text-violet-950">Detalles del Evento</h2>
-                                <button
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
                                     onClick={() => onOpenChange(false)}
-                                    className="p-2 rounded-full hover:bg-violet-50 active:bg-violet-100 transition-colors"
+                                    className="h-9 w-9 rounded-full hover:bg-violet-50 active:bg-violet-100 transition-colors text-violet-500"
                                     aria-label="Cerrar"
                                 >
-                                    <X className="w-5 h-5 text-violet-500" />
-                                </button>
+                                    <X className="w-5 h-5" />
+                                </Button>
                             </div>
                         </div>
                         <div className="flex-1 overflow-y-auto px-4 pb-8 overflow-x-hidden">
