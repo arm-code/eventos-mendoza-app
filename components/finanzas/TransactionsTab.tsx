@@ -7,14 +7,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import {
   PlusCircle, ArrowUpRight, ArrowDownRight, Wallet,
-  CalendarDays, Loader2, ChevronDown, Hash
+  CalendarDays, Loader2, Hash
 } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AppBottomSheet } from "@/components/ui/app-bottom-sheet";
 import { FabButton } from "@/components/ui/fab-button";
 import { useIsMobile } from "@/hooks/useIsMobile";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Input } from "@/components/ui/input";
@@ -36,34 +43,7 @@ const transactionSchema = yup.object().shape({
 
 type TransactionFormData = yup.InferType<typeof transactionSchema>;
 
-// Select táctil estilizado
-const TouchSelect = ({
-  id,
-  label,
-  error,
-  children,
-  ...props
-}: React.SelectHTMLAttributes<HTMLSelectElement> & { label: string; error?: string }) => (
-  <div className="space-y-1.5">
-    <Label htmlFor={id} className="text-sm font-medium text-violet-900">{label}</Label>
-    <div className="relative">
-      <select
-        id={id}
-        className={cn(
-          "flex min-h-[48px] w-full items-center rounded-xl border border-violet-200 bg-white px-4 pr-10 text-sm shadow-sm",
-          "focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500",
-          "active:bg-violet-50 transition-all duration-150 appearance-none touch-manipulation",
-          error && "border-red-300 focus:border-red-500 focus:ring-red-500/20"
-        )}
-        {...props}
-      >
-        {children}
-      </select>
-      <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-violet-400 pointer-events-none" />
-    </div>
-    {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
-  </div>
-);
+
 
 export default function TransactionsTab() {
   const { showError, showSuccess } = useToast();
@@ -115,7 +95,7 @@ export default function TransactionsTab() {
     }
   });
 
-  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm<TransactionFormData>({
+  const { register, control, handleSubmit, formState: { errors }, reset, watch } = useForm<TransactionFormData>({
     resolver: yupResolver(transactionSchema) as any,
     defaultValues: {
       transactionDate: new Date().toISOString().split('T')[0],
@@ -309,6 +289,7 @@ export default function TransactionsTab() {
         <TransactionForm
           onSubmit={handleSubmit(onSubmit)}
           register={register}
+          control={control}
           errors={errors}
           isPending={createMutation.isPending}
           watchType={watchType}
@@ -326,6 +307,7 @@ export default function TransactionsTab() {
 function TransactionForm({
   onSubmit,
   register,
+  control,
   errors,
   isPending,
   watchType,
@@ -336,6 +318,7 @@ function TransactionForm({
 }: {
   onSubmit: () => void;
   register: any;
+  control: any;
   errors: any;
   isPending: boolean;
   watchType: string;
@@ -347,15 +330,25 @@ function TransactionForm({
   return (
     <form onSubmit={onSubmit} className="space-y-5">
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        <TouchSelect
-          id="type"
-          label="Tipo"
-          error={errors.type?.message}
-          {...register("type")}
-        >
-          <option value="INPUT">Ingreso</option>
-          <option value="OUTPUT">Gasto</option>
-        </TouchSelect>
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium text-violet-900">Tipo</Label>
+          <Controller
+            control={control}
+            name="type"
+            render={({ field }) => (
+              <Select onValueChange={field.onChange} value={field.value || ""}>
+                <SelectTrigger className={cn("min-h-[48px] rounded-xl border-violet-200 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500", errors.type && "border-red-300 focus:border-red-500 focus:ring-red-500/20")}>
+                  <SelectValue placeholder="Seleccionar..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="INPUT">Ingreso</SelectItem>
+                  <SelectItem value="OUTPUT">Gasto</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {errors.type && <p className="text-xs text-red-500">{errors.type.message}</p>}
+        </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="transactionDate" className="text-sm font-medium text-violet-900">Fecha</Label>
@@ -396,41 +389,69 @@ function TransactionForm({
         {errors.description && <p className="text-xs text-red-500">{errors.description.message}</p>}
       </div>
 
-      <TouchSelect
-        id="categoryId"
-        label="Categoría"
-        error={errors.categoryId?.message}
-        {...register("categoryId")}
-      >
-        <option value="">Seleccionar...</option>
-        {categories.map((cat) => (
-          <option key={cat.id} value={cat.id}>{cat.name}</option>
-        ))}
-      </TouchSelect>
+      <div className="space-y-1.5">
+        <Label className="text-sm font-medium text-violet-900">Categoría</Label>
+        <Controller
+          control={control}
+          name="categoryId"
+          render={({ field }) => (
+            <Select onValueChange={field.onChange} value={field.value || ""}>
+              <SelectTrigger className={cn("min-h-[48px] rounded-xl border-violet-200 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500", errors.categoryId && "border-red-300 focus:border-red-500 focus:ring-red-500/20")}>
+                <SelectValue placeholder="Seleccionar..." />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {errors.categoryId && <p className="text-xs text-red-500">{errors.categoryId.message}</p>}
+      </div>
 
-      <TouchSelect
-        id="paymentMethodId"
-        label="Método de Pago"
-        error={errors.paymentMethodId?.message}
-        {...register("paymentMethodId")}
-      >
-        <option value="">Seleccionar...</option>
-        {paymentMethods.map((pm) => (
-          <option key={pm.id} value={pm.id}>{pm.name}</option>
-        ))}
-      </TouchSelect>
+      <div className="space-y-1.5">
+        <Label className="text-sm font-medium text-violet-900">Método de Pago</Label>
+        <Controller
+          control={control}
+          name="paymentMethodId"
+          render={({ field }) => (
+            <Select onValueChange={field.onChange} value={field.value || ""}>
+              <SelectTrigger className={cn("min-h-[48px] rounded-xl border-violet-200 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500", errors.paymentMethodId && "border-red-300 focus:border-red-500 focus:ring-red-500/20")}>
+                <SelectValue placeholder="Seleccionar..." />
+              </SelectTrigger>
+              <SelectContent>
+                {paymentMethods.map((pm) => (
+                  <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {errors.paymentMethodId && <p className="text-xs text-red-500">{errors.paymentMethodId.message}</p>}
+      </div>
 
-      <TouchSelect
-        id="businessEventId"
-        label="Evento (Opcional)"
-        error={errors.businessEventId?.message}
-        {...register("businessEventId")}
-      >
-        <option value="">Ninguno</option>
-        {events.map((evt) => (
-          <option key={evt.id} value={evt.id}>{evt.name}</option>
-        ))}
-      </TouchSelect>
+      <div className="space-y-1.5">
+        <Label className="text-sm font-medium text-violet-900">Evento (Opcional)</Label>
+        <Controller
+          control={control}
+          name="businessEventId"
+          render={({ field }) => (
+            <Select onValueChange={(val) => field.onChange(val === "none" ? "" : val)} value={field.value || "none"}>
+              <SelectTrigger className={cn("min-h-[48px] rounded-xl border-violet-200 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500", errors.businessEventId && "border-red-300 focus:border-red-500 focus:ring-red-500/20")}>
+                <SelectValue placeholder="Ninguno" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">Ninguno</SelectItem>
+                {events.map((evt) => (
+                  <SelectItem key={evt.id} value={evt.id}>{evt.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
+        {errors.businessEventId && <p className="text-xs text-red-500">{errors.businessEventId.message}</p>}
+      </div>
 
       <div className="flex gap-3 pt-2 sticky bottom-0 bg-white/80 backdrop-blur-sm pb-2">
         <Button
