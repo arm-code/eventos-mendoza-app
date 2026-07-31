@@ -9,7 +9,7 @@ import { PlusCircle, Tags, Loader2, Hash } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { useForm } from "react-hook-form";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,7 @@ export default function CategoriesTab() {
   const { showError, showSuccess } = useToast();
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const { data: categories = [], isLoading, error } = useQuery({
     queryKey: ['transactionCategories'],
@@ -139,33 +140,42 @@ export default function CategoriesTab() {
         </motion.button>
       </div>
 
-      {/* Botón desktop */}
-      <div className="hidden sm:flex justify-end">
-        <Button
-          onClick={() => setIsOpen(true)}
-          className="bg-violet-600 hover:bg-violet-700 text-white h-11 px-6 rounded-xl shadow-lg shadow-violet-600/20 active:scale-[0.98] transition-all touch-manipulation"
-        >
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Nueva Categoría
-        </Button>
-      </div>
-
-      {/* Bottom Sheet móvil */}
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent
-          side="bottom"
-          className="sm:hidden h-[80vh] rounded-t-3xl border-t border-violet-100 bg-white p-0"
-        >
-          <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50">
-            <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
-            <SheetHeader className="text-left space-y-1">
-              <SheetTitle className="text-lg font-bold text-violet-950">Crear Categoría</SheetTitle>
-              <SheetDescription className="text-sm text-violet-500">
-                Añade una nueva categoría
-              </SheetDescription>
-            </SheetHeader>
-          </div>
-          <div className="px-4 py-4 overflow-y-auto h-full pb-8">
+      {/* Conditional Rendering for Mobile/Desktop */}
+      {isMobile ? (
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetContent
+            side="bottom"
+            className="h-[80vh] rounded-t-3xl border-t border-violet-100 bg-white p-0"
+          >
+            <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50">
+              <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
+              <SheetHeader className="text-left space-y-1">
+                <SheetTitle className="text-lg font-bold text-violet-950">Crear Categoría</SheetTitle>
+                <SheetDescription className="text-sm text-violet-500">
+                  Añade una nueva categoría
+                </SheetDescription>
+              </SheetHeader>
+            </div>
+            <div className="px-4 py-4 overflow-y-auto h-full pb-8">
+              <CategoryForm
+                onSubmit={handleSubmit(onSubmit)}
+                register={register}
+                errors={errors}
+                isPending={createMutation.isPending}
+                onCancel={() => setIsOpen(false)}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogContent className="max-w-[425px] rounded-2xl p-6">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-violet-950">Crear Categoría</DialogTitle>
+              <DialogDescription className="text-sm text-violet-500">
+                Añade una nueva categoría para clasificar transacciones.
+              </DialogDescription>
+            </DialogHeader>
             <CategoryForm
               onSubmit={handleSubmit(onSubmit)}
               register={register}
@@ -173,28 +183,9 @@ export default function CategoriesTab() {
               isPending={createMutation.isPending}
               onCancel={() => setIsOpen(false)}
             />
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Dialog desktop */}
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="hidden sm:block sm:max-w-[425px] rounded-2xl p-6">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-violet-950">Crear Categoría</DialogTitle>
-            <DialogDescription className="text-sm text-violet-500">
-              Añade una nueva categoría para clasificar transacciones.
-            </DialogDescription>
-          </DialogHeader>
-          <CategoryForm
-            onSubmit={handleSubmit(onSubmit)}
-            register={register}
-            errors={errors}
-            isPending={createMutation.isPending}
-            onCancel={() => setIsOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

@@ -12,6 +12,7 @@ import {
 import { useToast } from "@/hooks/useToast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
@@ -69,6 +70,7 @@ export default function TransactionsTab() {
   const [isOpen, setIsOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [limit] = useState(10);
+  const isMobile = useIsMobile();
 
   const { data: paginatedData, isLoading, error } = useQuery({
     queryKey: ['transactions', currentPage, limit],
@@ -300,22 +302,46 @@ export default function TransactionsTab() {
         </Button>
       </div>
 
-      {/* Bottom Sheet móvil */}
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent
-          side="bottom"
-          className="sm:hidden h-[85vh] rounded-t-3xl border-t border-violet-100 bg-white p-0"
-        >
-          <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50">
-            <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
-            <SheetHeader className="text-left space-y-1">
-              <SheetTitle className="text-lg font-bold text-violet-950">Registrar Transacción</SheetTitle>
-              <SheetDescription className="text-sm text-violet-500">
-                Añade un nuevo ingreso o gasto
-              </SheetDescription>
-            </SheetHeader>
-          </div>
-          <div className="px-4 py-4 overflow-y-auto h-full pb-8">
+      {/* Conditional Rendering for Mobile/Desktop */}
+      {isMobile ? (
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetContent
+            side="bottom"
+            className="h-[85vh] rounded-t-3xl border-t border-violet-100 bg-white p-0"
+          >
+            <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50">
+              <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
+              <SheetHeader className="text-left space-y-1">
+                <SheetTitle className="text-lg font-bold text-violet-950">Registrar Transacción</SheetTitle>
+                <SheetDescription className="text-sm text-violet-500">
+                  Añade un nuevo ingreso o gasto
+                </SheetDescription>
+              </SheetHeader>
+            </div>
+            <div className="px-4 py-4 overflow-y-auto h-full pb-8">
+              <TransactionForm
+                onSubmit={handleSubmit(onSubmit)}
+                register={register}
+                errors={errors}
+                isPending={createMutation.isPending}
+                watchType={watchType}
+                categories={safeCategories}
+                paymentMethods={safeMethods}
+                events={safeEvents}
+                onCancel={() => setIsOpen(false)}
+              />
+            </div>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogContent className="max-w-[480px] max-h-[85vh] overflow-y-auto rounded-2xl p-6">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-violet-950">Registrar Transacción</DialogTitle>
+              <DialogDescription className="text-sm text-violet-500">
+                Añade un nuevo ingreso o gasto a las finanzas.
+              </DialogDescription>
+            </DialogHeader>
             <TransactionForm
               onSubmit={handleSubmit(onSubmit)}
               register={register}
@@ -327,32 +353,9 @@ export default function TransactionsTab() {
               events={safeEvents}
               onCancel={() => setIsOpen(false)}
             />
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Dialog desktop */}
-      <Dialog open={isOpen} onOpenChange={setIsOpen}>
-        <DialogContent className="hidden sm:block sm:max-w-[480px] max-h-[85vh] overflow-y-auto rounded-2xl p-6">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-violet-950">Registrar Transacción</DialogTitle>
-            <DialogDescription className="text-sm text-violet-500">
-              Añade un nuevo ingreso o gasto a las finanzas.
-            </DialogDescription>
-          </DialogHeader>
-          <TransactionForm
-            onSubmit={handleSubmit(onSubmit)}
-            register={register}
-            errors={errors}
-            isPending={createMutation.isPending}
-            watchType={watchType}
-            categories={safeCategories}
-            paymentMethods={safeMethods}
-            events={safeEvents}
-            onCancel={() => setIsOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }
