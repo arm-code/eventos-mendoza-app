@@ -6,6 +6,7 @@ import {
   ChevronDown, Star, ArrowRight
 } from 'lucide-react';
 import ProductCarousel from '@/components/products/ProductCarousel';
+import ShareButtons from '@/components/ShareButtons';
 import { cn } from '@/lib/utils';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -203,6 +204,9 @@ export default function HomePage() {
                   Llamar {PHONE_DISPLAY}
                 </a>
               </div>
+
+              {/* Share Buttons */}
+              <ShareButtons />
             </div>
           </div>
         </section>
