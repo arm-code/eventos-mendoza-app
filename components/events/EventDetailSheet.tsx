@@ -380,12 +380,9 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig, on
             </button>
 
             {/* ── Contrato Exportable ── */}
-            <div className="space-y-3 pt-2">
-                <h3 className="text-[11px] font-bold text-violet-600 uppercase tracking-wider flex items-center gap-2">
-                    <ReceiptText className="w-3.5 h-3.5" />
-                    Contrato de Servicio
-                </h3>
+            <div className="pt-2 pb-24 sm:pb-0">
                 <DocumentActions
+                    title="Imprimir Contrato de Servicio"
                     filename={`contrato-evento-${event.folio}`}
                     exportNode={
                         <PrintEventContractDocument

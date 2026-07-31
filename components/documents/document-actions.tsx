@@ -16,9 +16,11 @@ interface DocumentActionsProps {
   exportNode: React.ReactNode
   /** Botones adicionales junto a Imagen/PDF (ej. Editar) */
   extraActions?: React.ReactNode
+  /** Titulo o leyenda descriptiva para indicar la accion de los botones */
+  title?: string
 }
 
-export function DocumentActions({ filename, children, exportNode, extraActions }: DocumentActionsProps) {
+export function DocumentActions({ filename, children, exportNode, extraActions, title }: DocumentActionsProps) {
   const exportRef = useRef<HTMLDivElement>(null)
   const [exporting, setExporting] = useState<'png' | 'pdf' | null>(null)
   const [showConfirm, setShowConfirm] = useState<'png' | 'pdf' | null>(null)
@@ -151,6 +153,15 @@ export function DocumentActions({ filename, children, exportNode, extraActions }
       <div className="fixed bottom-0 left-0 right-0 z-40 sm:relative sm:bottom-auto sm:left-auto sm:right-auto">
         {/* Safe area padding for iOS */}
         <div className="bg-white/95 backdrop-blur-xl border-t border-violet-100/90 p-3 sm:p-4 pb-[max(12px,env(safe-area-inset-bottom))] sm:pb-4 shadow-[0_-4px_20px_rgba(124,58,237,0.08)] sm:shadow-none sm:border sm:rounded-2xl sm:bg-white/80">
+          
+          {title && (
+            <div className="text-center mb-3">
+              <span className="text-[11px] font-bold text-violet-600 uppercase tracking-wider flex items-center justify-center gap-1.5">
+                {title}
+              </span>
+            </div>
+          )}
+
           <div className="flex items-center gap-2 sm:gap-3 justify-center max-w-lg mx-auto">
             {extraActions}
 
