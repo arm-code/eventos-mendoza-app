@@ -389,6 +389,7 @@ export default function NotesHistoryPage() {
               {selected && (
                 <DocumentActions
                   filename={`nota-${selected.folio}`}
+                  title='Puedes exportar la nota de venta'
                   exportNode={<PrintSaleNoteDocument note={selected} business={businessConfig} />}
                   extraActions={
                     <motion.div whileTap={{ scale: 0.94 }} className="flex-1 sm:flex-none">
