@@ -8,8 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, Tags, Loader2, Hash } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { useIsMobile } from "@/hooks/useIsMobile";
+import { AppBottomSheet } from "@/components/ui/app-bottom-sheet";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Input } from "@/components/ui/input";
@@ -30,7 +29,6 @@ export default function CategoriesTab() {
   const { showError, showSuccess } = useToast();
   const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
-  const isMobile = useIsMobile();
 
   const { data: categories = [], isLoading, error } = useQuery({
     queryKey: ['transactionCategories'],
@@ -142,51 +140,20 @@ export default function CategoriesTab() {
       </div>
 
       {/* Conditional Rendering for Mobile/Desktop */}
-      {isMobile ? (
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetContent
-            side="bottom"
-            className="max-h-[92dvh] h-auto rounded-t-3xl border-t border-violet-100 bg-white p-0 flex flex-col overflow-hidden"
-          >
-            <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50 flex-shrink-0">
-              <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
-              <SheetHeader className="text-left space-y-1">
-                <SheetTitle className="text-lg font-bold text-violet-950">Crear Categoría</SheetTitle>
-                <SheetDescription className="text-sm text-violet-500">
-                  Añade una nueva categoría
-                </SheetDescription>
-              </SheetHeader>
-            </div>
-            <div className="flex-1 overflow-y-auto px-4 py-4 pb-8">
-              <CategoryForm
-                onSubmit={handleSubmit(onSubmit)}
-                register={register}
-                errors={errors}
-                isPending={createMutation.isPending}
-                onCancel={() => setIsOpen(false)}
-              />
-            </div>
-          </SheetContent>
-        </Sheet>
-      ) : (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogContent className="max-w-[425px] rounded-2xl p-6">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-violet-950">Crear Categoría</DialogTitle>
-              <DialogDescription className="text-sm text-violet-500">
-                Añade una nueva categoría para clasificar transacciones.
-              </DialogDescription>
-            </DialogHeader>
-            <CategoryForm
-              onSubmit={handleSubmit(onSubmit)}
-              register={register}
-              errors={errors}
-              isPending={createMutation.isPending}
-              onCancel={() => setIsOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
+      <AppBottomSheet
+        open={isOpen}
+        onOpenChange={setIsOpen}
+        title="Crear Categoría"
+        description="Añade una nueva categoría"
+      >
+        <CategoryForm
+          onSubmit={handleSubmit(onSubmit)}
+          register={register}
+          errors={errors}
+          isPending={createMutation.isPending}
+          onCancel={() => setIsOpen(false)}
+        />
+      </AppBottomSheet>
     </div>
   );
 }

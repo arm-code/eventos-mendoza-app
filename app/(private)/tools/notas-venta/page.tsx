@@ -13,7 +13,6 @@ import { defaultBusinessConfig } from '@/lib/config'
 import type { Note } from '@/lib/types'
 import type { SalesNote, BusinessConfig } from '@/types/finance'
 import { PageHeader } from '@/components/admin/page-header'
-import { useIsMobile } from '@/hooks/useIsMobile'
 import { SaleNoteDocument, PrintSaleNoteDocument } from '@/components/documents/sale-note-document'
 import { NoteCardPreview } from '@/components/documents/note-card-preview'
 import { DocumentActions } from '@/components/documents/document-actions'
@@ -28,12 +27,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
+import { AppBottomSheet } from '@/components/ui/app-bottom-sheet'
 import {
   Table,
   TableBody,
@@ -47,7 +41,6 @@ import { cn } from '@/lib/utils'
 import { Loader } from '@/components/Loaders/Loader.component'
 
 export default function NotesHistoryPage() {
-  const isMobile = useIsMobile()
   const router = useRouter()
   const queryClient = useQueryClient()
   const [query, setQuery] = useState('')
@@ -373,79 +366,38 @@ export default function NotesHistoryPage() {
       </div>
 
       {/* Vista y exportación de nota */}
-      {isMobile ? (
-        <Sheet open={selected !== null} onOpenChange={(o) => !o && setSelected(null)}>
-          <SheetContent
-            side="bottom"
-            className="h-[92vh] max-h-[92dvh] rounded-t-3xl border-t border-violet-100 bg-white p-0 flex flex-col overflow-hidden"
-          >
-            <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50 flex-shrink-0">
-              <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
-              <SheetHeader className="text-left">
-                <SheetTitle className="text-lg font-bold text-violet-950">Nota {selected?.folio}</SheetTitle>
-              </SheetHeader>
-            </div>
-            <div className="px-4 py-4 overflow-y-auto flex-1 pb-4">
-              {selected && (
-                <DocumentActions
-                  filename={`nota-${selected.folio}`}
-                  title='Puedes exportar la nota de venta'
-                  exportNode={<PrintSaleNoteDocument note={selected} business={businessConfig} />}
-                  extraActions={
-                    <motion.div whileTap={{ scale: 0.94 }} className="flex-1 sm:flex-none">
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setSelected(null)
-                          router.push(`/tools/notas-venta/editar-nota-venta/${selected?.id}`)
-                        }}
-                        className="w-full sm:w-auto h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
-                      >
-                        <Pencil className="h-4 w-4 text-violet-500" />
-                        Editar
-                      </Button>
-                    </motion.div>
-                  }
+      <AppBottomSheet
+        open={selected !== null}
+        onOpenChange={(o) => !o && setSelected(null)}
+        title={selected ? `Nota ${selected.folio}` : ''}
+        mobileHeight="h-[92vh] max-h-[92dvh]"
+      >
+        {selected && (
+          <DocumentActions
+            filename={`nota-${selected.folio}`}
+            title='Puedes exportar la nota de venta'
+            exportNode={<PrintSaleNoteDocument note={selected} business={businessConfig} />}
+            extraActions={
+              <motion.div whileTap={{ scale: 0.94 }} className="flex-1 sm:flex-none">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelected(null)
+                    router.push(`/tools/notas-venta/editar-nota-venta/${selected?.id}`)
+                  }}
+                  className="w-full sm:w-auto h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
                 >
-                  {/* Vista mobile: tarjetas legibles sin desbordamiento horizontal */}
-                  <NoteCardPreview note={selected} business={businessConfig} />
-                </DocumentActions>
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
-      ) : (
-        <Dialog open={selected !== null} onOpenChange={(o) => !o && setSelected(null)}>
-          <DialogContent className="max-h-[90dvh] max-w-4xl overflow-y-auto rounded-2xl border-violet-100 bg-white p-4 sm:p-6">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-violet-950">Nota {selected?.folio}</DialogTitle>
-            </DialogHeader>
-            {selected && (
-              <DocumentActions
-                filename={`nota-${selected.folio}`}
-                exportNode={<PrintSaleNoteDocument note={selected} business={businessConfig} />}
-                extraActions={
-                  <motion.div whileTap={{ scale: 0.94 }}>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSelected(null)
-                        router.push(`/tools/notas-venta/editar-nota-venta/${selected?.id}`)
-                      }}
-                      className="h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
-                    >
-                      <Pencil className="h-4 w-4 text-violet-500" />
-                      Editar
-                    </Button>
-                  </motion.div>
-                }
-              >
-                <SaleNoteDocument note={selected} business={businessConfig} />
-              </DocumentActions>
-            )}
-          </DialogContent>
-        </Dialog>
-      )}
+                  <Pencil className="h-4 w-4 text-violet-500" />
+                  Editar
+                </Button>
+              </motion.div>
+            }
+          >
+            {/* Vista mobile: tarjetas legibles sin desbordamiento horizontal */}
+            <NoteCardPreview note={selected} business={businessConfig} />
+          </DocumentActions>
+        )}
+      </AppBottomSheet>
 
       {/* Modal de confirmación para eliminar nota */}
       <Dialog open={noteToDelete !== null} onOpenChange={(o) => !o && setNoteToDelete(null)}>

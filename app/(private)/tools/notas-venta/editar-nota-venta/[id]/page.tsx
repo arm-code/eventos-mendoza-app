@@ -14,7 +14,9 @@ import type { CreateSalesNoteDto, SalesNoteStatus, BusinessConfig } from '@/type
 import { PageHeader } from '@/components/admin/page-header'
 import { SaleNoteDocument, PrintSaleNoteDocument } from '@/components/documents/sale-note-document'
 import { NoteCardPreview } from '@/components/documents/note-card-preview'
-import { useIsMobile } from '@/hooks/useIsMobile'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Loader } from '@/components/Loaders/Loader.component'
+import { AppBottomSheet } from '@/components/ui/app-bottom-sheet'
 import { DocumentActions } from '@/components/documents/document-actions'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,20 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Loader } from '@/components/Loaders/Loader.component'
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
 
 const IVA_RATE = 0.16
 
@@ -55,7 +43,6 @@ export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: 
   const resolvedParams = use(params)
   const router = useRouter()
   const queryClient = useQueryClient()
-  const isMobile = useIsMobile()
 
   /* ── State del formulario ── */
   const [customerName, setCustomerName] = useState('')
@@ -480,81 +467,37 @@ export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: 
         </div>
       </div>
 
-      {/* ── Sheet mobile: nota guardada ── */}
-      {isMobile && (
-        <Sheet open={savedNote !== null} onOpenChange={(o) => !o && setSavedNote(null)}>
-          <SheetContent
-            side="bottom"
-            className="h-[92vh] max-h-[92dvh] rounded-t-3xl border-t border-violet-100 bg-white p-0 flex flex-col overflow-hidden"
-          >
-            <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm px-4 pt-3 pb-2 border-b border-violet-100/50 flex-shrink-0">
-              <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
-              <SheetHeader className="text-left">
-                <SheetTitle className="text-lg font-bold text-violet-950">Nota {savedNote?.folio}</SheetTitle>
-              </SheetHeader>
-            </div>
-            <div className="px-4 py-4 overflow-y-auto flex-1 pb-4">
-              {savedNote && (
-                <DocumentActions
-                  filename={`nota-${savedNote.folio}`}
-                  exportNode={<PrintSaleNoteDocument note={savedNote} business={businessConfig} />}
-                  extraActions={
-                    <motion.div whileTap={{ scale: 0.94 }} className="flex-1 sm:flex-none">
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setSavedNote(null)
-                          router.push('/tools/notas-venta')
-                        }}
-                        className="w-full sm:w-auto h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
-                      >
-                        <ArrowLeft className="h-4 w-4 text-violet-500" />
-                        Volver al listado
-                      </Button>
-                    </motion.div>
-                  }
+      {/* ── AppBottomSheet: nota guardada ── */}
+      <AppBottomSheet
+        open={savedNote !== null}
+        onOpenChange={(o) => !o && setSavedNote(null)}
+        title={savedNote ? `Nota ${savedNote.folio}` : ''}
+        mobileHeight="h-[92vh] max-h-[92dvh]"
+      >
+        {savedNote && (
+          <DocumentActions
+            filename={`nota-${savedNote.folio}`}
+            exportNode={<PrintSaleNoteDocument note={savedNote} business={businessConfig} />}
+            extraActions={
+              <motion.div whileTap={{ scale: 0.94 }} className="flex-1 sm:flex-none">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSavedNote(null)
+                    router.push('/tools/notas-venta')
+                  }}
+                  className="w-full sm:w-auto h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
                 >
-                  <NoteCardPreview note={savedNote} business={businessConfig} />
-                </DocumentActions>
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
-      )}
-
-      {/* ── Dialog desktop: nota guardada ── */}
-      {!isMobile && (
-        <Dialog open={savedNote !== null} onOpenChange={(o) => !o && setSavedNote(null)}>
-          <DialogContent className="max-h-[90dvh] max-w-4xl overflow-y-auto rounded-2xl border-violet-100 bg-white p-4 sm:p-6">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-violet-950">Nota {savedNote?.folio}</DialogTitle>
-            </DialogHeader>
-            {savedNote && (
-              <DocumentActions
-                filename={`nota-${savedNote.folio}`}
-                exportNode={<PrintSaleNoteDocument note={savedNote} business={businessConfig} />}
-                extraActions={
-                  <motion.div whileTap={{ scale: 0.94 }}>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setSavedNote(null)
-                        router.push('/tools/notas-venta')
-                      }}
-                      className="h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
-                    >
-                      <ArrowLeft className="h-4 w-4 text-violet-500" />
-                      Volver al listado
-                    </Button>
-                  </motion.div>
-                }
-              >
-                <SaleNoteDocument note={savedNote} business={businessConfig} />
-              </DocumentActions>
-            )}
-          </DialogContent>
-        </Dialog>
-      )}
+                  <ArrowLeft className="h-4 w-4 text-violet-500" />
+                  Volver al listado
+                </Button>
+              </motion.div>
+            }
+          >
+            <NoteCardPreview note={savedNote} business={businessConfig} />
+          </DocumentActions>
+        )}
+      </AppBottomSheet>
     </div>
   )
 }

@@ -13,13 +13,11 @@ import { financeApi } from '@/lib/api/finance'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { defaultBusinessConfig } from '@/lib/config'
 import type { EventStatus, BusinessEvent, BusinessConfig } from '@/types/finance'
-import { useIsMobile } from '@/hooks/useIsMobile'
 
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent } from '@/components/ui/sheet'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { AppBottomSheet } from '@/components/ui/app-bottom-sheet'
 import { DocumentActions } from '@/components/documents/document-actions'
-import { EventContractDocument, PrintEventContractDocument, EventContractData } from '@/components/documents/event-contract-document'
+import { PrintEventContractDocument, EventContractData } from '@/components/documents/event-contract-document'
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 
@@ -88,7 +86,6 @@ interface EventDetailSheetProps {
    ─────────────────────────────────────────────────────────────────────────── */
 export function EventDetailSheet({ event, open, onOpenChange, businessConfig, onUpdate }: EventDetailSheetProps) {
     const queryClient = useQueryClient()
-    const isMobile = useIsMobile()
     const router = useRouter()
     const [showStatusPicker, setShowStatusPicker] = useState(false)
 
@@ -395,58 +392,16 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig, on
         </motion.div>
     )
 
-    /* ── Render: Sheet (móvil) vs Dialog (desktop) ── */
-    if (isMobile) {
-        return (
-            <>
-                <Sheet open={open} onOpenChange={onOpenChange}>
-                    <SheetContent
-                        side="bottom"
-                        className="max-h-[92dvh] h-auto rounded-t-3xl border-t border-violet-100 bg-white p-0 flex flex-col overflow-hidden"
-                    >
-                        {/* Handle nativo iOS-style */}
-                        <div className="sticky top-0 z-10 bg-white px-4 pt-3 pb-2 flex-shrink-0">
-                            <div className="w-10 h-1 rounded-full bg-violet-200 mx-auto mb-3" />
-                            <div className="flex items-center justify-between">
-                                <h2 className="text-lg font-bold text-violet-950">Detalles del Evento</h2>
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => onOpenChange(false)}
-                                    className="h-9 w-9 rounded-full hover:bg-violet-50 active:bg-violet-100 transition-colors text-violet-500"
-                                    aria-label="Cerrar"
-                                >
-                                    <X className="w-5 h-5" />
-                                </Button>
-                            </div>
-                        </div>
-                        <div className="flex-1 overflow-y-auto px-4 pb-8 overflow-x-hidden">
-                            <AnimatePresence mode="wait">
-                                {showStatusPicker ? StatusPicker : Content}
-                            </AnimatePresence>
-                        </div>
-                    </SheetContent>
-                </Sheet>
-            </>
-        )
-    }
-
+    /* ── Render ── */
     return (
-        <>
-            <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-h-[90dvh] max-w-2xl overflow-y-auto rounded-2xl border-violet-100 bg-white p-5 sm:p-6">
-                    <DialogHeader>
-                        <DialogTitle className="text-xl font-bold text-violet-950">
-                            Detalles del Evento
-                        </DialogTitle>
-                    </DialogHeader>
-                    <div className="overflow-x-hidden">
-                        <AnimatePresence mode="wait">
-                            {showStatusPicker ? StatusPicker : Content}
-                        </AnimatePresence>
-                    </div>
-                </DialogContent>
-            </Dialog>
-        </>
+        <AppBottomSheet
+            open={open}
+            onOpenChange={onOpenChange}
+            title="Detalles del Evento"
+        >
+            <AnimatePresence mode="wait">
+                {showStatusPicker ? StatusPicker : Content}
+            </AnimatePresence>
+        </AppBottomSheet>
     )
 }
