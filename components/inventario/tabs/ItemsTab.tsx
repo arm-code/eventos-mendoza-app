@@ -10,18 +10,24 @@ import { StatusBadge } from '@/components/inventario/StatusBadge';
 import { ItemTypeIcon } from '@/components/inventario/ItemTypeIcon';
 import { StockIndicator } from '@/components/inventario/StockIndicator';
 import CreateItemModal from '@/components/inventario/modals/CreateItemModal';
+import EditItemModal from '@/components/inventario/modals/EditItemModal';
+import ItemDetailSheet from '@/components/inventario/modals/ItemDetailSheet';
 import { inventarioApi } from '@/lib/inventario/api';
-import type { InventoryItem, InventoryCategory, PaginatedInventoryResponse } from '@/lib/inventario/types';
+import type { InventoryItem, InventoryCategory, PaginatedInventoryResponse, InventoryLocation } from '@/lib/inventario/types';
 
 export default function ItemsTab() {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [categories, setCategories] = useState<InventoryCategory[]>([]);
+  const [locations, setLocations] = useState<InventoryLocation[]>([]);
   const [meta, setMeta] = useState<PaginatedInventoryResponse<InventoryItem>['meta'] | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   // Debounce del buscador (300ms)
@@ -34,13 +40,15 @@ export default function ItemsTab() {
     setIsLoading(true);
     setError(null);
     try {
-      const [itemsRes, catsRes] = await Promise.all([
+      const [itemsRes, catsRes, locsRes] = await Promise.all([
         inventarioApi.getItems({ search: debouncedSearch || undefined, limit: 50 }),
         inventarioApi.getCategories(),
+        inventarioApi.getLocations(),
       ]);
       setItems(itemsRes.items);
       setMeta(itemsRes.meta);
       setCategories(catsRes);
+      setLocations(locsRes);
     } catch (err: any) {
       setError(err.message || 'Error al cargar el inventario.');
     } finally {
@@ -55,6 +63,21 @@ export default function ItemsTab() {
   const handleItemCreated = () => {
     setIsCreateModalOpen(false);
     fetchData();
+  };
+
+  const handleItemUpdated = () => {
+    setIsEditModalOpen(false);
+    fetchData();
+  };
+
+  const openDetails = (item: InventoryItem) => {
+    setSelectedItem(item);
+    setIsDetailSheetOpen(true);
+  };
+
+  const openEdit = (item: InventoryItem) => {
+    setSelectedItem(item);
+    setIsEditModalOpen(true);
   };
 
   const lowStockItems = items.filter(i => i.stock.total > 0 && i.stock.available === 0).length;
@@ -204,8 +227,12 @@ export default function ItemsTab() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-40 rounded-xl border-violet-100 shadow-xl">
-                        <DropdownMenuItem className="cursor-pointer rounded-lg focus:bg-violet-50">Ver detalle</DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer rounded-lg focus:bg-violet-50">Editar</DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer rounded-lg focus:bg-violet-50" onClick={() => openDetails(item)}>
+                          Ver detalle
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="cursor-pointer rounded-lg focus:bg-violet-50" onClick={() => openEdit(item)}>
+                          Editar
+                        </DropdownMenuItem>
                         <DropdownMenuItem className="cursor-pointer rounded-lg focus:bg-violet-50">Movimientos</DropdownMenuItem>
                         <DropdownMenuItem className="cursor-pointer rounded-lg text-red-600 focus:bg-red-50 focus:text-red-700">
                           Eliminar
@@ -224,7 +251,11 @@ export default function ItemsTab() {
       {!isLoading && !error && items.length > 0 && viewMode === 'grid' && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {items.map(item => (
-            <Card key={item.id} className="overflow-hidden bg-white border-violet-100 shadow-sm hover:shadow-md transition-shadow">
+            <Card 
+              key={item.id} 
+              className="overflow-hidden bg-white border-violet-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => openDetails(item)}
+            >
               <div className="h-32 bg-violet-50 flex items-center justify-center border-b border-violet-100 relative">
                 <Package className="w-10 h-10 text-violet-200" />
                 <div className="absolute top-2 right-2">
@@ -257,6 +288,26 @@ export default function ItemsTab() {
         onClose={() => setIsCreateModalOpen(false)}
         onCreated={handleItemCreated}
         categories={categories}
+        locations={locations}
+      />
+
+      <EditItemModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onUpdated={handleItemUpdated}
+        item={selectedItem}
+        categories={categories}
+        locations={locations}
+      />
+
+      <ItemDetailSheet
+        isOpen={isDetailSheetOpen}
+        onClose={() => setIsDetailSheetOpen(false)}
+        item={selectedItem}
+        onEditClick={() => {
+          setIsDetailSheetOpen(false);
+          setIsEditModalOpen(true);
+        }}
       />
     </div>
   );

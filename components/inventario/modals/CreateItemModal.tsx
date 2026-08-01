@@ -15,6 +15,7 @@ interface CreateItemModalProps {
   onClose: () => void;
   onCreated: () => void;
   categories: InventoryCategory[];
+  locations: import('@/lib/inventario/types').InventoryLocation[];
 }
 
 const ITEM_TYPES: { id: InventoryItemType; icon: React.ElementType; label: string }[] = [
@@ -25,11 +26,13 @@ const ITEM_TYPES: { id: InventoryItemType; icon: React.ElementType; label: strin
   { id: 'service', icon: Clock, label: 'Servicio' },
 ];
 
-export default function CreateItemModal({ isOpen, onClose, onCreated, categories }: CreateItemModalProps) {
+export default function CreateItemModal({ isOpen, onClose, onCreated, categories, locations }: CreateItemModalProps) {
   const [itemType, setItemType] = useState<InventoryItemType>('product');
   const [name, setName] = useState('');
   const [sku, setSku] = useState('');
   const [categoryId, setCategoryId] = useState('');
+  const [locationId, setLocationId] = useState('');
+  const [initialStock, setInitialStock] = useState('');
   const [rentPrice, setRentPrice] = useState('');
   const [salePrice, setSalePrice] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -39,6 +42,8 @@ export default function CreateItemModal({ isOpen, onClose, onCreated, categories
     setName('');
     setSku('');
     setCategoryId('');
+    setLocationId('');
+    setInitialStock('');
     setRentPrice('');
     setSalePrice('');
     setItemType('product');
@@ -64,6 +69,8 @@ export default function CreateItemModal({ isOpen, onClose, onCreated, categories
       sku: sku.trim(),
       type: itemType,
       categoryId,
+      locationId: locationId || undefined,
+      initialStock: initialStock ? parseFloat(initialStock) : undefined,
       rentPrice: rentPrice ? parseFloat(rentPrice) : undefined,
       salePrice: salePrice ? parseFloat(salePrice) : undefined,
     };
@@ -177,10 +184,42 @@ export default function CreateItemModal({ isOpen, onClose, onCreated, categories
               />
             </div>
           </div>
-          <p className="text-xs text-violet-400">
-            * El stock inicial es 0. Para agregar existencias, registra un movimiento de entrada después de crear el ítem.
-          </p>
         </div>
+
+        {/* Stock y Ubicación (Condicional) */}
+        {(itemType === 'product' || itemType === 'consumable' || itemType === 'serialized') && (
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold text-violet-950 border-b border-violet-100 pb-1">Inventario Inicial</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-violet-900">Stock Inicial</Label>
+                <Input
+                  type="number"
+                  placeholder="0"
+                  value={initialStock}
+                  onChange={e => setInitialStock(e.target.value)}
+                  className="border-violet-200"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-violet-900">Ubicación de origen</Label>
+                <Select value={locationId} onValueChange={setLocationId}>
+                  <SelectTrigger className="border-violet-200">
+                    <SelectValue placeholder="Selecciona" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {locations.map(loc => (
+                      <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <p className="text-xs text-violet-400">
+              * El sistema creará un movimiento de entrada por esta cantidad automáticamente.
+            </p>
+          </div>
+        )}
 
         {/* Error */}
         {error && (

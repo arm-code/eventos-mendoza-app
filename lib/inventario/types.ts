@@ -100,6 +100,7 @@ export interface CreateInventoryItemDto {
   type: InventoryItemType;
   categoryId: string;
   status?: InventoryItemStatus;
+  initialStock?: number;
   locationId?: string;
   rentPrice?: number;
   salePrice?: number;
