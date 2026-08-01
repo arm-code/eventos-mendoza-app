@@ -1,6 +1,7 @@
 'use client'
 
-import { Armchair, LogOut, User, Menu } from 'lucide-react'
+import Image from 'next/image'
+import { LogOut, User, Menu } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import {
@@ -25,9 +26,9 @@ export function AdminHeader() {
             <div className="flex items-center gap-2.5">
                 <motion.div
                     whileTap={{ scale: 0.92 }}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600 text-white shadow-lg shadow-violet-600/20"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-violet-200 shadow-sm overflow-hidden"
                 >
-                    <Armchair className="h-[18px] w-[18px]" />
+                    <Image src="/images/eventos-mendoza.png" alt="Logo" width={28} height={28} className="object-contain" />
                 </motion.div>
                 <span className="font-bold text-violet-950 text-sm tracking-tight">Eventos Mendoza</span>
             </div>
@@ -49,8 +50,8 @@ export function AdminHeader() {
                         <div className="flex flex-col h-full">
                             <SheetHeader className="px-5 py-4 border-b border-violet-100">
                                 <SheetTitle className="flex items-center gap-3 text-left">
-                                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-600 text-white shadow-md shadow-violet-200">
-                                        <Armchair className="h-[18px] w-[18px]" />
+                                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-violet-200 shadow-sm overflow-hidden flex-shrink-0">
+                                        <Image src="/images/eventos-mendoza.png" alt="Logo" width={28} height={28} className="object-contain" />
                                     </span>
                                     <div className="leading-tight">
                                         <p className="text-sm font-bold text-violet-950">Eventos Mendoza</p>
