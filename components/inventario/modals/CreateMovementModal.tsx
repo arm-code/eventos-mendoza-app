@@ -167,6 +167,11 @@ export default function CreateMovementModal({ isOpen, onClose, onCreated, items,
               onChange={e => setQuantity(e.target.value)}
               className="border-violet-200"
             />
+            {type === 'adjustment' && (
+              <p className="text-[10px] text-amber-600 font-medium leading-tight">
+                * Importante: Al hacer un ajuste, esta cantidad reemplazará y será el nuevo stock total exacto del artículo.
+              </p>
+            )}
           </div>
         </div>
 
