@@ -1,14 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppBottomSheet } from '@/components/ui/app-bottom-sheet';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Box, Hash, Layers, Zap, Clock, Loader2 } from 'lucide-react';
 import { inventarioApi } from '@/lib/inventario/api';
-import type { InventoryCategory, CreateInventoryItemDto, InventoryItemType } from '@/lib/inventario/types';
+import type { InventoryCategory, CreateInventoryItemDto, InventoryItemType, CategoryAttribute } from '@/lib/inventario/types';
 
 interface CreateItemModalProps {
   isOpen: boolean;
@@ -35,8 +36,17 @@ export default function CreateItemModal({ isOpen, onClose, onCreated, categories
   const [initialStock, setInitialStock] = useState('');
   const [rentPrice, setRentPrice] = useState('');
   const [salePrice, setSalePrice] = useState('');
+  const [attributesValues, setAttributesValues] = useState<Record<string, any>>({});
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const selectedCategory = categories.find(c => c.id === categoryId);
+
+  // Cuando cambia la categoría, limpiamos los atributos
+  useEffect(() => {
+    setAttributesValues({});
+  }, [categoryId]);
 
   const resetForm = () => {
     setName('');
@@ -47,6 +57,7 @@ export default function CreateItemModal({ isOpen, onClose, onCreated, categories
     setRentPrice('');
     setSalePrice('');
     setItemType('product');
+    setAttributesValues({});
     setError(null);
   };
 
@@ -55,10 +66,27 @@ export default function CreateItemModal({ isOpen, onClose, onCreated, categories
     onClose();
   };
 
+  const handleAttributeChange = (attrName: string, value: any) => {
+    setAttributesValues(prev => ({
+      ...prev,
+      [attrName]: value
+    }));
+  };
+
   const handleSubmit = async () => {
     if (!name.trim() || !sku.trim() || !categoryId) {
       setError('Nombre, SKU y categoría son obligatorios.');
       return;
+    }
+
+    // Validar atributos requeridos
+    if (selectedCategory?.attributes) {
+      for (const attr of selectedCategory.attributes) {
+        if (attr.required && (attributesValues[attr.name] === undefined || attributesValues[attr.name] === '')) {
+          setError(`El atributo '${attr.name}' es obligatorio.`);
+          return;
+        }
+      }
     }
 
     setIsSubmitting(true);
@@ -73,6 +101,7 @@ export default function CreateItemModal({ isOpen, onClose, onCreated, categories
       initialStock: initialStock ? parseFloat(initialStock) : undefined,
       rentPrice: rentPrice ? parseFloat(rentPrice) : undefined,
       salePrice: salePrice ? parseFloat(salePrice) : undefined,
+      attributes: Object.keys(attributesValues).length > 0 ? attributesValues : undefined,
     };
 
     try {
@@ -83,6 +112,49 @@ export default function CreateItemModal({ isOpen, onClose, onCreated, categories
       setError(err.message || 'Error al crear el ítem.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const renderAttributeInput = (attr: CategoryAttribute) => {
+    const val = attributesValues[attr.name] ?? '';
+    
+    switch (attr.type) {
+      case 'boolean':
+        return (
+          <div className="flex items-center space-x-2 mt-2" key={attr.name}>
+            <Checkbox 
+              id={`attr-${attr.name}`} 
+              checked={!!attributesValues[attr.name]} 
+              onCheckedChange={(checked) => handleAttributeChange(attr.name, !!checked)} 
+              className="border-violet-300 data-[state=checked]:bg-violet-600"
+            />
+            <Label htmlFor={`attr-${attr.name}`} className="text-violet-900 cursor-pointer">
+              {attr.name} {attr.required && <span className="text-red-500">*</span>}
+            </Label>
+          </div>
+        );
+      case 'number':
+        return (
+          <div className="space-y-2" key={attr.name}>
+            <Label className="text-violet-900">{attr.name} {attr.required && <span className="text-red-500">*</span>}</Label>
+            <Input type="number" value={val} onChange={e => handleAttributeChange(attr.name, e.target.value !== '' ? Number(e.target.value) : '')} className="border-violet-200" />
+          </div>
+        );
+      case 'date':
+        return (
+          <div className="space-y-2" key={attr.name}>
+            <Label className="text-violet-900">{attr.name} {attr.required && <span className="text-red-500">*</span>}</Label>
+            <Input type="date" value={val} onChange={e => handleAttributeChange(attr.name, e.target.value)} className="border-violet-200" />
+          </div>
+        );
+      case 'string':
+      default:
+        return (
+          <div className="space-y-2" key={attr.name}>
+            <Label className="text-violet-900">{attr.name} {attr.required && <span className="text-red-500">*</span>}</Label>
+            <Input value={val} onChange={e => handleAttributeChange(attr.name, e.target.value)} className="border-violet-200" />
+          </div>
+        );
     }
   };
 
@@ -158,6 +230,16 @@ export default function CreateItemModal({ isOpen, onClose, onCreated, categories
             </Select>
           </div>
         </div>
+        
+        {/* Atributos Dinámicos */}
+        {selectedCategory && selectedCategory.attributes && selectedCategory.attributes.length > 0 && (
+          <div className="space-y-4">
+            <h4 className="text-sm font-semibold text-violet-950 border-b border-violet-100 pb-1">Atributos de {selectedCategory.name}</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-violet-50/50 p-4 rounded-xl border border-violet-100">
+              {selectedCategory.attributes.map(attr => renderAttributeInput(attr))}
+            </div>
+          </div>
+        )}
 
         {/* Precios */}
         <div className="space-y-4">

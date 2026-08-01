@@ -109,6 +109,7 @@ export interface CreateInventoryItemDto {
 
 export interface UpdateInventoryItemDto {
   name?: string;
+  sku?: string;
   type?: InventoryItemType;
   categoryId?: string;
   status?: InventoryItemStatus;
