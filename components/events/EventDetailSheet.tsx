@@ -16,6 +16,7 @@ import type { EventStatus, BusinessEvent, BusinessConfig } from '@/types/finance
 
 import { Button } from '@/components/ui/button'
 import { AppBottomSheet } from '@/components/ui/app-bottom-sheet'
+import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { DocumentActions } from '@/components/documents/document-actions'
 import { PrintEventContractDocument, EventContractData } from '@/components/documents/event-contract-document'
 import { cn } from '@/lib/utils'
@@ -87,7 +88,6 @@ interface EventDetailSheetProps {
 export function EventDetailSheet({ event, open, onOpenChange, businessConfig, onUpdate }: EventDetailSheetProps) {
     const queryClient = useQueryClient()
     const router = useRouter()
-    const [showStatusPicker, setShowStatusPicker] = useState(false)
 
     const config = businessConfig || defaultBusinessConfig
 
@@ -97,7 +97,6 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig, on
         onSuccess: (updatedEvent) => {
             queryClient.invalidateQueries({ queryKey: ['businessEvents'] })
             toast.success('Estado actualizado')
-            setTimeout(() => setShowStatusPicker(false), 350)
             if (onUpdate) onUpdate(updatedEvent)
         },
         onError: (err: any) => {
@@ -110,150 +109,7 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig, on
     const meta = STATUS_META[event.status || 'pending']
     const StatusIcon = meta.icon
 
-    /* ── Selector de Estado (Vista interna) ── */
-    const StatusPicker = (
-        <motion.div
-            key="status-picker"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
-            className="flex flex-col h-full"
-        >
-            <div className="space-y-1 pb-4">
-                <div className="flex items-center justify-between py-2">
-                    <h3 className="text-base font-bold text-violet-950">Cambiar Estado</h3>
-                    <button
-                        type="button"
-                        onClick={() => setShowStatusPicker(false)}
-                        className="p-2 rounded-full hover:bg-violet-50 active:bg-violet-100 transition-colors"
-                    >
-                        <X className="w-4 h-4 text-violet-500" />
-                    </button>
-                </div>
 
-                <p className="text-xs text-violet-500 mb-3">
-                    Selecciona el estado que corresponde al evento.
-                </p>
-            </div>
-
-            {/* Opciones de estado */}
-            <div className="space-y-2">
-                {STATUS_FLOW.map((status) => {
-                    const sMeta = STATUS_META[status]
-                    const SIcon = sMeta.icon
-                    const isCurrent = event.status === status
-                    return (
-                        <button
-                            key={status}
-                            type="button"
-                            onClick={(e) => {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                if (!isCurrent) {
-                                    statusMutation.mutate({ id: event.id, status })
-                                }
-                            }}
-                            disabled={statusMutation.isPending}
-                            className={cn(
-                                'w-full flex items-center gap-3 p-3.5 rounded-xl border-2 transition-all duration-150',
-                                'active:scale-[0.98] touch-manipulation',
-                                isCurrent
-                                    ? 'border-violet-600 bg-violet-50 shadow-sm'
-                                    : 'border-transparent bg-violet-50/40 hover:bg-violet-50 hover:border-violet-200'
-                            )}
-                        >
-                            <div className={cn(
-                                'flex h-10 w-10 items-center justify-center rounded-full shrink-0',
-                                sMeta.bg
-                            )}>
-                                <SIcon className={cn('w-5 h-5', sMeta.text)} />
-                            </div>
-                            <div className="text-left flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                    <p className={cn('text-sm font-bold', isCurrent ? 'text-violet-900' : 'text-violet-950')}>
-                                        {sMeta.label}
-                                    </p>
-                                    {isCurrent && (
-                                        <span className="text-[10px] font-bold bg-violet-600 text-white px-2 py-0.5 rounded-full">
-                                            Actual
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="text-xs text-violet-500">
-                                    {sMeta.description}
-                                </p>
-                            </div>
-                            {statusMutation.isPending && !isCurrent && (
-                                <Loader2 className="w-4 h-4 animate-spin text-violet-400 shrink-0" />
-                            )}
-                            {!isCurrent && !statusMutation.isPending && (
-                                <ChevronRight className="w-4 h-4 text-violet-300 shrink-0" />
-                            )}
-                        </button>
-                    )
-                })}
-
-                {/* Separador */}
-                <div className="h-px bg-violet-100 my-2" />
-
-                {/* Cancelar / Reactivar */}
-                {event.status !== 'cancelled' ? (
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            statusMutation.mutate({ id: event.id, status: 'cancelled' })
-                        }}
-                        disabled={statusMutation.isPending}
-                        className={cn(
-                            'w-full flex items-center gap-3 p-3.5 rounded-xl border-2 border-transparent',
-                            'bg-red-50 hover:bg-red-100 hover:border-red-200',
-                            'active:scale-[0.98] touch-manipulation transition-all duration-150'
-                        )}
-                    >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 shrink-0">
-                            <X className="w-5 h-5 text-red-600" />
-                        </div>
-                        <div className="text-left flex-1">
-                            <p className="text-sm font-bold text-red-800">Cancelar Evento</p>
-                            <p className="text-xs text-red-500">Marcar como cancelado permanentemente</p>
-                        </div>
-                        {statusMutation.isPending && (
-                            <Loader2 className="w-4 h-4 animate-spin text-red-400 shrink-0" />
-                        )}
-                    </button>
-                ) : (
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            statusMutation.mutate({ id: event.id, status: 'pending' })
-                        }}
-                        disabled={statusMutation.isPending}
-                        className={cn(
-                            'w-full flex items-center gap-3 p-3.5 rounded-xl border-2 border-transparent',
-                            'bg-amber-50 hover:bg-amber-100 hover:border-amber-200',
-                            'active:scale-[0.98] touch-manipulation transition-all duration-150'
-                        )}
-                    >
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 shrink-0">
-                            <Clock className="w-5 h-5 text-amber-600" />
-                        </div>
-                        <div className="text-left flex-1">
-                            <p className="text-sm font-bold text-amber-800">Reactivar Evento</p>
-                            <p className="text-xs text-amber-500">Volver a estado Pendiente</p>
-                        </div>
-                        {statusMutation.isPending && (
-                            <Loader2 className="w-4 h-4 animate-spin text-amber-400 shrink-0" />
-                        )}
-                    </button>
-                )}
-            </div>
-        </motion.div>
-    )
 
     /* ── Contenido principal del Sheet/Dialog ── */
     const Content = (
@@ -378,31 +234,63 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig, on
                 </button>
             </div>
 
-            {/* ── Cambio de Estado (botón compacto) ── */}
-            <button
-                type="button"
-                onClick={(e) => {
-                    e.preventDefault()
-                    setShowStatusPicker(true)
+            {/* ── Cambio de Estado (Select nativo) ── */}
+            <Select
+                value={event.status || 'pending'}
+                onValueChange={(val: EventStatus) => {
+                    if (val !== event.status) {
+                        statusMutation.mutate({ id: event.id, status: val })
+                    }
                 }}
-                className="w-full flex items-center justify-between p-4 rounded-xl border border-violet-100 bg-white hover:bg-violet-50/50 active:bg-violet-100/50 active:scale-[0.98] transition-all touch-manipulation"
+                disabled={statusMutation.isPending}
             >
-                <div className="flex items-center gap-2.5">
-                    <div className={cn('flex h-9 w-9 items-center justify-center rounded-full', meta.bg)}>
-                        <StatusIcon className={cn('w-4 h-4', meta.text)} />
+                <SelectTrigger className="w-full h-auto p-4 rounded-xl border border-violet-100 bg-white hover:bg-violet-50/50 outline-none focus:ring-2 focus:ring-violet-500">
+                    <div className="flex items-center gap-2.5">
+                        <div className={cn('flex h-9 w-9 items-center justify-center rounded-full', meta.bg)}>
+                            {statusMutation.isPending ? (
+                                <Loader2 className={cn('w-4 h-4 animate-spin', meta.text)} />
+                            ) : (
+                                <StatusIcon className={cn('w-4 h-4', meta.text)} />
+                            )}
+                        </div>
+                        <div className="text-left">
+                            <p className="text-sm font-semibold text-violet-900">Estado: <span className="font-bold">{meta.label}</span></p>
+                            <p className="text-xs text-violet-500">Haz clic para cambiar el estado</p>
+                        </div>
                     </div>
-                    <div className="text-left">
-                        <p className="text-sm font-semibold text-violet-900">Estado</p>
-                        <p className="text-xs text-violet-500">{meta.description}</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className={cn('text-xs font-bold px-2.5 py-1 rounded-md border', meta.bg, meta.text, meta.border)}>
-                        {meta.label}
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-violet-300" />
-                </div>
-            </button>
+                </SelectTrigger>
+                <SelectContent>
+                    {STATUS_FLOW.map(status => {
+                        const sMeta = STATUS_META[status]
+                        const SIcon = sMeta.icon
+                        return (
+                            <SelectItem key={status} value={status}>
+                                <div className="flex items-center gap-2 py-1">
+                                    <SIcon className={cn('w-4 h-4', sMeta.text)} />
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">{sMeta.label}</span>
+                                    </div>
+                                </div>
+                            </SelectItem>
+                        )
+                    })}
+                    <div className="h-px bg-violet-100 my-1 mx-2" />
+                    <SelectItem value={event.status === 'cancelled' ? 'pending' : 'cancelled'}>
+                        <div className="flex items-center gap-2 py-1">
+                            {event.status === 'cancelled' ? (
+                                <Clock className="w-4 h-4 text-amber-600" />
+                            ) : (
+                                <X className="w-4 h-4 text-red-600" />
+                            )}
+                            <div className="flex flex-col">
+                                <span className={event.status === 'cancelled' ? "font-medium text-amber-700" : "font-medium text-red-700"}>
+                                    {event.status === 'cancelled' ? 'Reactivar Evento' : 'Cancelar Evento'}
+                                </span>
+                            </div>
+                        </div>
+                    </SelectItem>
+                </SelectContent>
+            </Select>
 
             {/* ── Contrato Exportable ── */}
             <div className="pt-2 pb-24 sm:pb-0">
@@ -428,7 +316,7 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig, on
             title="Detalles del Evento"
         >
             <AnimatePresence mode="wait">
-                {showStatusPicker ? StatusPicker : Content}
+                {Content}
             </AnimatePresence>
         </AppBottomSheet>
     )
