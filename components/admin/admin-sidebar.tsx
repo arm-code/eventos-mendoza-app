@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Armchair, LogOut } from 'lucide-react'
+import { LogOut } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/lib/auth'
 import { isActive, primaryNav } from '@/lib/nav'
@@ -45,8 +46,8 @@ export function AdminSidebar() {
     return (
         <aside className="hidden w-64 shrink-0 flex-col border-r border-violet-100 bg-white md:flex">
             <div className="flex items-center gap-3 px-5 py-5 border-b border-violet-100">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-600 text-white shadow-md shadow-violet-200">
-                    <Armchair className="h-5 w-5" />
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-violet-200 shadow-sm overflow-hidden">
+                    <Image src="/images/eventos-mendoza.png" alt="Logo" width={32} height={32} className="object-contain" />
                 </span>
                 <div className="leading-tight">
                     <p className="text-sm font-bold text-violet-950">Eventos Mendoza</p>
