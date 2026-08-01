@@ -3,14 +3,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Edit2, Trash2, Settings2, Loader2, Tags } from 'lucide-react';
 import { inventarioApi } from '@/lib/inventario/api';
 import type { InventoryCategory } from '@/lib/inventario/types';
+import CreateCategoryModal from '@/components/inventario/modals/CreateCategoryModal';
+import { Edit2, Loader2, Plus, Settings2, Tags, Trash2 } from 'lucide-react';
 
 export default function CategoriesTab() {
   const [categories, setCategories] = useState<InventoryCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const fetchCategories = useCallback(async () => {
     setIsLoading(true);
@@ -46,7 +48,10 @@ export default function CategoriesTab() {
     <div className="space-y-4">
       <div className="flex justify-between items-center bg-white p-3 rounded-2xl border border-violet-100 shadow-sm">
         <h3 className="font-semibold text-violet-950 px-2">Categorías de Inventario</h3>
-        <Button className="h-9 rounded-xl bg-violet-600 hover:bg-violet-700 text-white">
+        <Button
+          className="h-9 rounded-xl bg-violet-600 hover:bg-violet-700 text-white"
+          onClick={() => setIsCreateModalOpen(true)}
+        >
           <Plus className="w-4 h-4 sm:mr-2" />
           <span className="hidden sm:inline">Nueva Categoría</span>
         </Button>
@@ -101,6 +106,15 @@ export default function CategoriesTab() {
           ))}
         </div>
       )}
+
+      <CreateCategoryModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreated={() => {
+          setIsCreateModalOpen(false);
+          fetchCategories();
+        }}
+      />
     </div>
   );
 }
