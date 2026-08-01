@@ -5,7 +5,6 @@ import {
   Phone, Mail, MapPin, Clock, Shield, Users, Truck, CheckCircle,
   ChevronDown, Star, ArrowRight
 } from 'lucide-react';
-import SecretLogo from '@/components/SecretLogo';
 import ProductCarousel from '@/components/products/ProductCarousel';
 import ShareButtons from '@/components/ShareButtons';
 import { cn } from '@/lib/utils';
@@ -138,10 +137,15 @@ export default function HomePage() {
             <div className="text-center">
               {/* Logo */}
               <div className="flex justify-center mb-5">
-                <SecretLogo 
-                  src="/images/eventos-mendoza.png"
-                  alt={`Logotipo de ${BUSINESS_NAME}`}
-                />
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24">
+                  <Image
+                    src="/images/eventos-mendoza.png"
+                    alt={`Logotipo de ${BUSINESS_NAME}`}
+                    fill
+                    className="object-contain"
+                    priority
+                  />
+                </div>
               </div>
 
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-violet-900 mb-3">
