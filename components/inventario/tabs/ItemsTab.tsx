@@ -4,8 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, Plus, MoreVertical, LayoutGrid, List, Loader2, Package } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Search, Plus, LayoutGrid, List, Loader2, Package, ChevronRight } from 'lucide-react';
 import { StatusBadge } from '@/components/inventario/StatusBadge';
 import { ItemTypeIcon } from '@/components/inventario/ItemTypeIcon';
 import { StockIndicator } from '@/components/inventario/StockIndicator';
@@ -182,14 +181,14 @@ export default function ItemsTab() {
                   <th className="px-4 py-3.5 whitespace-nowrap">Estado</th>
                   <th className="px-4 py-3.5 whitespace-nowrap hidden md:table-cell">Ubicación</th>
                   <th className="px-4 py-3.5 whitespace-nowrap text-right">Precio Renta</th>
-                  <th className="px-4 py-3.5 w-14"></th>
+                  <th className="px-4 py-3.5 w-10"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-violet-50">
                 {items.map(item => (
                   <tr
                     key={item.id}
-                    className="hover:bg-violet-50/40 transition-colors cursor-pointer active:bg-violet-100/50"
+                    className="group hover:bg-violet-50/40 transition-colors cursor-pointer active:bg-violet-100/50"
                     onClick={() => openDetails(item)}
                   >
                     <td className="px-4 py-3.5">
@@ -228,36 +227,7 @@ export default function ItemsTab() {
                       {item.rentPrice != null ? `$${item.rentPrice}` : '—'}
                     </td>
                     <td className="px-4 py-3.5 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button
-                            variant="ghost"
-                            className="h-11 w-11 sm:h-9 sm:w-9 p-0 text-violet-400 hover:text-violet-700 hover:bg-violet-100 rounded-xl active:scale-90 transition-all"
-                          >
-                            <MoreVertical className="h-5 w-5 sm:h-4 sm:w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48 rounded-xl border-violet-100 shadow-xl p-1.5">
-                          <DropdownMenuItem
-                            className="cursor-pointer rounded-lg focus:bg-violet-50 h-11 px-3 text-sm"
-                            onSelect={() => setTimeout(() => openDetails(item), 100)}
-                          >
-                            Ver detalle
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className="cursor-pointer rounded-lg focus:bg-violet-50 h-11 px-3 text-sm"
-                            onSelect={() => setTimeout(() => openEdit(item), 100)}
-                          >
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer rounded-lg focus:bg-violet-50 h-11 px-3 text-sm">
-                            Movimientos
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="cursor-pointer rounded-lg text-red-600 focus:bg-red-50 focus:text-red-700 h-11 px-3 text-sm">
-                            Eliminar
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <ChevronRight className="h-5 w-5 text-violet-300 group-hover:text-violet-500 transition-colors" />
                     </td>
                   </tr>
                 ))}
@@ -330,6 +300,16 @@ export default function ItemsTab() {
         onEditClick={() => {
           setIsDetailSheetOpen(false);
           setIsEditModalOpen(true);
+        }}
+        onMovementsClick={() => {
+          setIsDetailSheetOpen(false);
+          // TODO: Abrir modal de movimientos
+          alert("Abre movimientos de " + selectedItem?.name);
+        }}
+        onDeleteClick={() => {
+          setIsDetailSheetOpen(false);
+          // TODO: Lógica para eliminar
+          alert("Eliminar " + selectedItem?.name);
         }}
       />
     </div>

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/inventario/StatusBadge';
 import { ItemTypeIcon } from '@/components/inventario/ItemTypeIcon';
 import { StockIndicator } from '@/components/inventario/StockIndicator';
-import { Edit2, Package, MapPin, DollarSign } from 'lucide-react';
+import { Edit2, Package, MapPin, DollarSign, ArrowLeftRight, Trash2 } from 'lucide-react';
 import type { InventoryItem } from '@/lib/inventario/types';
 
 interface ItemDetailSheetProps {
@@ -12,9 +12,11 @@ interface ItemDetailSheetProps {
   onClose: () => void;
   item: InventoryItem | null;
   onEditClick: () => void;
+  onMovementsClick?: () => void;
+  onDeleteClick?: () => void;
 }
 
-export default function ItemDetailSheet({ isOpen, onClose, item, onEditClick }: ItemDetailSheetProps) {
+export default function ItemDetailSheet({ isOpen, onClose, item, onEditClick, onMovementsClick, onDeleteClick }: ItemDetailSheetProps) {
   if (!item) return null;
 
   return (
@@ -34,17 +36,37 @@ export default function ItemDetailSheet({ isOpen, onClose, item, onEditClick }: 
       }
     >
       <div className="space-y-6 pb-8 px-1 mt-2">
-        {/* Actions & Status */}
+        {/* Status */}
         <div className="flex justify-between items-center bg-violet-50 p-3 rounded-2xl border border-violet-100">
           <StatusBadge status={item.status} />
+          <span className="text-xs text-violet-400 font-medium px-2">Creado recientemente</span>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-3 gap-2">
           <Button
-            variant="ghost"
-            size="sm"
+            variant="outline"
             onClick={onEditClick}
-            className="h-11 sm:h-9 px-4 text-violet-600 hover:bg-white hover:shadow-sm rounded-xl active:scale-95 transition-all font-semibold text-sm"
+            className="h-12 sm:h-10 border-violet-200 text-violet-700 hover:bg-violet-50 rounded-xl active:scale-95 transition-all font-semibold flex flex-col sm:flex-row gap-1 sm:gap-2 justify-center items-center px-1"
           >
-            <Edit2 className="w-4 h-4 mr-2" />
-            Editar Info
+            <Edit2 className="w-4 h-4 sm:w-4 sm:h-4" />
+            <span className="text-[10px] sm:text-xs">Editar</span>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={onMovementsClick}
+            className="h-12 sm:h-10 border-violet-200 text-violet-700 hover:bg-violet-50 rounded-xl active:scale-95 transition-all font-semibold flex flex-col sm:flex-row gap-1 sm:gap-2 justify-center items-center px-1"
+          >
+            <ArrowLeftRight className="w-4 h-4 sm:w-4 sm:h-4" />
+            <span className="text-[10px] sm:text-xs">Mover</span>
+          </Button>
+          <Button
+            variant="outline"
+            onClick={onDeleteClick}
+            className="h-12 sm:h-10 border-red-200 text-red-600 hover:bg-red-50 rounded-xl active:scale-95 transition-all font-semibold flex flex-col sm:flex-row gap-1 sm:gap-2 justify-center items-center px-1"
+          >
+            <Trash2 className="w-4 h-4 sm:w-4 sm:h-4" />
+            <span className="text-[10px] sm:text-xs">Eliminar</span>
           </Button>
         </div>
 
