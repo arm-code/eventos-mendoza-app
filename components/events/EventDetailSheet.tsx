@@ -124,9 +124,6 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig, on
             {/* ── Header: Folio + Status actual ── */}
             <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                    <p className="text-[11px] font-bold text-violet-500 tracking-wider uppercase">
-                        {event.folio}
-                    </p>
                     <h2 className="text-lg font-bold text-violet-950 leading-tight mt-0.5">
                         {event.name}
                     </h2>
@@ -155,14 +152,14 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig, on
                 </div>
                 {event.clientPhone && (
                     <div className="flex gap-2 mt-2">
-                        <a 
+                        <a
                             href={`tel:${event.clientPhone.replace(/\D/g, '')}`}
                             className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-white border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-50 transition-colors"
                         >
                             <Phone className="w-3.5 h-3.5" />
                             Llamar
                         </a>
-                        <a 
+                        <a
                             href={`https://wa.me/${event.clientPhone.replace(/\D/g, '')}`}
                             target="_blank"
                             rel="noopener noreferrer"
