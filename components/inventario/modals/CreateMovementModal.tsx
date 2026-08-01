@@ -16,11 +16,11 @@ interface CreateMovementModalProps {
   locations: InventoryLocation[];
 }
 
-const MOVEMENT_TYPES: { id: InventoryMovementType; icon: React.ElementType; label: string; color: string }[] = [
-  { id: 'in', icon: ArrowDown, label: 'Entrada', color: 'text-emerald-600 bg-emerald-50 border-emerald-200' },
-  { id: 'out', icon: ArrowUp, label: 'Salida', color: 'text-blue-600 bg-blue-50 border-blue-200' },
-  { id: 'transfer', icon: RefreshCcw, label: 'Traspaso', color: 'text-violet-600 bg-violet-50 border-violet-200' },
-  { id: 'adjustment', icon: AlertTriangle, label: 'Ajuste', color: 'text-amber-600 bg-amber-50 border-amber-200' },
+const MOVEMENT_TYPES: { id: InventoryMovementType; icon: React.ElementType; label: string; color: string; activeColor: string }[] = [
+  { id: 'in', icon: ArrowDown, label: 'Entrada', color: 'text-emerald-600 bg-emerald-50 border-emerald-200', activeColor: 'bg-emerald-100 border-emerald-500' },
+  { id: 'out', icon: ArrowUp, label: 'Salida', color: 'text-blue-600 bg-blue-50 border-blue-200', activeColor: 'bg-blue-100 border-blue-500' },
+  { id: 'transfer', icon: RefreshCcw, label: 'Traspaso', color: 'text-violet-600 bg-violet-50 border-violet-200', activeColor: 'bg-violet-100 border-violet-500' },
+  { id: 'adjustment', icon: AlertTriangle, label: 'Ajuste', color: 'text-amber-600 bg-amber-50 border-amber-200', activeColor: 'bg-amber-100 border-amber-500' },
 ];
 
 export default function CreateMovementModal({ isOpen, onClose, onCreated, items, locations }: CreateMovementModalProps) {
@@ -30,7 +30,7 @@ export default function CreateMovementModal({ isOpen, onClose, onCreated, items,
   const [originLocationId, setOriginLocationId] = useState('');
   const [destinationLocationId, setDestinationLocationId] = useState('');
   const [reason, setReason] = useState('');
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -63,18 +63,13 @@ export default function CreateMovementModal({ isOpen, onClose, onCreated, items,
       return;
     }
 
-    if (type === 'out' || type === 'transfer' || type === 'adjustment') {
-      if (!originLocationId) {
-        setError('Debes seleccionar la ubicación de origen.');
-        return;
-      }
+    if ((type === 'out' || type === 'transfer' || type === 'adjustment') && !originLocationId) {
+      setError('Debes seleccionar la ubicación de origen.');
+      return;
     }
-
-    if (type === 'in' || type === 'transfer') {
-      if (!destinationLocationId) {
-        setError('Debes seleccionar la ubicación de destino.');
-        return;
-      }
+    if ((type === 'in' || type === 'transfer') && !destinationLocationId) {
+      setError('Debes seleccionar la ubicación de destino.');
+      return;
     }
 
     setIsSubmitting(true);
@@ -112,12 +107,11 @@ export default function CreateMovementModal({ isOpen, onClose, onCreated, items,
       title="Registrar Movimiento"
       description="Registra una entrada, salida, traspaso o ajuste de stock."
     >
-      <div className="space-y-6 pb-6">
-        
-        {/* Tipo de Movimiento */}
-        <div className="space-y-2">
-          <Label className="text-violet-900">Tipo de Movimiento</Label>
-          <div className="grid grid-cols-2 gap-2">
+      <div className="space-y-6 pb-8 px-1">
+
+        <div className="space-y-2.5">
+          <Label className="text-violet-900 text-sm font-semibold">Tipo de Movimiento</Label>
+          <div className="grid grid-cols-2 gap-2.5">
             {MOVEMENT_TYPES.map(mov => {
               const Icon = mov.icon;
               const isActive = type === mov.id;
@@ -126,11 +120,10 @@ export default function CreateMovementModal({ isOpen, onClose, onCreated, items,
                   key={mov.id}
                   type="button"
                   onClick={() => setType(mov.id)}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border transition-all ${
-                    isActive
-                      ? `${mov.color} shadow-sm font-semibold`
+                  className={`flex flex-col items-center justify-center gap-1.5 p-3.5 rounded-2xl border-2 transition-all active:scale-95 duration-150 min-h-[68px] ${isActive
+                      ? `${mov.color} ${mov.activeColor} shadow-sm font-bold`
                       : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="text-xs">{mov.label}</span>
@@ -140,53 +133,52 @@ export default function CreateMovementModal({ isOpen, onClose, onCreated, items,
           </div>
         </div>
 
-        {/* Artículo y Cantidad */}
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label className="text-violet-900">Artículo <span className="text-red-500">*</span></Label>
+        <div className="space-y-5">
+          <div className="space-y-2.5">
+            <Label className="text-violet-900 text-sm font-semibold">Artículo <span className="text-red-500">*</span></Label>
             <Select value={itemId} onValueChange={setItemId}>
-              <SelectTrigger className="border-violet-200">
+              <SelectTrigger className="h-12 sm:h-10 border-violet-200 rounded-xl text-base sm:text-sm">
                 <SelectValue placeholder="Selecciona un artículo..." />
               </SelectTrigger>
               <SelectContent>
                 {items.map(item => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.name} <span className="text-gray-400 text-xs ml-1">({item.sku})</span>
+                  <SelectItem key={item.id} value={item.id} className="h-11 text-base sm:text-sm">
+                    <span className="font-medium">{item.name}</span>
+                    <span className="text-gray-400 text-xs ml-1.5">({item.sku})</span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-violet-900">Cantidad <span className="text-red-500">*</span></Label>
+          <div className="space-y-2.5">
+            <Label className="text-violet-900 text-sm font-semibold">Cantidad <span className="text-red-500">*</span></Label>
             <Input
               type="number"
               placeholder="Ej. 10"
               value={quantity}
               onChange={e => setQuantity(e.target.value)}
-              className="border-violet-200"
+              className="h-12 sm:h-10 border-violet-200 rounded-xl text-base sm:text-sm"
             />
             {type === 'adjustment' && (
-              <p className="text-[10px] text-amber-600 font-medium leading-tight">
-                * Importante: Al hacer un ajuste, esta cantidad reemplazará y será el nuevo stock total exacto del artículo.
+              <p className="text-[11px] text-amber-700 font-semibold leading-relaxed bg-amber-50 p-2.5 rounded-xl border border-amber-100">
+                Importante: Al hacer un ajuste, esta cantidad reemplazará el stock total exacto del artículo.
               </p>
             )}
           </div>
         </div>
 
-        {/* Ubicaciones (Dinámico según el tipo) */}
-        <div className="space-y-4 p-4 rounded-xl border border-violet-100 bg-violet-50/50">
+        <div className="space-y-4 p-4 rounded-2xl border border-violet-100 bg-violet-50/50">
           {(type === 'out' || type === 'transfer' || type === 'adjustment') && (
-            <div className="space-y-2">
-              <Label className="text-violet-900">Ubicación de Origen <span className="text-red-500">*</span></Label>
+            <div className="space-y-2.5">
+              <Label className="text-violet-900 text-sm font-semibold">Ubicación de Origen <span className="text-red-500">*</span></Label>
               <Select value={originLocationId} onValueChange={setOriginLocationId}>
-                <SelectTrigger className="border-violet-200 bg-white">
+                <SelectTrigger className="h-12 sm:h-10 border-violet-200 bg-white rounded-xl text-base sm:text-sm">
                   <SelectValue placeholder="¿De dónde sale?" />
                 </SelectTrigger>
                 <SelectContent>
                   {locations.map(loc => (
-                    <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                    <SelectItem key={loc.id} value={loc.id} className="h-11 text-base sm:text-sm">{loc.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -194,15 +186,15 @@ export default function CreateMovementModal({ isOpen, onClose, onCreated, items,
           )}
 
           {(type === 'in' || type === 'transfer') && (
-            <div className="space-y-2">
-              <Label className="text-violet-900">Ubicación de Destino <span className="text-red-500">*</span></Label>
+            <div className="space-y-2.5">
+              <Label className="text-violet-900 text-sm font-semibold">Ubicación de Destino <span className="text-red-500">*</span></Label>
               <Select value={destinationLocationId} onValueChange={setDestinationLocationId}>
-                <SelectTrigger className="border-violet-200 bg-white">
+                <SelectTrigger className="h-12 sm:h-10 border-violet-200 bg-white rounded-xl text-base sm:text-sm">
                   <SelectValue placeholder="¿A dónde entra?" />
                 </SelectTrigger>
                 <SelectContent>
                   {locations.map(loc => (
-                    <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                    <SelectItem key={loc.id} value={loc.id} className="h-11 text-base sm:text-sm">{loc.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -210,35 +202,34 @@ export default function CreateMovementModal({ isOpen, onClose, onCreated, items,
           )}
         </div>
 
-        {/* Motivo */}
-        <div className="space-y-2">
-          <Label htmlFor="mov-reason" className="text-violet-900">Motivo / Descripción <span className="text-red-500">*</span></Label>
+        <div className="space-y-2.5">
+          <Label htmlFor="mov-reason" className="text-violet-900 text-sm font-semibold">
+            Motivo / Descripción <span className="text-red-500">*</span>
+          </Label>
           <Input
             id="mov-reason"
-            placeholder="Ej. Compra a proveedor, Inventario inicial, Avería..."
+            placeholder="Ej. Compra a proveedor, Inventario inicial..."
             value={reason}
             onChange={e => setReason(e.target.value)}
-            className="border-violet-200"
+            className="h-12 sm:h-10 border-violet-200 rounded-xl text-base sm:text-sm"
           />
         </div>
 
-        {/* Error */}
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-2">{error}</p>
+          <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3 font-medium">{error}</p>
         )}
 
-        {/* Acciones */}
-        <div className="pt-4 flex justify-end gap-3 border-t border-violet-100">
+        <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-violet-100">
           <Button
             variant="outline"
-            className="border-violet-200 text-violet-700 hover:bg-violet-50"
+            className="h-12 sm:h-10 border-violet-200 text-violet-700 hover:bg-violet-50 rounded-xl font-semibold active:scale-95 transition-all"
             onClick={handleClose}
             disabled={isSubmitting}
           >
             Cancelar
           </Button>
           <Button
-            className="bg-violet-600 hover:bg-violet-700 text-white shadow-md"
+            className="h-12 sm:h-10 bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white shadow-md rounded-xl font-semibold active:scale-95 transition-all"
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
