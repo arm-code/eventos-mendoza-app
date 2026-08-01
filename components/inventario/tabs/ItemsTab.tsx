@@ -301,16 +301,6 @@ export default function ItemsTab() {
           setIsDetailSheetOpen(false);
           setIsEditModalOpen(true);
         }}
-        onMovementsClick={() => {
-          setIsDetailSheetOpen(false);
-          // TODO: Abrir modal de movimientos
-          alert("Abre movimientos de " + selectedItem?.name);
-        }}
-        onDeleteClick={() => {
-          setIsDetailSheetOpen(false);
-          // TODO: Lógica para eliminar
-          alert("Eliminar " + selectedItem?.name);
-        }}
       />
     </div>
   );

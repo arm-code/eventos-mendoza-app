@@ -12,11 +12,9 @@ interface ItemDetailSheetProps {
   onClose: () => void;
   item: InventoryItem | null;
   onEditClick: () => void;
-  onMovementsClick?: () => void;
-  onDeleteClick?: () => void;
 }
 
-export default function ItemDetailSheet({ isOpen, onClose, item, onEditClick, onMovementsClick, onDeleteClick }: ItemDetailSheetProps) {
+export default function ItemDetailSheet({ isOpen, onClose, item, onEditClick }: ItemDetailSheetProps) {
   if (!item) return null;
 
   return (
@@ -51,22 +49,6 @@ export default function ItemDetailSheet({ isOpen, onClose, item, onEditClick, on
           >
             <Edit2 className="w-4 h-4 sm:w-4 sm:h-4" />
             <span className="text-[10px] sm:text-xs">Editar</span>
-          </Button>
-          <Button
-            variant="outline"
-            onClick={onMovementsClick}
-            className="h-12 sm:h-10 border-violet-200 text-violet-700 hover:bg-violet-50 rounded-xl active:scale-95 transition-all font-semibold flex flex-col sm:flex-row gap-1 sm:gap-2 justify-center items-center px-1"
-          >
-            <ArrowLeftRight className="w-4 h-4 sm:w-4 sm:h-4" />
-            <span className="text-[10px] sm:text-xs">Mover</span>
-          </Button>
-          <Button
-            variant="outline"
-            onClick={onDeleteClick}
-            className="h-12 sm:h-10 border-red-200 text-red-600 hover:bg-red-50 rounded-xl active:scale-95 transition-all font-semibold flex flex-col sm:flex-row gap-1 sm:gap-2 justify-center items-center px-1"
-          >
-            <Trash2 className="w-4 h-4 sm:w-4 sm:h-4" />
-            <span className="text-[10px] sm:text-xs">Eliminar</span>
           </Button>
         </div>
 
