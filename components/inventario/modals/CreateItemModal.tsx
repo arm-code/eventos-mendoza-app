@@ -37,13 +37,12 @@ export default function CreateItemModal({ isOpen, onClose, onCreated, categories
   const [rentPrice, setRentPrice] = useState('');
   const [salePrice, setSalePrice] = useState('');
   const [attributesValues, setAttributesValues] = useState<Record<string, any>>({});
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const selectedCategory = categories.find(c => c.id === categoryId);
 
-  // Cuando cambia la categoría, limpiamos los atributos
   useEffect(() => {
     setAttributesValues({});
   }, [categoryId]);
@@ -67,10 +66,7 @@ export default function CreateItemModal({ isOpen, onClose, onCreated, categories
   };
 
   const handleAttributeChange = (attrName: string, value: any) => {
-    setAttributesValues(prev => ({
-      ...prev,
-      [attrName]: value
-    }));
+    setAttributesValues(prev => ({ ...prev, [attrName]: value }));
   };
 
   const handleSubmit = async () => {
@@ -79,7 +75,6 @@ export default function CreateItemModal({ isOpen, onClose, onCreated, categories
       return;
     }
 
-    // Validar atributos requeridos
     if (selectedCategory?.attributes) {
       for (const attr of selectedCategory.attributes) {
         if (attr.required && (attributesValues[attr.name] === undefined || attributesValues[attr.name] === '')) {
@@ -117,18 +112,18 @@ export default function CreateItemModal({ isOpen, onClose, onCreated, categories
 
   const renderAttributeInput = (attr: CategoryAttribute) => {
     const val = attributesValues[attr.name] ?? '';
-    
+
     switch (attr.type) {
       case 'boolean':
         return (
-          <div className="flex items-center space-x-2 mt-2" key={attr.name}>
-            <Checkbox 
-              id={`attr-${attr.name}`} 
-              checked={!!attributesValues[attr.name]} 
-              onCheckedChange={(checked) => handleAttributeChange(attr.name, !!checked)} 
-              className="border-violet-300 data-[state=checked]:bg-violet-600"
+          <div className="flex items-center space-x-3 h-12 sm:h-auto" key={attr.name}>
+            <Checkbox
+              id={`attr-${attr.name}`}
+              checked={!!attributesValues[attr.name]}
+              onCheckedChange={(checked) => handleAttributeChange(attr.name, !!checked)}
+              className="h-6 w-6 sm:h-5 sm:w-5 border-violet-300 data-[state=checked]:bg-violet-600 rounded-md"
             />
-            <Label htmlFor={`attr-${attr.name}`} className="text-violet-900 cursor-pointer">
+            <Label htmlFor={`attr-${attr.name}`} className="text-violet-900 cursor-pointer text-base sm:text-sm font-medium">
               {attr.name} {attr.required && <span className="text-red-500">*</span>}
             </Label>
           </div>
@@ -136,23 +131,22 @@ export default function CreateItemModal({ isOpen, onClose, onCreated, categories
       case 'number':
         return (
           <div className="space-y-2" key={attr.name}>
-            <Label className="text-violet-900">{attr.name} {attr.required && <span className="text-red-500">*</span>}</Label>
-            <Input type="number" value={val} onChange={e => handleAttributeChange(attr.name, e.target.value !== '' ? Number(e.target.value) : '')} className="border-violet-200" />
+            <Label className="text-violet-900 text-sm font-semibold">{attr.name} {attr.required && <span className="text-red-500">*</span>}</Label>
+            <Input type="number" value={val} onChange={e => handleAttributeChange(attr.name, e.target.value !== '' ? Number(e.target.value) : '')} className="h-12 sm:h-10 border-violet-200 rounded-xl text-base sm:text-sm" />
           </div>
         );
       case 'date':
         return (
           <div className="space-y-2" key={attr.name}>
-            <Label className="text-violet-900">{attr.name} {attr.required && <span className="text-red-500">*</span>}</Label>
-            <Input type="date" value={val} onChange={e => handleAttributeChange(attr.name, e.target.value)} className="border-violet-200" />
+            <Label className="text-violet-900 text-sm font-semibold">{attr.name} {attr.required && <span className="text-red-500">*</span>}</Label>
+            <Input type="date" value={val} onChange={e => handleAttributeChange(attr.name, e.target.value)} className="h-12 sm:h-10 border-violet-200 rounded-xl text-base sm:text-sm" />
           </div>
         );
-      case 'string':
       default:
         return (
           <div className="space-y-2" key={attr.name}>
-            <Label className="text-violet-900">{attr.name} {attr.required && <span className="text-red-500">*</span>}</Label>
-            <Input value={val} onChange={e => handleAttributeChange(attr.name, e.target.value)} className="border-violet-200" />
+            <Label className="text-violet-900 text-sm font-semibold">{attr.name} {attr.required && <span className="text-red-500">*</span>}</Label>
+            <Input value={val} onChange={e => handleAttributeChange(attr.name, e.target.value)} className="h-12 sm:h-10 border-violet-200 rounded-xl text-base sm:text-sm" />
           </div>
         );
     }
@@ -165,161 +159,158 @@ export default function CreateItemModal({ isOpen, onClose, onCreated, categories
       title="Nuevo Ítem de Inventario"
       description="Agrega un nuevo producto, combo o servicio al catálogo."
     >
-      <div className="space-y-6 pb-6">
-        {/* Información Básica */}
-        <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-violet-950 border-b border-violet-100 pb-1">Información Básica</h4>
+      <div className="space-y-6 pb-8 px-1">
+        <div className="space-y-5">
+          <h4 className="text-sm font-bold text-violet-950 border-b border-violet-100 pb-2">Información Básica</h4>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="item-name" className="text-violet-900">Nombre del artículo <span className="text-red-500">*</span></Label>
+            <div className="space-y-2.5">
+              <Label htmlFor="item-name" className="text-violet-900 text-sm font-semibold">
+                Nombre <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="item-name"
                 placeholder="Ej. Silla Tiffany Blanca"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="border-violet-200"
+                className="h-12 sm:h-10 border-violet-200 rounded-xl text-base sm:text-sm"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="item-sku" className="text-violet-900">SKU / Código <span className="text-red-500">*</span></Label>
+            <div className="space-y-2.5">
+              <Label htmlFor="item-sku" className="text-violet-900 text-sm font-semibold">
+                SKU / Código <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id="item-sku"
                 placeholder="Ej. ST-001"
                 value={sku}
                 onChange={e => setSku(e.target.value)}
-                className="border-violet-200"
+                className="h-12 sm:h-10 border-violet-200 rounded-xl text-base sm:text-sm font-mono"
               />
             </div>
           </div>
 
-          {/* Tipo de Ítem */}
-          <div className="space-y-2">
-            <Label className="text-violet-900">Tipo de Ítem</Label>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <div className="space-y-2.5">
+            <Label className="text-violet-900 text-sm font-semibold">Tipo de Ítem</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
               {ITEM_TYPES.map(type => (
                 <button
                   key={type.id}
                   type="button"
                   onClick={() => setItemType(type.id)}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-2 rounded-xl border transition-all ${
-                    itemType === type.id
+                  className={`flex flex-col items-center justify-center gap-2 p-3 sm:p-2 rounded-2xl border-2 transition-all active:scale-95 duration-150 min-h-[72px] sm:min-h-0 ${itemType === type.id
                       ? 'bg-violet-50 border-violet-500 text-violet-700 shadow-sm'
                       : 'bg-white border-violet-100 text-violet-400 hover:border-violet-300'
-                  }`}
+                    }`}
                 >
-                  <type.icon className="w-5 h-5" />
-                  <span className="text-xs font-medium">{type.label}</span>
+                  <type.icon className="w-6 h-6 sm:w-5 sm:h-5" />
+                  <span className="text-xs font-bold">{type.label}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Categoría */}
-          <div className="space-y-2">
-            <Label className="text-violet-900">Categoría <span className="text-red-500">*</span></Label>
+          <div className="space-y-2.5">
+            <Label className="text-violet-900 text-sm font-semibold">Categoría <span className="text-red-500">*</span></Label>
             <Select value={categoryId} onValueChange={setCategoryId}>
-              <SelectTrigger className="border-violet-200">
+              <SelectTrigger className="h-12 sm:h-10 border-violet-200 rounded-xl text-base sm:text-sm">
                 <SelectValue placeholder="Selecciona una categoría" />
               </SelectTrigger>
               <SelectContent>
                 {categories.map(cat => (
-                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  <SelectItem key={cat.id} value={cat.id} className="h-11 text-base sm:text-sm">{cat.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
         </div>
-        
-        {/* Atributos Dinámicos */}
+
         {selectedCategory && selectedCategory.attributes && selectedCategory.attributes.length > 0 && (
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-violet-950 border-b border-violet-100 pb-1">Atributos de {selectedCategory.name}</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-violet-50/50 p-4 rounded-xl border border-violet-100">
+            <h4 className="text-sm font-bold text-violet-950 border-b border-violet-100 pb-2">
+              Atributos de {selectedCategory.name}
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-violet-50/50 p-4 rounded-2xl border border-violet-100">
               {selectedCategory.attributes.map(attr => renderAttributeInput(attr))}
             </div>
           </div>
         )}
 
-        {/* Precios */}
-        <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-violet-950 border-b border-violet-100 pb-1">Precios</h4>
+        <div className="space-y-5">
+          <h4 className="text-sm font-bold text-violet-950 border-b border-violet-100 pb-2">Precios</h4>
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-violet-900">Precio de Renta ($)</Label>
+            <div className="space-y-2.5">
+              <Label className="text-violet-900 text-sm font-semibold">Precio de Renta ($)</Label>
               <Input
                 type="number"
                 placeholder="0.00"
                 value={rentPrice}
                 onChange={e => setRentPrice(e.target.value)}
-                className="border-violet-200"
+                className="h-12 sm:h-10 border-violet-200 rounded-xl text-base sm:text-sm"
               />
             </div>
-            <div className="space-y-2">
-              <Label className="text-violet-900">Precio de Venta ($)</Label>
+            <div className="space-y-2.5">
+              <Label className="text-violet-900 text-sm font-semibold">Precio de Venta ($)</Label>
               <Input
                 type="number"
                 placeholder="0.00"
                 value={salePrice}
                 onChange={e => setSalePrice(e.target.value)}
-                className="border-violet-200"
+                className="h-12 sm:h-10 border-violet-200 rounded-xl text-base sm:text-sm"
               />
             </div>
           </div>
         </div>
 
-        {/* Stock y Ubicación (Condicional) */}
         {(itemType === 'product' || itemType === 'consumable' || itemType === 'serialized') && (
-          <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-violet-950 border-b border-violet-100 pb-1">Inventario Inicial</h4>
+          <div className="space-y-5">
+            <h4 className="text-sm font-bold text-violet-950 border-b border-violet-100 pb-2">Inventario Inicial</h4>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-violet-900">Stock Inicial</Label>
+              <div className="space-y-2.5">
+                <Label className="text-violet-900 text-sm font-semibold">Stock Inicial</Label>
                 <Input
                   type="number"
                   placeholder="0"
                   value={initialStock}
                   onChange={e => setInitialStock(e.target.value)}
-                  className="border-violet-200"
+                  className="h-12 sm:h-10 border-violet-200 rounded-xl text-base sm:text-sm"
                 />
               </div>
-              <div className="space-y-2">
-                <Label className="text-violet-900">Ubicación de origen</Label>
+              <div className="space-y-2.5">
+                <Label className="text-violet-900 text-sm font-semibold">Ubicación de origen</Label>
                 <Select value={locationId} onValueChange={setLocationId}>
-                  <SelectTrigger className="border-violet-200">
+                  <SelectTrigger className="h-12 sm:h-10 border-violet-200 rounded-xl text-base sm:text-sm">
                     <SelectValue placeholder="Selecciona" />
                   </SelectTrigger>
                   <SelectContent>
                     {locations.map(loc => (
-                      <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                      <SelectItem key={loc.id} value={loc.id} className="h-11 text-base sm:text-sm">{loc.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-            <p className="text-xs text-violet-400">
+            <p className="text-xs text-violet-400 leading-relaxed">
               * El sistema creará un movimiento de entrada por esta cantidad automáticamente.
             </p>
           </div>
         )}
 
-        {/* Error */}
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-2">{error}</p>
+          <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3 font-medium">{error}</p>
         )}
 
-        {/* Acciones */}
-        <div className="pt-4 flex justify-end gap-3 border-t border-violet-100">
+        <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-violet-100">
           <Button
             variant="outline"
-            className="border-violet-200 text-violet-700 hover:bg-violet-50"
+            className="h-12 sm:h-10 border-violet-200 text-violet-700 hover:bg-violet-50 rounded-xl font-semibold active:scale-95 transition-all"
             onClick={handleClose}
             disabled={isSubmitting}
           >
             Cancelar
           </Button>
           <Button
-            className="bg-violet-600 hover:bg-violet-700 text-white shadow-md"
+            className="h-12 sm:h-10 bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white shadow-md rounded-xl font-semibold active:scale-95 transition-all"
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
