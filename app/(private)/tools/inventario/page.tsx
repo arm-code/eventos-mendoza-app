@@ -8,6 +8,7 @@ import { Package, ArrowLeftRight, Tags, MapPin } from "lucide-react";
 import ItemsTab from "@/components/inventario/tabs/ItemsTab";
 import MovementsTab from "@/components/inventario/tabs/MovementsTab";
 import CategoriesTab from "@/components/inventario/tabs/CategoriesTab";
+import LocationsTab from "@/components/inventario/tabs/LocationsTab";
 
 const tabs = [
   { value: "items", label: "Artículos", icon: Package },
@@ -75,11 +76,7 @@ export default function InventarioDashboard() {
               <CategoriesTab />
             </TabsContent>
             <TabsContent value="locations" className="mt-3 sm:mt-4 focus-visible:outline-none">
-              <div className="p-8 text-center text-violet-500 bg-white rounded-2xl border border-violet-100">
-                <MapPin className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                <h3 className="font-semibold mb-1">Gestión de Ubicaciones</h3>
-                <p className="text-sm">Próximamente podrás gestionar tus bodegas y vehículos aquí.</p>
-              </div>
+              <LocationsTab />
             </TabsContent>
           </motion.div>
         </AnimatePresence>
