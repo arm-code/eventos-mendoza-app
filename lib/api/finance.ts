@@ -137,12 +137,32 @@ export const financeApi = {
   },
 
   updateConfig: async (data: UpdateBusinessConfigDto) => {
-    const res = await axiosInstance.patch<BusinessConfig>(`${PREFIX}/config`, data);
+    // Sanitizar payload para evitar errores 400 por propiedades no permitidas (forbidNonWhitelisted) o email vacío
+    const payload: Record<string, any> = {};
+
+    if (data.name?.trim()) payload.name = data.name.trim();
+    if (data.logoUrl?.trim()) payload.logoUrl = data.logoUrl.trim();
+    if (data.phone?.trim()) payload.phone = data.phone.trim();
+    if (data.whatsapp?.trim()) payload.whatsapp = data.whatsapp.trim();
+    if (data.email?.trim()) payload.email = data.email.trim();
+    if (data.address?.trim()) payload.address = data.address.trim();
+    if (Array.isArray(data.services)) payload.services = data.services;
+    if (Array.isArray(data.coverageAreas)) payload.coverageAreas = data.coverageAreas;
+    if (typeof data.termsAndConditions === 'string') payload.termsAndConditions = data.termsAndConditions;
+
+    const res = await axiosInstance.patch<BusinessConfig>(`${PREFIX}/config`, payload);
     return res.data;
   },
 
   addPaymentCard: async (data: CreatePaymentCardDto) => {
-    const res = await axiosInstance.post<PaymentCard>(`${PREFIX}/config/cards`, data);
+    const payload: Record<string, any> = {
+      bank: data.bank.trim(),
+      beneficiary: data.beneficiary.trim(),
+    };
+    if (data.cardNumber?.trim()) payload.cardNumber = data.cardNumber.trim();
+    if (data.clabe?.trim()) payload.clabe = data.clabe.trim();
+
+    const res = await axiosInstance.post<PaymentCard>(`${PREFIX}/config/cards`, payload);
     return res.data;
   },
 
