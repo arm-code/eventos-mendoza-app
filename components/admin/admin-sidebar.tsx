@@ -10,33 +10,40 @@ import { isActive, primaryNav } from '@/lib/nav'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
 
+import { BusinessSwitcher } from './BusinessSwitcher'
+
 export function AdminSidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     const pathname = usePathname()
     const items = [...primaryNav]
 
     return (
-        <nav className="flex flex-col gap-1 px-3 py-4">
-            {items.map((item) => {
-                const active = isActive(pathname, item)
-                const Icon = item.icon
-                return (
-                    <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={onNavigate}
-                        className={cn(
-                            'flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-medium transition-all duration-200 active:scale-[0.98] touch-manipulation',
-                            active
-                                ? 'bg-violet-600 text-white shadow-md shadow-violet-200 font-semibold'
-                                : 'text-violet-800 hover:bg-violet-50 hover:text-violet-950',
-                        )}
-                    >
-                        <Icon className={cn("h-[18px] w-[18px] flex-shrink-0", active ? "text-white" : "text-violet-600")} />
-                        <span className="truncate">{item.label}</span>
-                    </Link>
-                )
-            })}
-        </nav>
+        <div className="flex flex-col h-full">
+            <div className="p-3 border-b border-violet-100 md:hidden">
+                <BusinessSwitcher />
+            </div>
+            <nav className="flex flex-col gap-1 px-3 py-4">
+                {items.map((item) => {
+                    const active = isActive(pathname, item)
+                    const Icon = item.icon
+                    return (
+                        <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={onNavigate}
+                            className={cn(
+                                'flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-medium transition-all duration-200 active:scale-[0.98] touch-manipulation',
+                                active
+                                    ? 'bg-violet-600 text-white shadow-md shadow-violet-200 font-semibold'
+                                    : 'text-violet-800 hover:bg-violet-50 hover:text-violet-950',
+                            )}
+                        >
+                            <Icon className={cn("h-[18px] w-[18px] flex-shrink-0", active ? "text-white" : "text-violet-600")} />
+                            <span className="truncate">{item.label}</span>
+                        </Link>
+                    )
+                })}
+            </nav>
+        </div>
     )
 }
 
@@ -45,14 +52,8 @@ export function AdminSidebar() {
 
     return (
         <aside className="hidden w-64 shrink-0 flex-col border-r border-violet-100 bg-white md:flex">
-            <div className="flex items-center gap-3 px-5 py-5 border-b border-violet-100">
-                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-violet-200 shadow-sm overflow-hidden">
-                    <Image src="/images/eventos-mendoza.png" alt="Logo" width={32} height={32} className="object-contain" />
-                </span>
-                <div className="leading-tight">
-                    <p className="text-sm font-bold text-violet-950">Eventos Mendoza</p>
-                    <p className="text-xs text-violet-600 font-medium">Gestión de Renta</p>
-                </div>
+            <div className="p-3 border-b border-violet-100">
+                <BusinessSwitcher />
             </div>
 
             <div className="flex-1 overflow-y-auto">

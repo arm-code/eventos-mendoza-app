@@ -12,10 +12,10 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useState } from 'react'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { AdminSidebarContent } from './admin-sidebar'
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { BusinessSwitcher } from './BusinessSwitcher'
 
 export function AdminHeader() {
     const { user, signOut } = useAuth()
@@ -23,14 +23,8 @@ export function AdminHeader() {
 
     return (
         <header className="sticky top-0 z-40 flex items-center justify-between border-b border-violet-100/80 bg-white/90 backdrop-blur-xl px-3 sm:px-4 py-2.5 md:hidden safe-area-top">
-            <div className="flex items-center gap-2.5">
-                <motion.div
-                    whileTap={{ scale: 0.92 }}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-violet-200 shadow-sm overflow-hidden"
-                >
-                    <Image src="/images/eventos-mendoza.png" alt="Logo" width={28} height={28} className="object-contain" />
-                </motion.div>
-                <span className="font-bold text-violet-950 text-sm tracking-tight">Eventos Mendoza</span>
+            <div className="flex items-center gap-2 max-w-[65%] min-w-0">
+                <BusinessSwitcher compact />
             </div>
 
             <div className="flex items-center gap-1">

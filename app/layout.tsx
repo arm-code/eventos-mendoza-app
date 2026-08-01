@@ -6,6 +6,7 @@ import PwaRegistration from '@/components/PwaRegistration';
 import { Toaster } from 'sonner';
 import QueryProvider from '@/components/providers/QueryProvider';
 import { AuthProvider } from '@/lib/auth';
+import { BusinessProvider } from '@/lib/business';
 import { DataProvider } from '@/lib/data-store';
 
 const BASE_URL = 'https://eventos-mendoza.arm-solutions.com.mx';
@@ -65,11 +66,13 @@ export default function RootLayout({
       <body className='min-h-screen bg-gray-50'>
         <QueryProvider>
           <AuthProvider>
-            <DataProvider>
-              <PwaRegistration />
-              {children}
-              <Toaster position="top-right" richColors />
-            </DataProvider>
+            <BusinessProvider>
+              <DataProvider>
+                <PwaRegistration />
+                {children}
+                <Toaster position="top-right" richColors />
+              </DataProvider>
+            </BusinessProvider>
           </AuthProvider>
         </QueryProvider>
       </body>

@@ -1,6 +1,22 @@
 import axios from 'axios';
 import { supabaseBrowser } from '../supabase/supabaseBrowser';
 
+export const ACTIVE_BUSINESS_KEY = 'active_business_id';
+
+export function getActiveBusinessId(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(ACTIVE_BUSINESS_KEY);
+}
+
+export function setActiveBusinessIdInStorage(id: string | null) {
+  if (typeof window === 'undefined') return;
+  if (id) {
+    localStorage.setItem(ACTIVE_BUSINESS_KEY, id);
+  } else {
+    localStorage.removeItem(ACTIVE_BUSINESS_KEY);
+  }
+}
+
 export const axiosInstance = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
   headers: {
@@ -8,13 +24,19 @@ export const axiosInstance = axios.create({
   },
 });
 
-// Interceptor para agregar token de Supabase
+// Interceptor para agregar token de Supabase y X-Business-ID
 axiosInstance.interceptors.request.use(
   async (config) => {
     const { data: { session } } = await supabaseBrowser.auth.getSession();
     if (session?.access_token) {
       config.headers.Authorization = `Bearer ${session.access_token}`;
     }
+
+    const activeBusinessId = getActiveBusinessId();
+    if (activeBusinessId) {
+      config.headers['X-Business-ID'] = activeBusinessId;
+    }
+
     return config;
   },
   (error) => Promise.reject(error)
