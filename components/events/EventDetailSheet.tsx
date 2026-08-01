@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import {
     X, Calendar, MapPin, User, Phone, FileText, Clock, CheckCircle2,
-    Loader2, ArrowLeftRight, ReceiptText, Edit2, ChevronRight
+    Loader2, ArrowLeftRight, ReceiptText, Edit2, ChevronRight, MessageCircle, ExternalLink, Map
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -282,7 +282,7 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig, on
             </div>
 
             {/* ── Info del Cliente ── */}
-            <div className="rounded-xl bg-violet-50/60 border border-violet-100 p-4 space-y-2.5">
+            <div className="rounded-xl bg-violet-50/60 border border-violet-100 p-4 space-y-3">
                 <h3 className="text-[11px] font-bold text-violet-600 uppercase tracking-wider">
                     Datos del Cliente
                 </h3>
@@ -290,19 +290,33 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig, on
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-100 text-violet-600 shrink-0">
                         <User className="w-4 h-4" />
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                         <p className="text-sm font-semibold text-violet-950 truncate">{event.clientName}</p>
                         {event.clientPhone && (
-                            <a
-                                href={`tel:${event.clientPhone}`}
-                                className="text-xs text-violet-600 hover:text-violet-800 hover:underline flex items-center gap-1"
-                            >
-                                <Phone className="w-3 h-3" />
-                                {event.clientPhone}
-                            </a>
+                            <p className="text-xs text-violet-500">{event.clientPhone}</p>
                         )}
                     </div>
                 </div>
+                {event.clientPhone && (
+                    <div className="flex gap-2 mt-2">
+                        <a 
+                            href={`tel:${event.clientPhone.replace(/\D/g, '')}`}
+                            className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-white border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-50 transition-colors"
+                        >
+                            <Phone className="w-3.5 h-3.5" />
+                            Llamar
+                        </a>
+                        <a 
+                            href={`https://wa.me/${event.clientPhone.replace(/\D/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs font-semibold hover:bg-green-100 transition-colors"
+                        >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            WhatsApp
+                        </a>
+                    </div>
+                )}
             </div>
 
             {/* ── Info del Evento ── */}
@@ -315,9 +329,23 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig, on
                         <Calendar className="w-4 h-4 text-violet-400 shrink-0" />
                         <span className="font-medium">{event.date ? formatDate(event.date) : 'Por definir'}</span>
                     </div>
-                    <div className="flex items-start gap-2.5 text-sm text-violet-800">
-                        <MapPin className="w-4 h-4 text-violet-400 shrink-0 mt-0.5" />
-                        <span className="leading-relaxed">{event.eventAddress}</span>
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-start gap-2.5 text-sm text-violet-800">
+                            <MapPin className="w-4 h-4 text-violet-400 shrink-0 mt-0.5" />
+                            <span className="leading-relaxed flex-1">{event.eventAddress}</span>
+                        </div>
+                        {event.eventAddress && (
+                            <a
+                                href={`https://maps.google.com/?q=${encodeURIComponent(event.eventAddress)}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-6 flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-white border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-50 transition-colors"
+                            >
+                                <Map className="w-3.5 h-3.5" />
+                                Ver en Google Maps
+                                <ExternalLink className="w-3 h-3 ml-auto opacity-50" />
+                            </a>
+                        )}
                     </div>
                     {event.noteFolio && (
                         <div className="flex items-center gap-2.5 text-sm text-violet-700 font-semibold pt-1">
