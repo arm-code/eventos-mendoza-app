@@ -12,19 +12,50 @@ async function nodeToPng(node: HTMLElement): Promise<string> {
   })
 }
 
-function triggerDownload(dataUrl: string, filename: string) {
+function triggerDownload(urlOrBlob: string | Blob, filename: string) {
   const link = document.createElement('a')
-  link.href = dataUrl
+  if (typeof urlOrBlob === 'string') {
+    link.href = urlOrBlob
+  } else {
+    link.href = URL.createObjectURL(urlOrBlob)
+  }
   link.download = filename
   link.addEventListener('click', (e) => e.stopPropagation())
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
+  if (typeof urlOrBlob !== 'string') {
+    setTimeout(() => URL.revokeObjectURL(link.href), 1000)
+  }
+}
+
+async function shareOrDownload(file: File, fallbackAction: () => void) {
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        title: file.name,
+        files: [file],
+      })
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        console.error('Error sharing file:', err)
+        fallbackAction()
+      }
+    }
+  } else {
+    fallbackAction()
+  }
 }
 
 export async function exportNodeToImage(node: HTMLElement, filename: string): Promise<void> {
   const dataUrl = await nodeToPng(node)
-  triggerDownload(dataUrl, `${filename}.png`)
+  const fullFilename = `${filename}.png`
+  
+  const res = await fetch(dataUrl)
+  const blob = await res.blob()
+  const file = new File([blob], fullFilename, { type: 'image/png' })
+  
+  await shareOrDownload(file, () => triggerDownload(dataUrl, fullFilename))
 }
 
 export async function exportNodeToPdf(node: HTMLElement, filename: string): Promise<void> {
@@ -63,5 +94,9 @@ export async function exportNodeToPdf(node: HTMLElement, filename: string): Prom
     pdf.addImage(dataUrl, 'PNG', x, y, renderWidth, renderHeight)
   }
 
-  pdf.save(`${filename}.pdf`)
+  const fullFilename = `${filename}.pdf`
+  const blob = pdf.output('blob')
+  const file = new File([blob], fullFilename, { type: 'application/pdf' })
+
+  await shareOrDownload(file, () => pdf.save(fullFilename))
 }

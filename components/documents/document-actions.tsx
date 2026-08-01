@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, useCallback } from 'react'
-import { Download, ImageIcon, Loader2, AlertCircle } from 'lucide-react'
+import { Download, ImageIcon, Loader2, AlertCircle, Share2, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { exportNodeToImage, exportNodeToPdf } from '@/lib/export-document'
@@ -42,14 +42,14 @@ export function DocumentActions({ filename, children, exportNode, extraActions, 
     try {
       if (type === 'png') {
         await exportNodeToImage(node, filename)
-        toast.success('Imagen descargada exitosamente', {
-          description: `${filename}.png`,
+        toast.success('Imagen generada', {
+          description: `Se procesó: ${filename}.png`,
           duration: 3000,
         })
       } else {
         await exportNodeToPdf(node, filename)
-        toast.success('PDF descargado exitosamente', {
-          description: `${filename}.pdf`,
+        toast.success('PDF generado', {
+          description: `Se procesó: ${filename}.pdf`,
           duration: 3000,
         })
       }
@@ -86,10 +86,10 @@ export function DocumentActions({ filename, children, exportNode, extraActions, 
           onClick={(e) => e.stopPropagation()}
         >
           <h3 className="text-lg font-bold text-violet-950 mb-1">
-            {isPdf ? 'Descargar PDF' : 'Descargar Imagen'}
+            {isPdf ? 'Compartir PDF' : 'Compartir Imagen'}
           </h3>
           <p className="text-sm text-violet-600 mb-5">
-            Se generará un archivo de alta calidad listo para imprimir o compartir.
+            Se generará un archivo de alta calidad listo para compartir o guardar.
           </p>
           <div className="flex gap-3">
             <Button
@@ -103,7 +103,7 @@ export function DocumentActions({ filename, children, exportNode, extraActions, 
               className="flex-1 h-12 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold shadow-lg shadow-violet-600/20"
               onClick={() => handleExport(showConfirm)}
             >
-              <Download className="h-4 w-4 mr-2" />
+              <Share2 className="h-4 w-4 mr-2" />
               Confirmar
             </Button>
           </div>
@@ -207,7 +207,7 @@ export function DocumentActions({ filename, children, exportNode, extraActions, 
                 {exporting === 'pdf' ? (
                   <Loader2 className="h-4 w-4 animate-spin text-white" />
                 ) : (
-                  <Download className="h-4 w-4 text-white" />
+                  <Share2 className="h-4 w-4 text-white" />
                 )}
                 <span>PDF</span>
               </Button>
