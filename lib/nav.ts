@@ -5,6 +5,7 @@ import {
     LayoutDashboard,
     Settings,
     Wallet,
+    Package,
     type LucideIcon,
 } from 'lucide-react'
 
@@ -40,6 +41,13 @@ export const primaryNav: NavItem[] = [
         href: '/tools/eventos',
         icon: Calendar,
         matchPrefix: '/tools/eventos',
+    },
+    {
+        label: 'Inventario',
+        shortLabel: 'Inventario',
+        href: '/tools/inventario',
+        icon: Package,
+        matchPrefix: '/tools/inventario',
     },
     { label: 'Configuración', shortLabel: 'Ajustes', href: '/configuracion', icon: Settings },
 ]

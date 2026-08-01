@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FilePlus2, FileText, Calendar, Wallet, ArrowRight } from 'lucide-react'
+import { FilePlus2, FileText, Calendar, Wallet, Package, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { PageHeader } from '@/components/admin/page-header'
 
@@ -38,6 +38,14 @@ const toolsList = [
     icon: Wallet,
     btnLabel: 'Ver Finanzas',
     primary: false,
+  },
+  {
+    title: 'Gestión de Inventario',
+    description: 'Administra tus productos, stock, ubicaciones y movimientos en tiempo real.',
+    href: '/tools/inventario',
+    icon: Package,
+    btnLabel: 'Gestionar Inventario',
+    primary: true,
   },
 ]
 
