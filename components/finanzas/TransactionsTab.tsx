@@ -443,9 +443,11 @@ function TransactionForm({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">Ninguno</SelectItem>
-                {events.map((evt) => (
-                  <SelectItem key={evt.id} value={evt.id}>{evt.name}</SelectItem>
-                ))}
+                {events
+                  .filter((evt) => evt.status === 'pending' || evt.id === field.value)
+                  .map((evt) => (
+                    <SelectItem key={evt.id} value={evt.id}>{evt.name}</SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           )}
