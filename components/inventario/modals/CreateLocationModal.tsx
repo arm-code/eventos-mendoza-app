@@ -3,7 +3,6 @@ import { AppBottomSheet } from '@/components/ui/app-bottom-sheet';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Warehouse, DoorOpen, Truck, Loader2 } from 'lucide-react';
 import { inventarioApi } from '@/lib/inventario/api';
 import type { InventoryLocationType, CreateInventoryLocationDto } from '@/lib/inventario/types';
@@ -16,7 +15,7 @@ interface CreateLocationModalProps {
 
 const LOCATION_TYPES: { id: InventoryLocationType; icon: React.ElementType; label: string }[] = [
   { id: 'warehouse', icon: Warehouse, label: 'Bodega' },
-  { id: 'room', icon: DoorOpen, label: 'Sala / Cuarto' },
+  { id: 'room', icon: DoorOpen, label: 'Sala' },
   { id: 'vehicle', icon: Truck, label: 'Vehículo' },
 ];
 
@@ -69,35 +68,36 @@ export default function CreateLocationModal({ isOpen, onClose, onCreated }: Crea
       title="Nueva Ubicación"
       description="Agrega una bodega, sala o vehículo para rastrear dónde están tus artículos."
     >
-      <div className="space-y-6 pb-6">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="loc-name" className="text-violet-900">Nombre de la Ubicación <span className="text-red-500">*</span></Label>
+      <div className="space-y-6 pb-8 px-1">
+        <div className="space-y-5">
+          <div className="space-y-2.5">
+            <Label htmlFor="loc-name" className="text-violet-900 text-sm font-semibold">
+              Nombre <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="loc-name"
-              placeholder="Ej. Bodega Central, Unidad Móvil 01"
+              placeholder="Ej. Bodega Central"
               value={name}
               onChange={e => setName(e.target.value)}
-              className="border-violet-200"
+              className="h-12 sm:h-10 border-violet-200 rounded-xl text-base sm:text-sm"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-violet-900">Tipo de Ubicación</Label>
-            <div className="grid grid-cols-3 gap-2">
+          <div className="space-y-2.5">
+            <Label className="text-violet-900 text-sm font-semibold">Tipo de Ubicación</Label>
+            <div className="grid grid-cols-3 gap-3">
               {LOCATION_TYPES.map(locType => (
                 <button
                   key={locType.id}
                   type="button"
                   onClick={() => setType(locType.id)}
-                  className={`flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl border transition-all ${
-                    type === locType.id
+                  className={`flex flex-col items-center justify-center gap-2 p-4 sm:p-3 rounded-2xl border-2 transition-all active:scale-95 duration-150 min-h-[80px] ${type === locType.id
                       ? 'bg-violet-50 border-violet-500 text-violet-700 shadow-sm'
                       : 'bg-white border-violet-100 text-violet-400 hover:border-violet-300'
-                  }`}
+                    }`}
                 >
-                  <locType.icon className="w-5 h-5" />
-                  <span className="text-xs font-medium">{locType.label}</span>
+                  <locType.icon className="w-6 h-6 sm:w-5 sm:h-5" />
+                  <span className="text-xs font-bold">{locType.label}</span>
                 </button>
               ))}
             </div>
@@ -105,20 +105,20 @@ export default function CreateLocationModal({ isOpen, onClose, onCreated }: Crea
         </div>
 
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-2">{error}</p>
+          <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3 font-medium">{error}</p>
         )}
 
-        <div className="pt-4 flex justify-end gap-3 border-t border-violet-100">
+        <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-violet-100">
           <Button
             variant="outline"
-            className="border-violet-200 text-violet-700 hover:bg-violet-50"
+            className="h-12 sm:h-10 border-violet-200 text-violet-700 hover:bg-violet-50 rounded-xl font-semibold active:scale-95 transition-all"
             onClick={handleClose}
             disabled={isSubmitting}
           >
             Cancelar
           </Button>
           <Button
-            className="bg-violet-600 hover:bg-violet-700 text-white shadow-md"
+            className="h-12 sm:h-10 bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white shadow-md rounded-xl font-semibold active:scale-95 transition-all"
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
