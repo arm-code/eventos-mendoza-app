@@ -149,6 +149,11 @@ export const financeApi = {
     if (Array.isArray(data.services)) payload.services = data.services;
     if (Array.isArray(data.coverageAreas)) payload.coverageAreas = data.coverageAreas;
     if (typeof data.termsAndConditions === 'string') payload.termsAndConditions = data.termsAndConditions;
+    if (typeof data.description === 'string') payload.description = data.description.trim();
+    if (typeof data.history === 'string') payload.history = data.history.trim();
+    if (typeof data.mission === 'string') payload.mission = data.mission.trim();
+    if (typeof data.vision === 'string') payload.vision = data.vision.trim();
+    if (typeof data.openingHours === 'string') payload.openingHours = data.openingHours.trim();
 
     const res = await axiosInstance.patch<BusinessConfig>(`${PREFIX}/config`, payload);
     return res.data;

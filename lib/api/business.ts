@@ -30,6 +30,8 @@ export interface UpdateBusinessDto {
 
 const PREFIX = '/v1/businesses';
 
+import { PublicBusinessResponse } from '@/types/finance';
+
 export const businessApi = {
   getBusinesses: async (): Promise<Business[]> => {
     const res = await axiosInstance.get<Business[]>(PREFIX);
@@ -38,6 +40,11 @@ export const businessApi = {
 
   getBusinessById: async (id: string): Promise<Business> => {
     const res = await axiosInstance.get<Business>(`${PREFIX}/${id}`);
+    return res.data;
+  },
+
+  getPublicBusinessBySlug: async (slug: string): Promise<PublicBusinessResponse> => {
+    const res = await axiosInstance.get<PublicBusinessResponse>(`${PREFIX}/public/${slug}`);
     return res.data;
   },
 

@@ -170,6 +170,11 @@ export interface BusinessConfig {
   services: string[];
   coverageAreas: string[];
   termsAndConditions?: string;
+  description?: string;
+  history?: string;
+  mission?: string;
+  vision?: string;
+  openingHours?: string;
   paymentCards: PaymentCard[];
   createdAt?: string;
   updatedAt?: string;
@@ -185,6 +190,11 @@ export interface UpdateBusinessConfigDto {
   services?: string[];
   coverageAreas?: string[];
   termsAndConditions?: string;
+  description?: string;
+  history?: string;
+  mission?: string;
+  vision?: string;
+  openingHours?: string;
 }
 
 export interface CreatePaymentCardDto {
@@ -192,4 +202,12 @@ export interface CreatePaymentCardDto {
   cardNumber?: string;
   clabe?: string;
   beneficiary: string;
+}
+
+export interface PublicBusinessResponse {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl?: string;
+  config: BusinessConfig;
 }

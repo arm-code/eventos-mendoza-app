@@ -3,7 +3,7 @@
 import { useState, useEffect, ChangeEvent } from 'react'
 import {
   Building2, Phone, MessageSquare, Mail, MapPin, CreditCard, Plus, Trash2,
-  Save, Loader2, FileText, CheckCircle2, ShieldAlert, Tags, Globe
+  Save, Loader2, FileText, CheckCircle2, ShieldAlert, Tags, Globe, Clock
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -38,6 +38,11 @@ export default function ConfigurationPage() {
   const [address, setAddress] = useState('')
   const [logoUrl, setLogoUrl] = useState('')
   const [terms, setTerms] = useState('')
+  const [description, setDescription] = useState('')
+  const [history, setHistory] = useState('')
+  const [mission, setMission] = useState('')
+  const [vision, setVision] = useState('')
+  const [openingHours, setOpeningHours] = useState('')
   const [services, setServices] = useState<string[]>([])
   const [coverageAreas, setCoverageAreas] = useState<string[]>([])
 
@@ -62,6 +67,11 @@ export default function ConfigurationPage() {
     setAddress(config.address || '')
     setLogoUrl(config.logoUrl || '')
     setTerms(config.termsAndConditions || '')
+    setDescription(config.description || '')
+    setHistory(config.history || '')
+    setMission(config.mission || '')
+    setVision(config.vision || '')
+    setOpeningHours(config.openingHours || 'Lunes a Domingo 08:00 - 21:00')
     setServices(config.services || defaultBusinessConfig.services)
     setCoverageAreas(config.coverageAreas || defaultBusinessConfig.coverageAreas)
   }, [apiConfig])
@@ -122,6 +132,11 @@ export default function ConfigurationPage() {
       services,
       coverageAreas,
       termsAndConditions: terms,
+      description,
+      history,
+      mission,
+      vision,
+      openingHours,
     })
   }
 
@@ -276,6 +291,34 @@ export default function ConfigurationPage() {
                 value={logoUrl}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setLogoUrl(e.target.value)}
                 placeholder="https://eventos-mendoza.com/logo.png"
+                className="h-12 rounded-xl border-violet-200 focus:border-violet-500 text-sm"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="bdesc" className="text-sm font-medium text-violet-900 flex items-center gap-1.5">
+                <FileText className="h-3.5 w-3.5 text-violet-400" />
+                Eslogan / Descripción para la Landing Page
+              </Label>
+              <Input
+                id="bdesc"
+                value={description}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setDescription(e.target.value)}
+                placeholder="Renta de mesas, sillas, carpas, mantelería y artículos para fiestas."
+                className="h-12 rounded-xl border-violet-200 focus:border-violet-500 text-sm"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="bhours" className="text-sm font-medium text-violet-900 flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-violet-400" />
+                Horarios de atención
+              </Label>
+              <Input
+                id="bhours"
+                value={openingHours}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setOpeningHours(e.target.value)}
+                placeholder="Lunes a Domingo 08:00 - 21:00"
                 className="h-12 rounded-xl border-violet-200 focus:border-violet-500 text-sm"
               />
             </div>
@@ -465,6 +508,51 @@ export default function ConfigurationPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Historia, Misión y Visión */}
+      <Card className="border-violet-100 bg-white shadow-sm rounded-2xl overflow-hidden">
+        <CardHeader className="pb-3 border-b border-violet-50 bg-violet-50/30">
+          <CardTitle className="text-sm font-bold text-violet-950 flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-violet-600" />
+            Contenido Institucional de la Landing Page
+          </CardTitle>
+          <CardDescription className="text-xs text-violet-500">
+            Historia, Misión y Visión presentadas en la página pública del negocio.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-4 space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-sm font-medium text-violet-900">Nuestra Historia</Label>
+            <textarea
+              value={history}
+              onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setHistory(e.target.value)}
+              placeholder="Nacimos como un negocio familiar para resolver algo simple..."
+              className="w-full min-h-[90px] rounded-xl border border-violet-200 p-3 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 resize-y"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-violet-900">Misión</Label>
+              <textarea
+                value={mission}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setMission(e.target.value)}
+                placeholder="Facilitar eventos memorables con renta confiable..."
+                className="w-full min-h-[80px] rounded-xl border border-violet-200 p-3 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 resize-y"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium text-violet-900">Visión</Label>
+              <textarea
+                value={vision}
+                onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setVision(e.target.value)}
+                placeholder="Ser el proveedor de renta de mobiliario más recomendado..."
+                className="w-full min-h-[80px] rounded-xl border border-violet-200 p-3 text-sm focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 resize-y"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Cláusulas y Términos */}
       <Card className="border-violet-100 bg-white shadow-sm rounded-2xl overflow-hidden">
