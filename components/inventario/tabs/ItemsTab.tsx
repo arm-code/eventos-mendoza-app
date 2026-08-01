@@ -227,10 +227,10 @@ export default function ItemsTab() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-40 rounded-xl border-violet-100 shadow-xl">
-                        <DropdownMenuItem className="cursor-pointer rounded-lg focus:bg-violet-50" onClick={() => openDetails(item)}>
+                        <DropdownMenuItem className="cursor-pointer rounded-lg focus:bg-violet-50" onSelect={() => setTimeout(() => openDetails(item), 100)}>
                           Ver detalle
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="cursor-pointer rounded-lg focus:bg-violet-50" onClick={() => openEdit(item)}>
+                        <DropdownMenuItem className="cursor-pointer rounded-lg focus:bg-violet-50" onSelect={() => setTimeout(() => openEdit(item), 100)}>
                           Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem className="cursor-pointer rounded-lg focus:bg-violet-50">Movimientos</DropdownMenuItem>
