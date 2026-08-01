@@ -6,13 +6,16 @@ import { Button } from '@/components/ui/button';
 import { inventarioApi } from '@/lib/inventario/api';
 import type { InventoryCategory } from '@/lib/inventario/types';
 import CreateCategoryModal from '@/components/inventario/modals/CreateCategoryModal';
-import { Edit2, Loader2, Plus, Settings2, Tags, Trash2 } from 'lucide-react';
+import EditCategoryModal from '@/components/inventario/modals/EditCategoryModal';
+import { Edit2, Loader2, Plus, Tags } from 'lucide-react';
 
 export default function CategoriesTab() {
   const [categories, setCategories] = useState<InventoryCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<InventoryCategory | null>(null);
 
   const fetchCategories = useCallback(async () => {
     setIsLoading(true);
@@ -74,15 +77,17 @@ export default function CategoriesTab() {
                 >
                   {cat.name}
                 </span>
-                <div className="flex gap-1">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-violet-400 hover:text-violet-700 rounded-lg">
+                <div className="flex gap-1 flex-shrink-0">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-violet-400 hover:text-violet-700 rounded-lg"
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      setIsEditModalOpen(true);
+                    }}
+                  >
                     <Edit2 className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-violet-400 hover:text-violet-700 rounded-lg">
-                    <Settings2 className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-violet-400 hover:text-red-600 rounded-lg">
-                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -114,6 +119,20 @@ export default function CategoriesTab() {
           setIsCreateModalOpen(false);
           fetchCategories();
         }}
+      />
+
+      <EditCategoryModal 
+        isOpen={isEditModalOpen} 
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedCategory(null);
+        }} 
+        onUpdated={() => {
+          setIsEditModalOpen(false);
+          setSelectedCategory(null);
+          fetchCategories();
+        }} 
+        category={selectedCategory}
       />
     </div>
   );

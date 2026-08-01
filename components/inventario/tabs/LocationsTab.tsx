@@ -3,16 +3,19 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus, Edit2, Trash2, Loader2, MapPin, Warehouse, DoorOpen, Truck } from 'lucide-react';
+import { Plus, Edit2, Loader2, MapPin, Warehouse, DoorOpen, Truck } from 'lucide-react';
 import { inventarioApi } from '@/lib/inventario/api';
 import type { InventoryLocation, InventoryLocationType } from '@/lib/inventario/types';
 import CreateLocationModal from '@/components/inventario/modals/CreateLocationModal';
+import EditLocationModal from '@/components/inventario/modals/EditLocationModal';
 
 export default function LocationsTab() {
   const [locations, setLocations] = useState<InventoryLocation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<InventoryLocation | null>(null);
 
   const fetchLocations = useCallback(async () => {
     setIsLoading(true);
@@ -96,11 +99,16 @@ export default function LocationsTab() {
                   </span>
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-violet-400 hover:text-violet-700 rounded-lg">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 text-violet-400 hover:text-violet-700 rounded-lg"
+                    onClick={() => {
+                      setSelectedLocation(loc);
+                      setIsEditModalOpen(true);
+                    }}
+                  >
                     <Edit2 className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-violet-400 hover:text-red-600 rounded-lg">
-                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
@@ -116,6 +124,20 @@ export default function LocationsTab() {
           setIsCreateModalOpen(false);
           fetchLocations();
         }} 
+      />
+
+      <EditLocationModal 
+        isOpen={isEditModalOpen} 
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setSelectedLocation(null);
+        }} 
+        onUpdated={() => {
+          setIsEditModalOpen(false);
+          setSelectedLocation(null);
+          fetchLocations();
+        }} 
+        location={selectedLocation}
       />
     </div>
   );
