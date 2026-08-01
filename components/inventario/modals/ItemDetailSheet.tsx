@@ -41,7 +41,7 @@ export default function ItemDetailSheet({ isOpen, onClose, item, onEditClick }: 
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2">
           <Button
             variant="outline"
             onClick={onEditClick}
@@ -76,15 +76,15 @@ export default function ItemDetailSheet({ isOpen, onClose, item, onEditClick }: 
               </div>
               <span className="font-bold text-violet-900 text-lg sm:text-base">{item.rentPrice ? `$${item.rentPrice}` : '—'}</span>
             </div>
-            <div className="p-4 sm:p-3 bg-white rounded-2xl border border-violet-100 shadow-sm flex items-center justify-between active:scale-[0.98] transition-transform duration-150">
-              <div className="flex items-center gap-2 text-violet-500">
-                <MapPin className="w-4 h-4" />
-                <span className="text-xs font-bold uppercase tracking-wider">Ubicación</span>
-              </div>
-              <span className="font-bold text-violet-900 text-right text-sm truncate max-w-[50%]">
-                {item.locationName ?? 'No asignada'}
-              </span>
+          </div>
+          <div className="col-span-2 p-4 sm:p-3 bg-white rounded-2xl border border-violet-100 shadow-sm flex items-center justify-between active:scale-[0.98] transition-transform duration-150">
+            <div className="flex items-center gap-2 text-violet-500">
+              <MapPin className="w-4 h-4" />
+              <span className="text-xs font-bold uppercase tracking-wider">Ubicación</span>
             </div>
+            <span className="font-bold text-violet-900 text-right text-sm">
+              {item.locationName ?? 'No asignada'}
+            </span>
           </div>
         </div>
 
