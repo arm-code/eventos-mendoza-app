@@ -16,15 +16,8 @@ interface CreateCategoryModalProps {
 }
 
 const COLOR_PRESETS = [
-  '#6b7280', // gray
-  '#ef4444', // red
-  '#f97316', // orange
-  '#f59e0b', // amber
-  '#10b981', // emerald
-  '#06b6d4', // cyan
-  '#3b82f6', // blue
-  '#7c3aed', // violet
-  '#ec4899', // pink
+  '#6b7280', '#ef4444', '#f97316', '#f59e0b', '#10b981',
+  '#06b6d4', '#3b82f6', '#7c3aed', '#ec4899',
 ];
 
 export default function CreateCategoryModal({ isOpen, onClose, onCreated }: CreateCategoryModalProps) {
@@ -67,8 +60,6 @@ export default function CreateCategoryModal({ isOpen, onClose, onCreated }: Crea
       setError('El nombre de la categoría es obligatorio.');
       return;
     }
-
-    // Validate attributes
     for (const attr of attributes) {
       if (!attr.name.trim()) {
         setError('Todos los atributos deben tener un nombre.');
@@ -103,28 +94,31 @@ export default function CreateCategoryModal({ isOpen, onClose, onCreated }: Crea
       title="Nueva Categoría"
       description="Crea una agrupación lógica y define sus atributos dinámicos."
     >
-      <div className="space-y-6 pb-6">
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="category-name" className="text-violet-900">Nombre de Categoría <span className="text-red-500">*</span></Label>
+      <div className="space-y-6 pb-8 px-1">
+        <div className="space-y-5">
+          <div className="space-y-2.5">
+            <Label htmlFor="category-name" className="text-violet-900 text-sm font-semibold">
+              Nombre de Categoría <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="category-name"
               placeholder="Ej. Sillas, Audio, Mantelería"
               value={name}
               onChange={e => setName(e.target.value)}
-              className="border-violet-200"
+              className="h-12 sm:h-10 border-violet-200 rounded-xl text-base sm:text-sm focus-visible:ring-violet-500"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-violet-900">Color Distintivo</Label>
-            <div className="flex flex-wrap gap-2">
+          <div className="space-y-2.5">
+            <Label className="text-violet-900 text-sm font-semibold">Color Distintivo</Label>
+            <div className="flex flex-wrap gap-3">
               {COLOR_PRESETS.map(c => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
-                  className={`w-8 h-8 rounded-full border-2 transition-transform ${color === c ? 'scale-110 border-violet-950 shadow-md' : 'border-transparent'}`}
+                  className={`w-11 h-11 sm:w-9 sm:h-9 rounded-full border-[3px] transition-all active:scale-90 duration-150 shadow-sm ${color === c ? 'border-violet-950 scale-110 shadow-md' : 'border-transparent'
+                    }`}
                   style={{ backgroundColor: c }}
                   aria-label={`Seleccionar color ${c}`}
                 />
@@ -134,83 +128,98 @@ export default function CreateCategoryModal({ isOpen, onClose, onCreated }: Crea
         </div>
 
         <div className="space-y-4">
-          <div className="flex items-center justify-between border-b border-violet-100 pb-2">
-            <h4 className="text-sm font-semibold text-violet-950">Atributos Dinámicos</h4>
-            <Button type="button" variant="ghost" size="sm" onClick={handleAddAttribute} className="h-8 text-violet-600 hover:bg-violet-50">
-              <Plus className="w-4 h-4 mr-1" />
-              Agregar Atributo
+          <div className="flex items-center justify-between border-b border-violet-100 pb-3">
+            <h4 className="text-sm font-bold text-violet-950">Atributos Dinámicos</h4>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleAddAttribute}
+              className="h-10 sm:h-8 px-3 text-violet-600 hover:bg-violet-50 rounded-lg active:scale-95 transition-all"
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              Agregar
             </Button>
           </div>
 
-          <p className="text-xs text-violet-500">
+          <p className="text-xs text-violet-500 leading-relaxed">
             Define propiedades específicas que tendrán los ítems de esta categoría (Ej. Material, Voltaje, Color).
           </p>
 
           <div className="space-y-3">
             {attributes.map((attr, index) => (
-              <div key={index} className="flex flex-col sm:flex-row gap-3 items-start sm:items-center bg-violet-50/50 p-3 rounded-xl border border-violet-100">
-                <div className="w-full sm:flex-1 space-y-1">
-                  <Label className="text-[10px] uppercase tracking-wider text-violet-500">Nombre</Label>
-                  <Input
-                    placeholder="Ej. Capacidad (Kg)"
-                    value={attr.name}
-                    onChange={e => handleAttributeChange(index, 'name', e.target.value)}
-                    className="h-9 border-violet-200 bg-white"
-                  />
+              <div key={index} className="flex flex-col gap-3 bg-violet-50/60 p-4 rounded-2xl border border-violet-100">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] uppercase tracking-wider text-violet-500 font-bold">Nombre</Label>
+                    <Input
+                      placeholder="Ej. Capacidad (Kg)"
+                      value={attr.name}
+                      onChange={e => handleAttributeChange(index, 'name', e.target.value)}
+                      className="h-12 sm:h-9 border-violet-200 bg-white rounded-xl text-base sm:text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] uppercase tracking-wider text-violet-500 font-bold">Tipo</Label>
+                    <Select value={attr.type} onValueChange={(val: InventoryAttributeType) => handleAttributeChange(index, 'type', val)}>
+                      <SelectTrigger className="h-12 sm:h-9 border-violet-200 bg-white rounded-xl text-base sm:text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="string">Texto</SelectItem>
+                        <SelectItem value="number">Número</SelectItem>
+                        <SelectItem value="boolean">Sí/No</SelectItem>
+                        <SelectItem value="date">Fecha</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div className="w-full sm:w-32 space-y-1">
-                  <Label className="text-[10px] uppercase tracking-wider text-violet-500">Tipo</Label>
-                  <Select value={attr.type} onValueChange={(val: InventoryAttributeType) => handleAttributeChange(index, 'type', val)}>
-                    <SelectTrigger className="h-9 border-violet-200 bg-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="string">Texto</SelectItem>
-                      <SelectItem value="number">Número</SelectItem>
-                      <SelectItem value="boolean">Sí/No</SelectItem>
-                      <SelectItem value="date">Fecha</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-3 mt-2 sm:mt-0 sm:pt-5">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm text-violet-700">
+                <div className="flex items-center justify-between">
+                  <label className="flex items-center gap-3 cursor-pointer text-sm text-violet-700 h-11">
                     <Checkbox
                       checked={attr.required}
                       onCheckedChange={(checked) => handleAttributeChange(index, 'required', !!checked)}
-                      className="border-violet-300 data-[state=checked]:bg-violet-600"
+                      className="h-5 w-5 border-violet-300 data-[state=checked]:bg-violet-600 rounded-md"
                     />
-                    Requerido
+                    <span>Requerido</span>
                   </label>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveAttribute(index)} className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 shrink-0">
-                    <X className="w-4 h-4" />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveAttribute(index)}
+                    className="h-11 w-11 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-xl active:scale-90 transition-all"
+                  >
+                    <X className="w-5 h-5" />
                   </Button>
                 </div>
               </div>
             ))}
 
             {attributes.length === 0 && (
-              <div className="text-center py-6 border border-dashed border-violet-200 rounded-xl bg-violet-50/30">
-                <p className="text-sm text-violet-400">Sin atributos configurados</p>
+              <div className="text-center py-8 border-2 border-dashed border-violet-200 rounded-2xl bg-violet-50/30">
+                <p className="text-sm text-violet-400 font-medium">Sin atributos configurados</p>
+                <p className="text-xs text-violet-300 mt-1">Toca "Agregar" para crear uno</p>
               </div>
             )}
           </div>
         </div>
 
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-2">{error}</p>
+          <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3 font-medium">{error}</p>
         )}
 
-        <div className="pt-4 flex justify-end gap-3 border-t border-violet-100">
+        <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-violet-100">
           <Button
             variant="outline"
-            className="border-violet-200 text-violet-700 hover:bg-violet-50"
+            className="h-12 sm:h-10 border-violet-200 text-violet-700 hover:bg-violet-50 rounded-xl font-semibold active:scale-95 transition-all"
             onClick={handleClose}
             disabled={isSubmitting}
           >
             Cancelar
           </Button>
           <Button
-            className="bg-violet-600 hover:bg-violet-700 text-white shadow-md"
+            className="h-12 sm:h-10 bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white shadow-md rounded-xl font-semibold active:scale-95 transition-all"
             onClick={handleSubmit}
             disabled={isSubmitting}
           >
