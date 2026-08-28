@@ -79,7 +79,7 @@ export interface CreateBusinessEventDto {
   cost?: number;
   status?: EventStatus;
   guaranteeDocument?: string;
-  noteId?: string;
+  noteId?: string | null;
   notes?: string;
 }
 

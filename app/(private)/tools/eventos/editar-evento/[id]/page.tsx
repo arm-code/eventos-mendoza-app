@@ -7,7 +7,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2, Save, ArrowLeft } from 'lucide-react'
 
 import { financeApi } from '@/lib/api/finance'
-import { noteTotal } from '@/lib/calculations'
 import { defaultBusinessConfig } from '@/lib/config'
 import type { BusinessEvent, UpdateBusinessEventDto, EventStatus, BusinessConfig } from '@/types/finance'
 
@@ -62,14 +61,12 @@ export default function EditarEventoPage({ params }: { params: Promise<{ id: str
         }
     }, [rawEvents, eventId])
 
-    // Load available notes from localStorage
-    const [availableNotes, setAvailableNotes] = useState<any[]>([])
-    useEffect(() => {
-        try {
-            const stored = localStorage.getItem('v-notes')
-            if (stored) setAvailableNotes(JSON.parse(stored))
-        } catch { }
-    }, [])
+    // Load available notes from API
+    const { data: availableNotesData } = useQuery({
+        queryKey: ['salesNotes'],
+        queryFn: () => financeApi.getSalesNotes(),
+    })
+    const availableNotes = availableNotesData || []
 
     // Business Config
     const { data: apiConfig } = useQuery({
@@ -104,7 +101,7 @@ export default function EditarEventoPage({ params }: { params: Promise<{ id: str
             clientPhone: formClientPhone.trim() || undefined,
             eventAddress: formAddress.trim() || undefined,
             status: formStatus,
-            noteId: formNoteId === 'none' ? undefined : formNoteId,
+            noteId: formNoteId === 'none' ? null : formNoteId,
             guaranteeDocument: formGuarantee,
             notes: formNotes.trim() || undefined,
         })
@@ -229,9 +226,9 @@ export default function EditarEventoPage({ params }: { params: Promise<{ id: str
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="none">Sin nota</SelectItem>
-                                        {availableNotes.map((note) => (
+                                        {availableNotes.map((note: any) => (
                                             <SelectItem key={note.id} value={note.id}>
-                                                {note.folio} — {note.customer?.name} (${noteTotal(note)})
+                                                {note.folio} — {note.customerName || note.customer?.name} (${note.total})
                                             </SelectItem>
                                         ))}
                                     </SelectContent>

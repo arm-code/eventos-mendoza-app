@@ -8,7 +8,6 @@ import { Loader2, Save, ArrowLeft } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 import { financeApi } from '@/lib/api/finance'
-import { noteTotal } from '@/lib/calculations'
 import { defaultBusinessConfig } from '@/lib/config'
 import type { BusinessEvent, CreateBusinessEventDto, EventStatus, BusinessConfig } from '@/types/finance'
 
@@ -35,14 +34,12 @@ export default function CrearEventoPage() {
     const [formGuarantee, setFormGuarantee] = useState('INE / Credencial de Elector')
     const [formNotes, setFormNotes] = useState('')
 
-    // Load available notes from localStorage
-    const [availableNotes, setAvailableNotes] = useState<any[]>([])
-    useEffect(() => {
-        try {
-            const stored = localStorage.getItem('v-notes')
-            if (stored) setAvailableNotes(JSON.parse(stored))
-        } catch { }
-    }, [])
+    // Load available notes from API
+    const { data: availableNotesData } = useQuery({
+        queryKey: ['salesNotes'],
+        queryFn: () => financeApi.getSalesNotes(),
+    })
+    const availableNotes = availableNotesData || []
 
     // Business Config
     const { data: apiConfig } = useQuery({
@@ -78,7 +75,7 @@ export default function CrearEventoPage() {
             clientPhone: formClientPhone.trim() || undefined,
             eventAddress: formAddress.trim() || undefined,
             status: formStatus,
-            noteId: formNoteId === 'none' ? undefined : formNoteId,
+            noteId: formNoteId === 'none' ? null : formNoteId,
             guaranteeDocument: formGuarantee,
             notes: formNotes.trim() || undefined,
         })
@@ -203,9 +200,9 @@ export default function CrearEventoPage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="none">Sin nota</SelectItem>
-                                        {availableNotes.map((note) => (
+                                        {availableNotes.map((note: any) => (
                                             <SelectItem key={note.id} value={note.id}>
-                                                {note.folio} — {note.customer?.name} (${noteTotal(note)})
+                                                {note.folio} — {note.customerName || note.customer?.name} (${note.total})
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
