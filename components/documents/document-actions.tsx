@@ -22,32 +22,32 @@ interface DocumentActionsProps {
 
 export function DocumentActions({ filename, children, exportNode, extraActions, title }: DocumentActionsProps) {
   const exportRef = useRef<HTMLDivElement>(null)
-  const [exporting, setExporting] = useState<'png' | 'pdf' | null>(null)
-  const [showConfirm, setShowConfirm] = useState<'png' | 'pdf' | null>(null)
+  const [exporting, setExporting] = useState<{ format: 'png' | 'pdf', action: 'share' | 'download' } | null>(null)
+  const [showConfirm, setShowConfirm] = useState<'share' | 'download' | null>(null)
 
   // ── Export Handler ──
-  const handleExport = useCallback(async (type: 'png' | 'pdf') => {
+  const handleExport = useCallback(async (format: 'png' | 'pdf', action: 'share' | 'download') => {
     const node = exportRef.current
     if (!node) {
       toast.error('Error interno: nodo de exportación no disponible')
       return
     }
 
-    setExporting(type)
+    setExporting({ format, action })
     setShowConfirm(null)
 
     // Pequeño delay para permitir que el UI se actualice antes del proceso pesado
     await new Promise((resolve) => setTimeout(resolve, 100))
 
     try {
-      if (type === 'png') {
-        await exportNodeToImage(node, filename)
+      if (format === 'png') {
+        await exportNodeToImage(node, filename, action)
         toast.success('Imagen generada', {
           description: `Se procesó: ${filename}.png`,
           duration: 3000,
         })
       } else {
-        await exportNodeToPdf(node, filename)
+        await exportNodeToPdf(node, filename, action)
         toast.success('PDF generado', {
           description: `Se procesó: ${filename}.pdf`,
           duration: 3000,
@@ -67,7 +67,7 @@ export function DocumentActions({ filename, children, exportNode, extraActions, 
   // ── Confirm Dialog for Mobile ──
   const ExportConfirmDialog = () => {
     if (!showConfirm) return null
-    const isPdf = showConfirm === 'pdf'
+    const isShare = showConfirm === 'share'
 
     return (
       <motion.div
@@ -86,27 +86,35 @@ export function DocumentActions({ filename, children, exportNode, extraActions, 
           onClick={(e) => e.stopPropagation()}
         >
           <h3 className="text-lg font-bold text-violet-950 mb-1">
-            {isPdf ? 'Compartir PDF' : 'Compartir Imagen'}
+            {isShare ? 'Compartir documento' : 'Descargar documento'}
           </h3>
           <p className="text-sm text-violet-600 mb-5">
-            Se generará un archivo de alta calidad listo para compartir o guardar.
+            Elige el formato en el que deseas {isShare ? 'compartir' : 'descargar'}.
           </p>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-col sm:flex-row">
             <Button
               variant="outline"
               className="flex-1 h-12 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 font-semibold"
-              onClick={() => setShowConfirm(null)}
+              onClick={() => handleExport('png', showConfirm)}
             >
-              Cancelar
+              <ImageIcon className="h-4 w-4 mr-2" />
+              Imagen (PNG)
             </Button>
             <Button
               className="flex-1 h-12 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold shadow-lg shadow-violet-600/20"
-              onClick={() => handleExport(showConfirm)}
+              onClick={() => handleExport('pdf', showConfirm)}
             >
-              <Share2 className="h-4 w-4 mr-2" />
-              Confirmar
+              <FileText className="h-4 w-4 mr-2" />
+              Documento (PDF)
             </Button>
           </div>
+          <Button
+            variant="ghost"
+            className="w-full mt-3 h-10 rounded-xl text-violet-500 hover:text-violet-700 hover:bg-violet-50 font-semibold"
+            onClick={() => setShowConfirm(null)}
+          >
+            Cancelar
+          </Button>
         </motion.div>
       </motion.div>
     )
@@ -165,7 +173,7 @@ export function DocumentActions({ filename, children, exportNode, extraActions, 
           <div className="flex items-center gap-2 sm:gap-3 justify-center max-w-lg mx-auto">
             {extraActions}
 
-            {/* PNG Export Button */}
+            {/* Download Button */}
             <motion.div whileTap={{ scale: 0.96 }} className="flex-1 sm:flex-none">
               <Button
                 variant="outline"
@@ -174,23 +182,23 @@ export function DocumentActions({ filename, children, exportNode, extraActions, 
                   "hover:bg-violet-50 active:bg-violet-100 active:scale-[0.98]",
                   "touch-manipulation gap-2 text-sm font-semibold px-5",
                   "transition-all duration-150",
-                  exporting === 'png' && "opacity-60 pointer-events-none"
+                  exporting?.action === 'download' && "opacity-60 pointer-events-none"
                 )}
-                onClick={() => setShowConfirm('png')}
+                onClick={() => setShowConfirm('download')}
                 disabled={exporting !== null}
                 style={{ touchAction: 'manipulation' }}
               >
-                {exporting === 'png' ? (
+                {exporting?.action === 'download' ? (
                   <Loader2 className="h-4 w-4 animate-spin text-violet-600" />
                 ) : (
-                  <ImageIcon className="h-4 w-4 text-violet-600" />
+                  <Download className="h-4 w-4 text-violet-600" />
                 )}
-                <span className="hidden sm:inline">Imagen</span>
-                <span className="sm:hidden">IMG</span>
+                <span className="hidden sm:inline">Descargar</span>
+                <span className="sm:hidden">Guardar</span>
               </Button>
             </motion.div>
 
-            {/* PDF Export Button */}
+            {/* Share Button */}
             <motion.div whileTap={{ scale: 0.96 }} className="flex-1 sm:flex-none">
               <Button
                 className={cn(
@@ -198,18 +206,18 @@ export function DocumentActions({ filename, children, exportNode, extraActions, 
                   "shadow-lg shadow-violet-600/20 active:scale-[0.98]",
                   "touch-manipulation gap-2 text-sm font-bold px-6",
                   "transition-all duration-150",
-                  exporting === 'pdf' && "opacity-60 pointer-events-none"
+                  exporting?.action === 'share' && "opacity-60 pointer-events-none"
                 )}
-                onClick={() => setShowConfirm('pdf')}
+                onClick={() => setShowConfirm('share')}
                 disabled={exporting !== null}
                 style={{ touchAction: 'manipulation' }}
               >
-                {exporting === 'pdf' ? (
+                {exporting?.action === 'share' ? (
                   <Loader2 className="h-4 w-4 animate-spin text-white" />
                 ) : (
                   <Share2 className="h-4 w-4 text-white" />
                 )}
-                <span>PDF</span>
+                <span>Compartir</span>
               </Button>
             </motion.div>
           </div>
@@ -232,7 +240,7 @@ export function DocumentActions({ filename, children, exportNode, extraActions, 
             >
               <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
               <p className="text-sm font-semibold text-violet-900">
-                Generando {exporting === 'pdf' ? 'PDF' : 'imagen'}...
+                Generando {exporting?.format === 'pdf' ? 'PDF' : 'imagen'}...
               </p>
               <p className="text-xs text-violet-500">Esto puede tomar unos segundos</p>
             </motion.div>

@@ -47,7 +47,7 @@ async function shareOrDownload(file: File, fallbackAction: () => void) {
   }
 }
 
-export async function exportNodeToImage(node: HTMLElement, filename: string): Promise<void> {
+export async function exportNodeToImage(node: HTMLElement, filename: string, action: 'share' | 'download' = 'share'): Promise<void> {
   const dataUrl = await nodeToPng(node)
   const fullFilename = `${filename}.png`
   
@@ -55,10 +55,14 @@ export async function exportNodeToImage(node: HTMLElement, filename: string): Pr
   const blob = await res.blob()
   const file = new File([blob], fullFilename, { type: 'image/png' })
   
-  await shareOrDownload(file, () => triggerDownload(dataUrl, fullFilename))
+  if (action === 'download') {
+    triggerDownload(dataUrl, fullFilename)
+  } else {
+    await shareOrDownload(file, () => triggerDownload(dataUrl, fullFilename))
+  }
 }
 
-export async function exportNodeToPdf(node: HTMLElement, filename: string): Promise<void> {
+export async function exportNodeToPdf(node: HTMLElement, filename: string, action: 'share' | 'download' = 'share'): Promise<void> {
   const dataUrl = await nodeToPng(node)
   const { jsPDF } = await import('jspdf')
 
@@ -98,5 +102,9 @@ export async function exportNodeToPdf(node: HTMLElement, filename: string): Prom
   const blob = pdf.output('blob')
   const file = new File([blob], fullFilename, { type: 'application/pdf' })
 
-  await shareOrDownload(file, () => pdf.save(fullFilename))
+  if (action === 'download') {
+    pdf.save(fullFilename)
+  } else {
+    await shareOrDownload(file, () => pdf.save(fullFilename))
+  }
 }
