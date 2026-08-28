@@ -215,21 +215,6 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig, on
                 <span className="text-white text-2xl font-bold">{formatCurrency(event.cost || 0)}</span>
             </div>
 
-            {/* ── Acciones del evento ── */}
-            <div className="flex flex-col gap-2 pt-2">
-                <button
-                    type="button"
-                    onClick={(e) => {
-                        e.preventDefault()
-                        onOpenChange(false)
-                        router.push(`/tools/eventos/editar-evento/${event.id}`)
-                    }}
-                    className="w-full flex items-center justify-center gap-2 h-12 rounded-xl border border-violet-200 text-violet-700 font-semibold text-sm hover:bg-violet-50 active:bg-violet-100 active:scale-[0.97] transition-all"
-                >
-                    <Edit2 className="w-4 h-4" />
-                    Editar Evento
-                </button>
-            </div>
 
             {/* ── Cambio de Estado (Select nativo) ── */}
             <Select
@@ -299,6 +284,23 @@ export function EventDetailSheet({ event, open, onOpenChange, businessConfig, on
                             event={event as EventContractData}
                             business={config}
                         />
+                    }
+                    extraActions={
+                        <motion.div whileTap={{ scale: 0.96 }} className="flex-1 sm:flex-none">
+                            <Button
+                                variant="outline"
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    onOpenChange(false)
+                                    router.push(`/tools/eventos/editar-evento/${event.id}`)
+                                }}
+                                className="w-full h-12 sm:h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 active:bg-violet-100 active:scale-[0.98] touch-manipulation gap-2 text-sm font-semibold px-4 transition-all duration-150"
+                            >
+                                <Edit2 className="w-4 h-4 text-violet-600" />
+                                <span className="hidden sm:inline">Editar</span>
+                                <span className="sm:hidden">Editar</span>
+                            </Button>
+                        </motion.div>
                     }
                 />
             </div>
