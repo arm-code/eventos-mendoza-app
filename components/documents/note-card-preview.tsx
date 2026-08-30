@@ -26,9 +26,7 @@ export function NoteCardPreview({ note, business }: NoteCardPreviewProps) {
           <span className="text-violet-200 text-[10px] font-bold uppercase tracking-widest">
             {note.status === 'quote' ? 'Cotización' : 'Nota de Venta'}
           </span>
-          <span className="bg-white/20 text-white text-xs font-bold px-2.5 py-1 rounded-lg">
-            {note.folio}
-          </span>
+
         </div>
         <div className="text-xs text-violet-300 mt-2 flex items-center gap-1.5">
           <Calendar className="h-3 w-3" />
