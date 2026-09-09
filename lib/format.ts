@@ -10,11 +10,15 @@ export function formatCurrency(value: number): string {
 
 export function formatDate(iso: string): string {
   try {
+    const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(iso);
+    // Si es solo fecha, agregamos T12:00:00 para forzar mediodía local y evitar desfases
+    const dateToFormat = isDateOnly ? new Date(`${iso}T12:00:00`) : new Date(iso);
+
     return new Intl.DateTimeFormat('es-MX', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',
-    }).format(new Date(iso))
+    }).format(dateToFormat)
   } catch {
     return iso
   }
