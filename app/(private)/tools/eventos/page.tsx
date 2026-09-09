@@ -154,7 +154,7 @@ export default function EventosPage() {
 
               const isActive = activeTab === tab.key
               return (
-                <button
+                <Button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
                   className={cn(
@@ -176,7 +176,7 @@ export default function EventosPage() {
                   >
                     {count}
                   </span>
-                </button>
+                </Button>
               )
             })}
           </div>
