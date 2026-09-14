@@ -11,7 +11,7 @@ const items = [
   // { title: 'Equipo de trabajo', route: '/about-owners' },
   { title: 'Datos bancarios', route: '/payment-info' },
   { title: 'Administración', route: '/auth/login' },
-  { title: 'Desarrollador', route: '/about-me' },
+  { title: 'Desarrollador', route: '/desarrollador' },
 ]
 
 const Navbar = () => {

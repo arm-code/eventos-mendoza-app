@@ -23,7 +23,7 @@ const NAV_ITEMS = [
   { label: 'Inicio', href: '#inicio' },
   { label: 'Negocios', href: '#negocios' },
   { label: 'Funciones', href: '#funciones' },
-  { label: 'Desarrollador', href: '#desarrollador' },
+  { label: 'Desarrollador', href: '/desarrollador' },
   { label: 'Contacto', href: '#contacto' },
 ];
 
@@ -82,10 +82,12 @@ function SaasNavbar() {
     return () => window.removeEventListener('scroll', handler);
   }, []);
 
-  const handleAnchor = (href: string) => {
+  const handleNavClick = (href: string) => {
     setIsMenuOpen(false);
-    const el = document.querySelector(href);
-    el?.scrollIntoView({ behavior: 'smooth' });
+    if (href.startsWith('#')) {
+      const el = document.querySelector(href);
+      el?.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
@@ -100,7 +102,7 @@ function SaasNavbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* Logo */}
         <button
-          onClick={() => handleAnchor('#inicio')}
+          onClick={() => handleNavClick('#inicio')}
           className="flex items-center gap-2 group"
         >
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-700 flex items-center justify-center shadow-lg shadow-violet-500/30">
@@ -113,15 +115,25 @@ function SaasNavbar() {
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-1">
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.label}
-              onClick={() => handleAnchor(item.href)}
-              className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-all"
-            >
-              {item.label}
-            </button>
-          ))}
+          {NAV_ITEMS.map((item) =>
+            item.href.startsWith('/') ? (
+              <Link
+                key={item.label}
+                href={item.href}
+                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+              >
+                {item.label}
+              </Link>
+            ) : (
+              <button
+                key={item.label}
+                onClick={() => handleNavClick(item.href)}
+                className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+              >
+                {item.label}
+              </button>
+            )
+          )}
         </nav>
 
         {/* CTA */}
@@ -147,15 +159,26 @@ function SaasNavbar() {
       {/* Mobile menu */}
       {isMenuOpen && (
         <div className="md:hidden bg-slate-950/98 border-t border-white/10 px-4 py-4 space-y-1">
-          {NAV_ITEMS.map((item) => (
-            <button
-              key={item.label}
-              onClick={() => handleAnchor(item.href)}
-              className="block w-full text-left px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-xl transition-all"
-            >
-              {item.label}
-            </button>
-          ))}
+          {NAV_ITEMS.map((item) =>
+            item.href.startsWith('/') ? (
+              <Link
+                key={item.label}
+                href={item.href}
+                onClick={() => setIsMenuOpen(false)}
+                className="block w-full text-left px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+              >
+                {item.label}
+              </Link>
+            ) : (
+              <button
+                key={item.label}
+                onClick={() => handleNavClick(item.href)}
+                className="block w-full text-left px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+              >
+                {item.label}
+              </button>
+            )
+          )}
           <Link
             href="/auth/login"
             className="flex items-center justify-center gap-2 w-full mt-3 bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold px-4 py-3 rounded-xl transition-all"
@@ -399,77 +422,6 @@ export default function SaasLandingPage() {
               <p className="text-slate-400 text-sm font-medium">{label}</p>
             </div>
           ))}
-        </div>
-      </section>
-
-      {/* ── DESARROLLADOR ─────────────────────────────────────────────── */}
-      <section
-        id="desarrollador"
-        className="py-20 px-4 sm:px-6 border-t border-white/5"
-      >
-        <div className="max-w-3xl mx-auto">
-          <div className="bg-white/5 border border-white/10 rounded-3xl p-8 sm:p-12">
-            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8">
-              {/* Foto */}
-              <div className="relative shrink-0">
-                <div className="absolute inset-0 rounded-full bg-gradient-to-r from-violet-500 to-purple-600 blur-md opacity-50 scale-110" />
-                <img
-                  src="/profiles/square-alro.jpg"
-                  alt="Alexis Romero Mendoza"
-                  className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full object-cover border-2 border-violet-500/50"
-                />
-              </div>
-
-              {/* Info */}
-              <div className="flex-1 text-center sm:text-left">
-                <p className="text-violet-400 text-sm font-semibold mb-1">Desarrollado por</p>
-                <h2 className="text-2xl sm:text-3xl font-black text-white mb-1">
-                  Alexis Romero Mendoza
-                </h2>
-                <p className="text-slate-400 mb-4">
-                  Ingeniero en Sistemas Computacionales · UACJ
-                </p>
-
-                {/* Tecnologías */}
-                <div className="flex flex-wrap justify-center sm:justify-start gap-2 mb-6">
-                  {TECHS.map((tech) => (
-                    <span
-                      key={tech}
-                      className="bg-violet-500/15 border border-violet-500/30 text-violet-300 text-xs font-semibold px-3 py-1 rounded-full"
-                    >
-                      {tech}
-                    </span>
-                  ))}
-                </div>
-
-                {/* Links */}
-                <div className="flex flex-wrap justify-center sm:justify-start gap-3">
-                  <a
-                    href="https://github.com/arm-code"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 bg-white/10 hover:bg-white/15 border border-white/20 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all"
-                  >
-                    <Github className="w-4 h-4" /> GitHub
-                  </a>
-                  <a
-                    href="https://youtube.com/@arm_code"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 bg-white/10 hover:bg-white/15 border border-white/20 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all"
-                  >
-                    <Youtube className="w-4 h-4" /> YouTube
-                  </a>
-                  <a
-                    href={`mailto:${SAAS_EMAIL}`}
-                    className="flex items-center gap-2 bg-white/10 hover:bg-white/15 border border-white/20 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-all"
-                  >
-                    <Mail className="w-4 h-4" /> Correo
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 

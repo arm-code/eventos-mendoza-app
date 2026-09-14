@@ -17,7 +17,6 @@ export default function TenantNavbar() {
     { title: 'Inicio', route: base },
     { title: 'Datos bancarios', route: `${base}/payment-info` },
     { title: 'Administración', route: '/auth/login' },
-    { title: 'Desarrollador', route: `${base}/about-me` },
   ];
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
