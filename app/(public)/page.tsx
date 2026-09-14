@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
-import { businessApi, type Business } from '@/lib/api/business';
+import { businessApi } from '@/lib/api/business';
+import type { PublicBusinessResponse } from '@/types/finance';
 import {
   Building2, Package, FileText, CreditCard, ChevronDown,
   Github, Youtube, Mail, Code2, Menu, X, MapPin, Phone,
@@ -169,7 +170,9 @@ function SaasNavbar() {
 }
 
 // ─── Card de Negocio ─────────────────────────────────────────────────────────
-function BusinessCard({ business }: { business: Business }) {
+function BusinessCard({ business }: { business: PublicBusinessResponse }) {
+  const logo = business.logoUrl || business.config?.logoUrl;
+  const address = business.config?.address;
   const initials = business.name
     .split(' ')
     .slice(0, 2)
@@ -179,13 +182,13 @@ function BusinessCard({ business }: { business: Business }) {
   return (
     <Link
       href={`/${business.slug || business.id}`}
-      className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-violet-500/50 rounded-2xl p-6 flex flex-col gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-500/10"
+      className="group relative bg-white/5 hover:bg-white/10 border border-white/10 hover:border-violet-500/50 rounded-2xl p-6 flex flex-col justify-between gap-4 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-violet-500/10"
     >
       {/* Logo / Iniciales */}
       <div className="flex items-center gap-4">
-        {business.logoUrl ? (
+        {logo ? (
           <img
-            src={business.logoUrl}
+            src={logo}
             alt={business.name}
             className="w-14 h-14 rounded-2xl object-cover border border-white/10"
           />
@@ -198,17 +201,31 @@ function BusinessCard({ business }: { business: Business }) {
           <h3 className="font-bold text-white text-base leading-tight truncate">
             {business.name}
           </h3>
-          {business.address && (
+          {address && (
             <p className="flex items-center gap-1 text-slate-400 text-xs mt-1 truncate">
               <MapPin className="w-3 h-3 flex-shrink-0" />
-              {business.address}
+              {address}
             </p>
           )}
         </div>
       </div>
 
+      {/* Servicios destacables si existen */}
+      {business.config?.services && business.config.services.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {business.config.services.slice(0, 3).map((service, idx) => (
+            <span
+              key={idx}
+              className="bg-white/5 border border-white/10 text-slate-300 text-[11px] px-2 py-0.5 rounded-md"
+            >
+              {service}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* CTA */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between pt-2 border-t border-white/5">
         <span className="inline-flex items-center gap-1 text-xs text-emerald-400 font-semibold">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
           Activo
@@ -324,10 +341,6 @@ export default function SaasLandingPage() {
               <Store className="w-12 h-12 text-slate-600 mx-auto mb-4" />
               <p className="text-slate-400 font-medium">
                 Aún no hay negocios registrados públicamente.
-              </p>
-              <p className="text-slate-500 text-sm mt-2">
-                (El backend necesita exponer{' '}
-                <code className="text-violet-400 font-mono">GET /v1/businesses/public</code>)
               </p>
             </div>
           ) : (
