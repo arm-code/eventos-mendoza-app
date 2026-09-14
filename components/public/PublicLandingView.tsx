@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { businessApi } from '@/lib/api/business';
-import { getBusinessSlugFromHostname } from '@/lib/subdomain';
 import ProductCarousel from '@/components/products/ProductCarousel';
 import ShareButtons from '@/components/ShareButtons';
 import { cn } from '@/lib/utils';
@@ -74,12 +73,10 @@ function FaqItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
-export function PublicLandingView() {
-  const slug = getBusinessSlugFromHostname();
-
+export function PublicLandingView({ negocio }: { negocio: string }) {
   const { data: publicBusiness } = useQuery({
-    queryKey: ['publicBusiness', slug],
-    queryFn: () => businessApi.getPublicBusinessBySlug(slug),
+    queryKey: ['publicBusiness', negocio],
+    queryFn: () => businessApi.getPublicBusinessBySlug(negocio),
     staleTime: 1000 * 60 * 10, // 10 min
   });
 

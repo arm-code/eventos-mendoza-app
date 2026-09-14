@@ -8,10 +8,7 @@ import {
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { useQuery } from '@tanstack/react-query';
-import { financeApi } from '@/lib/api/finance';
-
-const DEFAULT_WHATS = '526567788565';
+import { useTenant } from '@/components/providers/TenantProvider';
 
 const GRADIENTS = [
   'from-violet-600 to-violet-800',
@@ -117,18 +114,14 @@ function CopyField({
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
-   COMPONENTE: PaymentInfoPage
+   COMPONENTE: PaymentInfoPage (Multi-Tenant)
+   Usa useTenant() — sin token, 0 errores 401.
    ─────────────────────────────────────────────────────────────────────────── */
 export default function PaymentInfoPage() {
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  const { data: config, isLoading } = useQuery({
-    queryKey: ['businessConfig'],
-    queryFn: () => financeApi.getConfig(),
-  });
-
-  const activeCards = config?.paymentCards || [];
-  const whatsappNumber = config?.whatsapp || DEFAULT_WHATS;
+  // Datos del negocio vienen del TenantProvider (API pública, sin auth)
+  const { isLoading, businessName, whatsapp, paymentCards, negocio } = useTenant();
 
   const copyToClipboard = async (text: string, field: string) => {
     const clean = text.replace(/\s/g, '');
@@ -149,7 +142,7 @@ export default function PaymentInfoPage() {
   };
 
   const sharePaymentInfo = async (account: any) => {
-    const text = `Datos para transferencia — ${config?.name || 'Eventos Mendoza'}\n\nBanco: ${account.bank}\nTarjeta: ${account.cardNumber || 'No disponible'}\nBeneficiario: ${account.beneficiary}\nCLABE: ${account.clabe || 'No disponible'}\n\nEnvía tu comprobante por WhatsApp.`;
+    const text = `Datos para transferencia — ${businessName}\n\nBanco: ${account.bank}\nTarjeta: ${account.cardNumber || 'No disponible'}\nBeneficiario: ${account.beneficiary}\nCLABE: ${account.clabe || 'No disponible'}\n\nEnvía tu comprobante por WhatsApp.`;
 
     if (navigator.share) {
       try {
@@ -189,14 +182,14 @@ export default function PaymentInfoPage() {
             <Loader2 className="w-8 h-8 animate-spin" />
             <p className="text-sm font-medium">Cargando información de pago...</p>
           </div>
-        ) : activeCards.length === 0 ? (
+        ) : paymentCards.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-sm border border-violet-100 p-8 text-center text-violet-500">
             <CreditCard className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p className="font-medium text-lg">No hay cuentas bancarias registradas</p>
-            <p className="text-sm mt-1">Por favor, contacta a soporte para más información.</p>
+            <p className="text-sm mt-1">Por favor, contacta directamente al negocio.</p>
           </div>
         ) : (
-          activeCards.map((account, index) => {
+          paymentCards.map((account, index) => {
             const color = GRADIENTS[index % GRADIENTS.length];
             return (
               <motion.div
@@ -342,7 +335,7 @@ export default function PaymentInfoPage() {
             ¿Ya hiciste tu transferencia?
           </p>
           <Link
-            href={`https://wa.me/${whatsappNumber}?text=Hola,%20realicé%20mi%20transferencia%20y%20quiero%20confirmar%20mi%20reserva`}
+            href={`https://wa.me/${whatsapp}?text=Hola,%20realicé%20mi%20transferencia%20y%20quiero%20confirmar%20mi%20reserva`}
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
