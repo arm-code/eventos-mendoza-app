@@ -48,6 +48,20 @@ export const businessApi = {
     return res.data;
   },
 
+  /**
+   * Lista todos los negocios activos — endpoint público, sin autenticación.
+   * El backend debe exponer: GET /v1/businesses/public
+   */
+  getPublicBusinesses: async (): Promise<Business[]> => {
+    try {
+      const res = await axiosInstance.get<Business[]>(`${PREFIX}/public`);
+      return res.data;
+    } catch {
+      // Si el endpoint aún no existe en el backend, retorna vacío sin romper la UI
+      return [];
+    }
+  },
+
   createBusiness: async (data: CreateBusinessDto): Promise<Business> => {
     const res = await axiosInstance.post<Business>(PREFIX, data);
     return res.data;

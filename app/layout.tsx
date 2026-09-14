@@ -9,42 +9,42 @@ import { AuthProvider } from '@/lib/auth';
 import { BusinessProvider } from '@/lib/business';
 import { DataProvider } from '@/lib/data-store';
 
-const BASE_URL = 'https://eventos-mendoza.arm-solutions.com.mx';
+const BASE_URL = 'https://dejuarez.mx';
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),
   title: {
-    default: 'Eventos Mendoza – Renta de Mobiliario para Eventos en Ciudad Juárez',
-    template: '%s | Eventos Mendoza',
+    default: 'NegocioFácil – Administra tu negocio desde el celular',
+    template: '%s | NegocioFácil',
   },
   description:
-    'Renta de mesas, sillas, carpas, mantelería y artículos para fiestas en Ciudad Juárez, Chihuahua. Entrega puntual, montaje cuidado y precios justos.',
+    'Sistema de gestión para negocios locales de Ciudad Juárez. Inventario, cotizaciones, finanzas y más. Sin complicaciones, en español.',
   keywords: [
-    'renta de mobiliario',
-    'renta de sillas',
-    'renta de mesas',
-    'renta de carpas',
-    'eventos Ciudad Juárez',
-    'fiesta Ciudad Juárez',
-    'renta para eventos',
-    'Eventos Mendoza',
-    'mantelería renta',
+    'punto de venta',
+    'sistema para negocios',
+    'inventario',
+    'cotizaciones',
+    'Ciudad Juárez',
+    'NegocioFácil',
+    'tienda',
+    'abarrotes',
+    'software para negocios',
   ],
-  authors: [{ name: 'Eventos Mendoza' }],
-  creator: 'Eventos Mendoza',
+  authors: [{ name: 'Alexis Romero Mendoza' }],
+  creator: 'NegocioFácil',
   openGraph: {
     type: 'website',
     locale: 'es_MX',
     url: BASE_URL,
-    siteName: 'Eventos Mendoza',
-    title: 'Eventos Mendoza – Renta de Mobiliario para Eventos',
+    siteName: 'NegocioFácil',
+    title: 'NegocioFácil – Administra tu negocio desde el celular',
     description:
-      'Renta de mesas, sillas, carpas y más para tus eventos en Ciudad Juárez. ¡Cotiza ahora por WhatsApp!',
+      'Inventario, cotizaciones y finanzas para negocios de Ciudad Juárez. ¡Fácil de usar desde el celular!',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Eventos Mendoza – Renta de Mobiliario',
-    description: 'Renta de mesas, sillas, carpas y más para tus eventos en Ciudad Juárez.',
+    title: 'NegocioFácil – Administra tu negocio',
+    description: 'Sistema de gestión para negocios locales en Ciudad Juárez.',
   },
   robots: {
     index: true,
