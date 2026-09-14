@@ -99,6 +99,7 @@ export function ListaEventos({ filteredEvents, isLoading, activeTab, onSelectEve
                         <motion.div
                             key={evt.id}
                             layout
+                            className="min-w-0"
                             initial={{ opacity: 0, y: 12 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.96 }}
@@ -115,10 +116,7 @@ export function ListaEventos({ filteredEvents, isLoading, activeTab, onSelectEve
                                     <div className="p-4 space-y-3">
                                         {/* Header: Folio + Status */}
                                         <div className="flex items-start justify-between gap-2">
-                                            <div className="min-w-0">
-                                                <p className="text-[10px] font-bold text-violet-400 tracking-wider uppercase">
-                                                    {evt.folio}
-                                                </p>
+                                            <div className="min-w-0 flex-1">
                                                 <h3 className="font-bold text-violet-950 text-[15px] leading-tight truncate mt-0.5 capitalize">
                                                     {evt.name}
                                                 </h3>
@@ -131,17 +129,17 @@ export function ListaEventos({ filteredEvents, isLoading, activeTab, onSelectEve
 
                                         {/* Info minimalista: Cliente + Fecha + Dirección */}
                                         <div className="space-y-1.5">
-                                            <div className="flex items-center gap-2 text-[13px] text-violet-900">
+                                            <div className="flex items-center gap-2 text-[13px] text-violet-900 min-w-0">
                                                 <User className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                                                <span className="font-semibold truncate capitalize">{evt.clientName}</span>
+                                                <span className="font-semibold truncate capitalize block">{evt.clientName}</span>
                                             </div>
-                                            <div className="flex items-center gap-2 text-[12px] text-violet-600">
+                                            <div className="flex items-center gap-2 text-[12px] text-violet-600 min-w-0">
                                                 <Calendar className="w-3.5 h-3.5 text-violet-400 shrink-0" />
                                                 <span className='capitalize'>{evt.date ? formatDate(evt.date) : 'Por definir'}</span>
                                             </div>
-                                            <div className="flex items-start gap-2 text-[12px] text-violet-500">
+                                            <div className="flex items-start gap-2 text-[12px] text-violet-500 min-w-0">
                                                 <MapPin className="w-3.5 h-3.5 text-violet-400 shrink-0 mt-0.5" />
-                                                <span className="line-clamp-1 capitalize">{evt.eventAddress}</span>
+                                                <span className="line-clamp-1 capitalize break-words">{evt.eventAddress}</span>
                                             </div>
                                         </div>
 
