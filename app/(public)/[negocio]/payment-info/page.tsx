@@ -142,11 +142,12 @@ export default function PaymentInfoPage() {
   };
 
   const sharePaymentInfo = async (account: any) => {
-    const text = `Datos para transferencia — ${businessName}\n\nBanco: ${account.bank}\nTarjeta: ${account.cardNumber || 'No disponible'}\nBeneficiario: ${account.beneficiary}\nCLABE: ${account.clabe || 'No disponible'}\n\nEnvía tu comprobante por WhatsApp.`;
+    const url = window.location.href;
+    const text = `Realiza tu transferencia a ${businessName || 'nosotros'}.\n\nIngresa al siguiente link para ver los datos bancarios y copiar la información fácilmente:\n${url}`;
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Datos de transferencia', text });
+        await navigator.share({ title: 'Link de pago', text });
       } catch {
         // User cancelled
       }
@@ -294,7 +295,7 @@ export default function PaymentInfoPage() {
                     ) : (
                       <>
                         <Share2 className="w-4 h-4" />
-                        <span>Copiar todos los datos</span>
+                        <span>Compartir datos para transferencia</span>
                       </>
                     )}
                   </motion.button>
