@@ -1,102 +1,117 @@
-'use client';
+// app/tools/notas-venta/[id]/page.tsx
+'use client'
 
-import { useState, useEffect, use } from 'react';
-import { useApi } from '@/hooks/useApi';
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, Loader2 } from "lucide-react";
-import Link from 'next/link';
-import { Loader } from '@/components/Loaders/Loader.component';
-import SalesNoteDetailView from '@/components/sales/SalesNoteDetailView.component';
+import { useState, useEffect, use } from 'react'
+import Link from 'next/link'
+import { ArrowLeft, RotateCw } from 'lucide-react'
+import { useApi } from '@/hooks/useApi'
+import { PageHeader } from '@/components/admin/page-header'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import SalesNoteDetailView from '@/components/sales/SalesNoteDetailView.component'
 
 interface SaleNoteItem {
-    id: number;
-    product_id?: number;
-    quantity: number;
-    description: string;
-    unit_price: number;
-    amount: number;
+    id: number
+    product_id?: number
+    quantity: number
+    description: string
+    unit_price: number
+    amount: number
 }
 
 interface SaleNoteDetail {
-    id: number;
-    note_number: string;
-    client_name: string;
-    client_phone: string;
-    client_address: string;
-    subtotal: number;
-    tax_amount: number;
-    total: number;
-    issued_by: string;
-    created_at: string;
-    items: SaleNoteItem[];
+    id: number
+    note_number: string
+    client_name: string
+    client_phone: string
+    client_address: string
+    subtotal: number
+    tax_amount: number
+    total: number
+    issued_by: string
+    created_at: string
+    items: SaleNoteItem[]
 }
 
 export default function SaleNoteDetailPage({ params }: { params: Promise<{ id: string }> }) {
-    const resolvedParams = use(params);
-    const { request, loading, error } = useApi();
-    const [note, setNote] = useState<SaleNoteDetail | null>(null);
+    const resolvedParams = use(params)
+    const { request, loading, error } = useApi()
+    const [note, setNote] = useState<SaleNoteDetail | null>(null)
+
+    const loadNote = () => {
+        request(`/sales-notes/${resolvedParams.id}`).then((res) => {
+            if (res?.data) setNote(res.data)
+        })
+    }
 
     useEffect(() => {
-        request(`/sales-notes/${resolvedParams.id}`).then((res) => {
-            if (res.data) setNote(res.data);
-        });
-    }, [resolvedParams.id]);
-
-    if (loading) return (
-        <div className="flex flex-col items-center justify-center py-20 gap-3 text-violet-400">
-            <Loader />
-            <p className="text-sm">Cargando detalle...</p>
-        </div>
-    );
-
-    if (error) return (
-        <div className="p-4 sm:p-8 text-center">
-            <div className="max-w-md mx-auto">
-                <div className="p-4 rounded-full bg-red-50 w-fit mx-auto mb-4">
-                    <FileText className="h-8 w-8 text-red-400" />
-                </div>
-                <p className="text-red-600 font-medium mb-4">{error}</p>
-                <Link href="/tools/notas-venta">
-                    <Button variant="outline" className="rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 h-11 touch-manipulation gap-2">
-                        <ArrowLeft className="h-4 w-4" />
-                        Volver al historial
-                    </Button>
-                </Link>
-            </div>
-        </div>
-    );
-
-    if (!note) return null;
+        loadNote()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [resolvedParams.id])
 
     return (
-        <div className="space-y-4 sm:space-y-6">
-            {/* Encabezado de página con botón volver (desktop) */}
-            <div className="flex items-center gap-3">
-                <Link href="/tools/notas-venta" className="hidden sm:block">
-                    <Button variant="outline" className="rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 h-10 touch-manipulation gap-2">
-                        <ArrowLeft className="h-4 w-4" />
-                        Volver
+        <div className="space-y-8 pb-28 sm:pb-8">
+            <PageHeader
+                title={note ? `Nota ${note.note_number}` : 'Detalle de nota'}
+                action={
+                    <Button asChild variant="ghost" className="h-11 px-4 sm:h-10">
+                        <Link href="/tools/notas-venta">
+                            <ArrowLeft className="mr-2 size-4" aria-hidden />
+                            Volver
+                        </Link>
                     </Button>
-                </Link>
-                <div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-violet-950">
-                        Nota {note.note_number}
-                    </h1>
-                </div>
-            </div>
+                }
+            />
 
-            {/* Contenido principal */}
-            <SalesNoteDetailView note={note} />
-
-            {/* Botón volver en mobile */}
-            <div className="sm:hidden pb-4">
-                <Link href="/tools/notas-venta">
-                    <Button variant="outline" className="w-full rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 h-12 touch-manipulation gap-2">
-                        <ArrowLeft className="h-4 w-4" />
-                        Volver al historial
-                    </Button>
-                </Link>
-            </div>
+            <section aria-label="Detalle de la nota">
+                {loading ? (
+                    <NoteDetailSkeleton />
+                ) : error ? (
+                    <InlineError message={error || 'No se pudo cargar la nota.'} onRetry={loadNote} />
+                ) : note ? (
+                    <SalesNoteDetailView note={note} />
+                ) : null}
+            </section>
         </div>
-    );
+    )
+}
+
+/* ─── Subcomponentes ────────────────────────────────────────────────────── */
+
+function InlineError({ message, onRetry }: { message: string; onRetry: () => void }) {
+    return (
+        <Card className="flex flex-col items-center justify-between gap-4 p-5 sm:flex-row">
+            <p className="text-[15px] text-muted-foreground">{message} Revisa tu conexión.</p>
+            <Button variant="outline" onClick={onRetry} className="w-full sm:w-auto h-11 sm:h-10">
+                <RotateCw className="mr-2 size-4" aria-hidden />
+                Reintentar
+            </Button>
+        </Card>
+    )
+}
+
+function NoteDetailSkeleton() {
+    return (
+        <div className="space-y-4" aria-busy="true" aria-label="Cargando detalle de la nota">
+            <Card className="p-5 space-y-4">
+                <div className="flex justify-between">
+                    <Skeleton className="h-6 w-32" />
+                    <Skeleton className="h-6 w-24" />
+                </div>
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-4 w-32" />
+                </div>
+            </Card>
+            <Card className="p-5">
+                <Skeleton className="h-6 w-40 mb-4" />
+                <div className="space-y-3">
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                    <Skeleton className="h-12 w-full" />
+                </div>
+            </Card>
+        </div>
+    )
 }

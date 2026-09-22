@@ -1,8 +1,9 @@
+// app/tools/notas-venta/editar-nota-venta/[id]/page.tsx
 'use client'
 
 import { use, useMemo, useState, ChangeEvent, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Save, Trash2, ArrowLeft, User, Phone, MapPin, FileText, Calculator, Pencil, Loader2 } from 'lucide-react'
+import { Plus, Save, Trash2, ArrowLeft, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
@@ -12,14 +13,12 @@ import { defaultBusinessConfig } from '@/lib/config'
 import type { Note, NoteItem } from '@/lib/types'
 import type { CreateSalesNoteDto, SalesNoteStatus, BusinessConfig } from '@/types/finance'
 import { PageHeader } from '@/components/admin/page-header'
-import { SaleNoteDocument, PrintSaleNoteDocument } from '@/components/documents/sale-note-document'
+import { PrintSaleNoteDocument } from '@/components/documents/sale-note-document'
 import { NoteCardPreview } from '@/components/documents/note-card-preview'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Loader } from '@/components/Loaders/Loader.component'
-import { AppBottomSheet } from '@/components/ui/app-bottom-sheet'
 import { DocumentActions } from '@/components/documents/document-actions'
+import { AppBottomSheet } from '@/components/ui/app-bottom-sheet'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -36,15 +35,11 @@ function emptyItem(): NoteItem {
   return { id: genId('it'), description: '', quantity: 1, unitPrice: 0 }
 }
 
-/* ─────────────────────────────────────────────────────────────────────────────
-   Página de edición de nota de venta
-   ───────────────────────────────────────────────────────────────────────────── */
 export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const router = useRouter()
   const queryClient = useQueryClient()
 
-  /* ── State del formulario ── */
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerAddress, setCustomerAddress] = useState('')
@@ -53,17 +48,16 @@ export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: 
   const [notes, setNotes] = useState('')
   const [status, setStatus] = useState<'quote' | 'issued'>('quote')
   const [eventId, setEventId] = useState<string>('none')
+
   const [savedNote, setSavedNote] = useState<Note | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
 
-  /* ── Carga nota existente ── */
-  const { data: existingNote, isLoading: isLoadingNote } = useQuery({
+  const { data: existingNote, isLoading: isLoadingNote, isError: isErrorNote } = useQuery({
     queryKey: ['salesNote', resolvedParams.id],
     queryFn: () => financeApi.getSalesNoteById(resolvedParams.id),
     enabled: !!resolvedParams.id,
   })
 
-  /* ── Carga datos de configuración y eventos ── */
   const { data: apiEvents = [] } = useQuery({
     queryKey: ['businessEvents'],
     queryFn: () => financeApi.getBusinessEvents(),
@@ -76,7 +70,6 @@ export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: 
   })
   const businessConfig: BusinessConfig = apiConfig || defaultBusinessConfig
 
-  /* ── Precargar formulario con datos de la nota ── */
   useEffect(() => {
     if (!existingNote || isLoaded) return
 
@@ -90,23 +83,24 @@ export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: 
     const statusVal = existingNote.status === 'note' || existingNote.status === 'issued' ? 'issued' : 'quote'
     setStatus(statusVal)
 
-    const mappedItems = (existingNote.items || []).map((it: any, idx: number) => ({
-      id: it.id || genId('it'),
-      description: it.concept || it.description || '',
-      quantity: Number(it.quantity) || 1,
-      unitPrice: Number(it.unitPrice) || 0,
-    }))
+    const mappedItems = (Array.isArray(existingNote.items) ? existingNote.items : []).map(
+      (it: { id?: string; concept?: string; description?: string; quantity: number | string; unitPrice: number | string }) => ({
+        id: it.id || genId('it'),
+        description: it.concept || it.description || '',
+        quantity: Number(it.quantity) || 1,
+        unitPrice: Number(it.unitPrice) || 0,
+      })
+    )
     setItems(mappedItems.length > 0 ? mappedItems : [emptyItem()])
     setIsLoaded(true)
   }, [existingNote, isLoaded])
 
-  /* ── Mutación actualizar ── */
   const updateMutation = useMutation({
     mutationFn: (dto: CreateSalesNoteDto) => financeApi.updateSalesNote(resolvedParams.id, dto),
     onSuccess: (apiNote) => {
       queryClient.invalidateQueries({ queryKey: ['salesNotes'] })
       queryClient.invalidateQueries({ queryKey: ['salesNote', resolvedParams.id] })
-      toast.success(`Nota ${apiNote.folio || 'actualizada'} guardada correctamente`)
+      toast.success('Nota actualizada')
 
       const mappedNote: Note = {
         id: apiNote.id,
@@ -116,7 +110,7 @@ export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: 
           phone: apiNote.customerPhone || apiNote.customer?.phone || customerPhone.trim() || undefined,
           address: apiNote.customerAddress || apiNote.customer?.address || customerAddress.trim() || undefined,
         },
-        items: (apiNote.items || []).map((it: any, idx: number) => ({
+        items: (apiNote.items || []).map((it: { id?: string; concept?: string; description?: string; quantity: number; unitPrice: number | string }, idx: number) => ({
           id: it.id || `it_${idx}`,
           description: it.concept || it.description || '',
           quantity: it.quantity,
@@ -125,14 +119,14 @@ export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: 
         applyIva: Boolean(apiNote.applyIva),
         ivaRate: Number(apiNote.ivaRate || IVA_RATE),
         notes: apiNote.notes || notes.trim() || undefined,
-        status: (apiNote.status as any) === 'issued' || (apiNote.status as any) === 'note' ? 'issued' : 'quote',
+        status: (apiNote.status as 'issued' | 'note' | 'quote') === 'issued' || (apiNote.status as 'issued' | 'note' | 'quote') === 'note' ? 'issued' : 'quote',
         eventId: apiNote.eventId || (eventId === 'none' ? null : eventId),
         createdAt: apiNote.createdAt || new Date().toISOString(),
       }
       setSavedNote(mappedNote)
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al actualizar la nota')
+    onError: () => {
+      toast.error('No se pudo actualizar la nota. Revisa tu conexión.')
     },
   })
 
@@ -150,12 +144,12 @@ export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: 
 
   function handleSave() {
     if (!customerName.trim()) {
-      toast.error('Ingresa el nombre del cliente')
+      toast.error('Falta el nombre del cliente')
       return
     }
     const validItems = items.filter((it) => it.description.trim() !== '')
     if (validItems.length === 0) {
-      toast.error('Agrega al menos un concepto con descripción')
+      toast.error('Agrega al menos un concepto')
       return
     }
 
@@ -178,146 +172,129 @@ export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: 
     updateMutation.mutate(dto)
   }
 
-  /* ── Estado de carga ── */
   if (isLoadingNote) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3 text-violet-400">
-        <Loader2 className="h-8 w-8 animate-spin" />
-        <p className="text-sm font-medium">Cargando nota...</p>
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3">
+        <Loader2 className="size-6 animate-spin text-muted-foreground" aria-hidden />
+        <p className="text-sm text-muted-foreground">Cargando nota...</p>
       </div>
     )
   }
 
+  if (isErrorNote) {
+    return (
+      <Card className="flex flex-col items-center gap-4 p-8 text-center">
+        <p className="text-[15px] font-medium text-destructive">
+          No se pudo cargar la nota solicitada.
+        </p>
+        <Button onClick={() => router.push('/tools/notas-venta')}>Volver a tus notas</Button>
+      </Card>
+    )
+  }
+
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-8 pb-28 sm:pb-8">
       <PageHeader
-        title="Editar nota de venta"
-        description="Modifica los datos de la nota de venta."
+        title="Editar nota"
         action={
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={() => router.push('/tools/notas-venta')}
-            className="w-full sm:w-auto h-11 border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 rounded-xl active:scale-[0.97] transition-all"
+            className="h-11 px-4 sm:h-10"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Volver
+            <ArrowLeft className="mr-2 size-4" aria-hidden />
+            Cancelar
           </Button>
         }
       />
 
-      <div className="flex flex-col gap-4 sm:gap-6">
-        {/* Datos del cliente */}
-        <Card className="border-violet-100 bg-white shadow-sm rounded-2xl overflow-hidden">
-          <CardHeader className="pb-3 border-b border-violet-50 bg-violet-50/30">
-            <CardTitle className="text-sm font-bold text-violet-950 flex items-center gap-2">
-              <User className="h-4 w-4 text-violet-600" />
-              Datos del cliente
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-4 sm:grid-cols-2 pt-4">
-            <div className="flex flex-col gap-2 sm:col-span-2">
-              <Label htmlFor="cname" className="text-sm font-medium text-violet-900 flex items-center gap-1.5">
-                <User className="h-3.5 w-3.5 text-violet-400" />
-                Nombre del cliente <span className="text-red-500">*</span>
+      {/* Datos del cliente */}
+      <section aria-labelledby="client-title" className="space-y-3">
+        <h2 id="client-title" className="text-base font-semibold">Datos del cliente</h2>
+        <Card className="gap-0 py-0">
+          <div className="space-y-4 p-4 sm:p-5">
+            <div className="space-y-2">
+              <Label htmlFor="cname">
+                Nombre <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="cname"
                 value={customerName}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomerName(e.target.value)}
-                placeholder="Nombre completo o empresa"
-                className="h-12 rounded-xl border-violet-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-sm uppercase"
+                placeholder="Nombre completo o negocio"
+                className="h-11 text-base"
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="cphone" className="text-sm font-medium text-violet-900 flex items-center gap-1.5">
-                <Phone className="h-3.5 w-3.5 text-violet-400" />
-                Teléfono
-              </Label>
-              <Input
-                id="cphone"
-                inputMode="tel"
-                value={customerPhone}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomerPhone(e.target.value)}
-                placeholder="656 123 4567"
-                className="h-12 rounded-xl border-violet-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-sm"
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="cphone">Teléfono</Label>
+                <Input
+                  id="cphone"
+                  inputMode="tel"
+                  value={customerPhone}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomerPhone(e.target.value)}
+                  placeholder="Ej. 656 123 4567"
+                  className="h-11 text-base"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="caddr">Dirección</Label>
+                <Input
+                  id="caddr"
+                  value={customerAddress}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomerAddress(e.target.value)}
+                  placeholder="Dirección de entrega"
+                  className="h-11 text-base"
+                />
+              </div>
             </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="caddr" className="text-sm font-medium text-violet-900 flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-violet-400" />
-                Dirección
-              </Label>
-              <Input
-                id="caddr"
-                value={customerAddress}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomerAddress(e.target.value)}
-                placeholder="Dirección de entrega"
-                className="h-12 rounded-xl border-violet-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-sm uppercase"
-              />
-            </div>
-          </CardContent>
+          </div>
         </Card>
+      </section>
 
-        {/* Conceptos */}
-        <Card className="border-violet-100 bg-white shadow-sm rounded-2xl overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-violet-50 bg-violet-50/30 pb-3">
-            <CardTitle className="text-sm font-bold text-violet-950 flex items-center gap-2">
-              <FileText className="h-4 w-4 text-violet-600" />
-              Conceptos / Productos
-            </CardTitle>
-            <motion.div whileTap={{ scale: 0.95 }}>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={addItem}
-                className="border-violet-200 text-violet-700 hover:bg-violet-50 font-semibold rounded-xl h-10 touch-manipulation gap-1.5"
-              >
-                <Plus className="h-4 w-4 text-violet-600" />
-                <span className="hidden sm:inline">Agregar concepto</span>
-                <span className="sm:hidden">Agregar</span>
-              </Button>
-            </motion.div>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4 pt-4">
-            <AnimatePresence>
-              {items.map((item, index) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="rounded-xl border border-violet-100 bg-violet-50/30 p-4 transition-all hover:border-violet-200"
-                >
-                  <div className="mb-3 flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider text-violet-700 bg-violet-100/80 px-2.5 py-1 rounded-md">
-                      Concepto {index + 1}
-                    </span>
-                    <motion.div whileTap={{ scale: 0.9 }}>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 rounded-lg text-red-500 hover:bg-red-50 hover:text-red-700 touch-manipulation"
-                        onClick={() => removeItem(item.id)}
-                        disabled={items.length === 1}
-                        aria-label="Eliminar concepto"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </motion.div>
+      {/* Conceptos */}
+      <section aria-labelledby="concepts-title" className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 id="concepts-title" className="text-base font-semibold">Conceptos</h2>
+          <Button variant="outline" size="sm" onClick={addItem} className="-mr-2 text-primary">
+            <Plus className="mr-2 size-4" aria-hidden />
+            Nuevo concepto
+          </Button>
+        </div>
+        <Card className="gap-0 py-0">
+          <ul className="divide-y">
+            {items.map((item, index) => (
+              <li key={item.id} className="space-y-4 p-4 sm:p-5">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-muted-foreground">
+                    Concepto {index + 1}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="size-11 text-muted-foreground hover:text-destructive"
+                    onClick={() => removeItem(item.id)}
+                    disabled={items.length === 1}
+                    aria-label={`Eliminar concepto ${index + 1}`}
+                  >
+                    <Trash2 className="size-4" aria-hidden />
+                  </Button>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-12">
+                  <div className="space-y-2 sm:col-span-6">
+                    <Label>Descripción</Label>
+                    <Input
+                      value={item.description}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => updateItem(item.id, { description: e.target.value })}
+                      placeholder="Ej. Renta de mesa y sillas"
+                      className="h-11 text-base"
+                    />
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-12">
-                    <div className="flex flex-col gap-1.5 sm:col-span-6">
-                      <Label className="text-xs font-semibold text-violet-900">Descripción / Producto</Label>
-                      <Input
-                        value={item.description}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => updateItem(item.id, { description: e.target.value })}
-                        placeholder="Ej. Renta de Mesa G + 8 sillas"
-                        className="h-12 rounded-xl bg-white border-violet-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-sm uppercase"
-                      />
-                    </div>
-                    <div className="flex flex-col gap-1.5 sm:col-span-2">
-                      <Label className="text-xs font-semibold text-violet-900">Cantidad</Label>
+
+                  <div className="grid grid-cols-2 gap-4 sm:col-span-4">
+                    <div className="space-y-2">
+                      <Label>Cant.</Label>
                       <Input
                         type="number"
                         inputMode="numeric"
@@ -326,11 +303,11 @@ export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: 
                         onChange={(e: ChangeEvent<HTMLInputElement>) =>
                           updateItem(item.id, { quantity: Number(e.target.value) || 0 })
                         }
-                        className="h-12 rounded-xl bg-white border-violet-200 text-center font-semibold focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-sm"
+                        className="h-11 text-base tabular-nums"
                       />
                     </div>
-                    <div className="flex flex-col gap-1.5 sm:col-span-2">
-                      <Label className="text-xs font-semibold text-violet-900">P. Unitario ($)</Label>
+                    <div className="space-y-2">
+                      <Label>Precio ($)</Label>
                       <Input
                         type="number"
                         inputMode="numeric"
@@ -339,36 +316,36 @@ export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: 
                         onChange={(e: ChangeEvent<HTMLInputElement>) =>
                           updateItem(item.id, { unitPrice: Number(e.target.value) || 0 })
                         }
-                        className="h-12 rounded-xl bg-white border-violet-200 text-center font-semibold focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 text-sm"
+                        className="h-11 text-base tabular-nums"
                       />
                     </div>
-                    <div className="flex flex-col gap-1.5 sm:col-span-2">
-                      <Label className="text-xs font-semibold text-violet-900">Importe</Label>
-                      <div className="flex h-12 items-center justify-end rounded-xl bg-violet-100/60 px-3 text-sm font-bold text-violet-950 border border-violet-200/50">
-                        {formatCurrency(itemAmount(item))}
-                      </div>
+                  </div>
+
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label>Importe</Label>
+                    <div className="flex h-11 items-center justify-end rounded-md bg-muted px-3 text-base font-semibold tabular-nums">
+                      {formatCurrency(itemAmount(item))}
                     </div>
                   </div>
-                </motion.div>
-              ))}
-            </AnimatePresence>
-          </CardContent>
+                </div>
+              </li>
+            ))}
+          </ul>
         </Card>
+      </section>
 
-        {/* Opciones y Resumen */}
-        <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
-          <Card className="border-violet-100 bg-white shadow-sm rounded-2xl overflow-hidden">
-            <CardHeader className="pb-3 border-b border-violet-50 bg-violet-50/30">
-              <CardTitle className="text-sm font-bold text-violet-950 flex items-center gap-2">
-                <Calculator className="h-4 w-4 text-violet-600" />
-                Opciones del documento
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4 pt-4">
-              <div className="flex flex-col gap-2">
-                <Label className="text-sm font-medium text-violet-900">Tipo de documento</Label>
+      {/* Ajustes y Totales */}
+      <section aria-labelledby="settings-title" className="space-y-3">
+        <h2 id="settings-title" className="text-base font-semibold">Detalles y cobro</h2>
+        <Card className="gap-0 py-0">
+          <div className="grid gap-6 p-4 sm:p-5 lg:grid-cols-2">
+
+            {/* Opciones */}
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <Label>Tipo de documento</Label>
                 <Select value={status} onValueChange={(v) => setStatus(v as 'quote' | 'issued')}>
-                  <SelectTrigger className="h-12 rounded-xl border-violet-200 bg-white focus:ring-2 focus:ring-violet-500/20">
+                  <SelectTrigger className="h-11 text-base sm:text-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -378,10 +355,10 @@ export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: 
                 </Select>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <Label className="text-sm font-medium text-violet-900">Vincular a evento (opcional)</Label>
+              <div className="space-y-2">
+                <Label>Vincular a evento (opcional)</Label>
                 <Select value={eventId} onValueChange={setEventId}>
-                  <SelectTrigger className="h-12 rounded-xl border-violet-200 bg-white focus:ring-2 focus:ring-violet-500/20">
+                  <SelectTrigger className="h-11 text-base sm:text-sm">
                     <SelectValue placeholder="Sin evento vinculado" />
                   </SelectTrigger>
                   <SelectContent>
@@ -395,79 +372,73 @@ export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: 
                 </Select>
               </div>
 
-              <label className="flex items-center gap-3 rounded-xl border border-violet-100 bg-violet-50/40 p-4 cursor-pointer hover:bg-violet-50 transition-colors active:bg-violet-100 touch-manipulation">
+              <label className="flex items-center gap-3 rounded-xl border bg-muted/30 p-4 active:bg-muted/50">
                 <input
                   type="checkbox"
                   checked={applyIva}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setApplyIva(e.target.checked)}
-                  className="h-5 w-5 rounded border-violet-300 accent-violet-600 cursor-pointer"
+                  className="size-5 rounded border-primary text-primary focus:ring-primary"
                 />
-                <span className="text-sm font-semibold text-violet-950">Aplicar IVA (16%)</span>
+                <span className="text-[15px] font-medium">Incluir IVA (16%)</span>
               </label>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="obs" className="text-sm font-medium text-violet-900 flex items-center gap-1.5">
-                  <FileText className="h-3.5 w-3.5 text-violet-400" />
-                  Notas / observaciones
-                </Label>
+              <div className="space-y-2">
+                <Label htmlFor="obs">Notas / observaciones</Label>
                 <textarea
                   id="obs"
                   value={notes}
                   onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setNotes(e.target.value)}
-                  placeholder="Condiciones de pago, fecha de validez o comentarios..."
-                  className="w-full min-h-[100px] rounded-xl border border-violet-200 p-4 text-sm focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20 resize-none"
+                  placeholder="Condiciones de pago, validez..."
+                  className="flex min-h-[100px] w-full resize-none rounded-md border border-input bg-background px-3 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-violet-100 bg-white shadow-sm rounded-2xl overflow-hidden flex flex-col justify-between">
-            <div>
-              <CardHeader className="pb-3 border-b border-violet-50 bg-violet-50/30">
-                <CardTitle className="text-sm font-bold text-violet-950 flex items-center gap-2">
-                  <Calculator className="h-4 w-4 text-violet-600" />
-                  Resumen de totales
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-3.5 pt-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-violet-700/80 font-medium">Subtotal</span>
-                  <span className="font-bold text-violet-950">{formatCurrency(totals.subtotal)}</span>
-                </div>
-                {applyIva && (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-violet-700/80 font-medium">IVA (16%)</span>
-                    <span className="font-bold text-violet-950">{formatCurrency(totals.iva)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between border-t border-violet-100 pt-3">
-                  <span className="text-lg font-extrabold text-violet-700">Total</span>
-                  <span className="text-lg font-extrabold text-violet-700">{formatCurrency(totals.total)}</span>
-                </div>
-              </CardContent>
             </div>
-            <CardContent className="pt-4 pb-6">
-              <motion.div whileTap={{ scale: 0.98 }}>
-                <Button
-                  size="lg"
-                  disabled={updateMutation.isPending}
-                  className="w-full h-14 bg-violet-600 hover:bg-violet-700 text-white font-bold text-base shadow-lg shadow-violet-600/20 transition-all gap-2 rounded-xl touch-manipulation"
-                  onClick={handleSave}
-                >
-                  {updateMutation.isPending ? (
-                    <Loader />
-                  ) : (
-                    <Save className="h-5 w-5" />
-                  )}
-                  Guardar cambios
-                </Button>
-              </motion.div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
 
-      {/* ── AppBottomSheet: nota guardada ── */}
+            {/* Resumen */}
+            <div className="flex flex-col justify-end space-y-4 rounded-xl border bg-muted/20 p-5">
+              <div className="flex justify-between text-[15px] text-muted-foreground">
+                <span>Subtotal</span>
+                <span className="font-medium tabular-nums">{formatCurrency(totals.subtotal)}</span>
+              </div>
+              {applyIva && (
+                <div className="flex justify-between text-[15px] text-muted-foreground">
+                  <span>IVA (16%)</span>
+                  <span className="font-medium tabular-nums">{formatCurrency(totals.iva)}</span>
+                </div>
+              )}
+              <div className="flex justify-between border-t pt-4">
+                <span className="text-lg font-semibold">Total</span>
+                <span className="text-xl font-semibold text-primary tabular-nums">
+                  {formatCurrency(totals.total)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t p-4 sm:p-5">
+            <Button
+              size="lg"
+              disabled={updateMutation.isPending}
+              className="h-14 w-full text-base font-semibold"
+              onClick={handleSave}
+            >
+              {updateMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 size-5 animate-spin" aria-hidden />
+                  Guardando cambios...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 size-5" aria-hidden />
+                  Guardar cambios
+                </>
+              )}
+            </Button>
+          </div>
+        </Card>
+      </section>
+
+      {/* Visor Post-Guardado */}
       <AppBottomSheet
         open={savedNote !== null}
         onOpenChange={(o) => !o && setSavedNote(null)}
@@ -479,19 +450,17 @@ export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: 
             filename={`nota-${savedNote.folio}`}
             exportNode={<PrintSaleNoteDocument note={savedNote} business={businessConfig} />}
             extraActions={
-              <motion.div whileTap={{ scale: 0.94 }} className="flex-1 sm:flex-none">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSavedNote(null)
-                    router.push('/tools/notas-venta')
-                  }}
-                  className="w-full sm:w-auto h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
-                >
-                  <ArrowLeft className="h-4 w-4 text-violet-500" />
-                  Volver al listado
-                </Button>
-              </motion.div>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSavedNote(null)
+                  router.push('/tools/notas-venta')
+                }}
+                className="h-11 w-full px-4 sm:w-auto"
+              >
+                <ArrowLeft className="mr-2 size-4" aria-hidden />
+                Volver a tus notas
+              </Button>
             }
           >
             <NoteCardPreview note={savedNote} business={businessConfig} />
