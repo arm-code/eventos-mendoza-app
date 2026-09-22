@@ -4,18 +4,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import React, { useState } from 'react';
 import { Menu, X } from 'lucide-react';
-import { useTenant } from '@/components/providers/TenantProvider';
 
 export default function TenantNavbar() {
-  const { negocio } = useTenant();
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const base = `/${negocio}`;
-
   const items = [
-    { title: 'Inicio', route: base },
-    { title: 'Datos bancarios', route: `${base}/payment-info` },
+    { title: 'Inicio', route: '/' },
+    { title: 'Datos bancarios', route: '/payment-info' },
     { title: 'Administración', route: '/auth/login' },
   ];
 
