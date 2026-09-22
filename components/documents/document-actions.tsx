@@ -1,22 +1,24 @@
+// components/documents/document-actions.tsx
 'use client'
 
 import { useRef, useState, useCallback } from 'react'
-import { Download, ImageIcon, Loader2, AlertCircle, Share2, FileText } from 'lucide-react'
+import { Download, Image as ImageIcon, Loader2, AlertCircle, Share2, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { exportNodeToImage, exportNodeToPdf } from '@/lib/export-document'
-import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { cn } from '@/lib/utils'
 
 interface DocumentActionsProps {
   filename: string
-  /** El nodo visible en pantalla (responsive, adapta al viewport) */
   children?: React.ReactNode
-  /** El nodo que se captura al exportar (siempre 794px desktop) */
   exportNode: React.ReactNode
-  /** Botones adicionales junto a Imagen/PDF (ej. Editar) */
   extraActions?: React.ReactNode
-  /** Titulo o leyenda descriptiva para indicar la accion de los botones */
   title?: string
 }
 
@@ -25,104 +27,40 @@ export function DocumentActions({ filename, children, exportNode, extraActions, 
   const [exporting, setExporting] = useState<{ format: 'png' | 'pdf', action: 'share' | 'download' } | null>(null)
   const [showConfirm, setShowConfirm] = useState<'share' | 'download' | null>(null)
 
-  // ── Export Handler ──
   const handleExport = useCallback(async (format: 'png' | 'pdf', action: 'share' | 'download') => {
     const node = exportRef.current
     if (!node) {
-      toast.error('Error interno: nodo de exportación no disponible')
+      toast.error('Ocurrió un problema al preparar el documento.')
       return
     }
 
     setExporting({ format, action })
     setShowConfirm(null)
 
-    // Pequeño delay para permitir que el UI se actualice antes del proceso pesado
-    await new Promise((resolve) => setTimeout(resolve, 100))
+    await new Promise((resolve) => setTimeout(resolve, 150))
 
     try {
       if (format === 'png') {
         await exportNodeToImage(node, filename, action)
-        toast.success('Imagen generada', {
-          description: `Se procesó: ${filename}.png`,
-          duration: 3000,
-        })
+        toast.success('Imagen lista', { description: `Se guardó como ${filename}.png` })
       } else {
         await exportNodeToPdf(node, filename, action)
-        toast.success('PDF generado', {
-          description: `Se procesó: ${filename}.pdf`,
-          duration: 3000,
-        })
+        toast.success('Documento listo', { description: `Se guardó como ${filename}.pdf` })
       }
     } catch (err) {
       console.error('[export error]', err)
-      toast.error('No se pudo exportar el documento', {
-        description: 'Verifica tu conexión o intenta de nuevo.',
-        icon: <AlertCircle className="h-4 w-4" />,
+      toast.error('No se pudo procesar el documento', {
+        description: 'Revisa tu conexión o intenta de nuevo.',
+        icon: <AlertCircle aria-hidden />,
       })
     } finally {
       setExporting(null)
     }
   }, [filename])
 
-  // ── Confirm Dialog for Mobile ──
-  const ExportConfirmDialog = () => {
-    if (!showConfirm) return null
-    const isShare = showConfirm === 'share'
-
-    return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-        onClick={() => setShowConfirm(null)}
-      >
-        <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 100, opacity: 0 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-2xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <h3 className="text-lg font-bold text-violet-950 mb-1">
-            {isShare ? 'Compartir documento' : 'Descargar documento'}
-          </h3>
-          <p className="text-sm text-violet-600 mb-5">
-            Elige el formato en el que deseas {isShare ? 'compartir' : 'descargar'}.
-          </p>
-          <div className="flex gap-3 flex-col sm:flex-row">
-            <Button
-              variant="outline"
-              className="flex-1 h-12 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 font-semibold"
-              onClick={() => handleExport('png', showConfirm)}
-            >
-              <ImageIcon className="h-4 w-4 mr-2" />
-              Imagen (PNG)
-            </Button>
-            <Button
-              className="flex-1 h-12 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold shadow-lg shadow-violet-600/20"
-              onClick={() => handleExport('pdf', showConfirm)}
-            >
-              <FileText className="h-4 w-4 mr-2" />
-              Documento (PDF)
-            </Button>
-          </div>
-          <Button
-            variant="ghost"
-            className="w-full mt-3 h-10 rounded-xl text-violet-500 hover:text-violet-700 hover:bg-violet-50 font-semibold"
-            onClick={() => setShowConfirm(null)}
-          >
-            Cancelar
-          </Button>
-        </motion.div>
-      </motion.div>
-    )
-  }
-
   return (
-    <div className={cn("relative", children ? "flex flex-col gap-4 pb-24 sm:pb-0" : "")}>
-      {/* ── Off-screen Export Node ── */}
+    <div className={cn("relative", children ? "flex flex-col gap-4 pb-28 sm:pb-0" : "")}>
+      {/* ── Nodo de exportación oculto ── */}
       <div
         aria-hidden="true"
         style={{
@@ -136,122 +74,99 @@ export function DocumentActions({ filename, children, exportNode, extraActions, 
           overflow: 'hidden',
         }}
       >
-        <div ref={exportRef} className="bg-white" style={{ width: 794 }}>
+        <div ref={exportRef} className="bg-background text-foreground" style={{ width: 794 }}>
           {exportNode}
         </div>
       </div>
 
-      {/* ── Visible Preview ── */}
-      <AnimatePresence mode="wait">
-        {children && (
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="overflow-hidden"
-          >
-            <div className="w-full rounded-2xl border border-violet-100 bg-violet-50/30 p-2 sm:p-4">
-              {children}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* ── Vista previa ── */}
+      {children && (
+        <div className="overflow-hidden rounded-xl border bg-muted/30 p-2 sm:p-5">
+          {children}
+        </div>
+      )}
 
-      {/* ── Floating Action Bar (Mobile-Optimized) ── */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 sm:relative sm:bottom-auto sm:left-auto sm:right-auto">
-        {/* Safe area padding for iOS */}
-        <div className="bg-white/95 backdrop-blur-xl border-t border-violet-100/90 p-3 sm:p-4 pb-[max(12px,env(safe-area-inset-bottom))] sm:pb-4 shadow-[0_-4px_20px_rgba(124,58,237,0.08)] sm:shadow-none sm:border sm:rounded-2xl sm:bg-white/80">
-          
-          {title && (
-            <div className="text-center mb-3">
-              <span className="text-[11px] font-bold text-violet-600 uppercase tracking-wider flex items-center justify-center gap-1.5">
-                {title}
-              </span>
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 sm:gap-3 justify-center max-w-lg mx-auto">
-            {extraActions}
-
-            {/* Download Button */}
-            <motion.div whileTap={{ scale: 0.96 }} className="flex-1 sm:flex-none">
-              <Button
-                variant="outline"
-                className={cn(
-                  "w-full h-12 sm:h-11 rounded-xl border-violet-200 text-violet-700",
-                  "hover:bg-violet-50 active:bg-violet-100 active:scale-[0.98]",
-                  "touch-manipulation gap-2 text-sm font-semibold px-5",
-                  "transition-all duration-150",
-                  exporting?.action === 'download' && "opacity-60 pointer-events-none"
-                )}
-                onClick={() => setShowConfirm('download')}
-                disabled={exporting !== null}
-                style={{ touchAction: 'manipulation' }}
-              >
-                {exporting?.action === 'download' ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-violet-600" />
-                ) : (
-                  <Download className="h-4 w-4 text-violet-600" />
-                )}
-                <span className="hidden sm:inline">Descargar</span>
-                <span className="sm:hidden">Guardar</span>
-              </Button>
-            </motion.div>
-
-            {/* Share Button */}
-            <motion.div whileTap={{ scale: 0.96 }} className="flex-1 sm:flex-none">
-              <Button
-                className={cn(
-                  "w-full h-12 sm:h-11 rounded-xl bg-violet-600 hover:bg-violet-700 text-white",
-                  "shadow-lg shadow-violet-600/20 active:scale-[0.98]",
-                  "touch-manipulation gap-2 text-sm font-bold px-6",
-                  "transition-all duration-150",
-                  exporting?.action === 'share' && "opacity-60 pointer-events-none"
-                )}
-                onClick={() => setShowConfirm('share')}
-                disabled={exporting !== null}
-                style={{ touchAction: 'manipulation' }}
-              >
-                {exporting?.action === 'share' ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-white" />
-                ) : (
-                  <Share2 className="h-4 w-4 text-white" />
-                )}
-                <span>Compartir</span>
-              </Button>
-            </motion.div>
+      {/* ── Barra de acciones flotante (Móvil) / Relativa (Desktop) ── */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:relative sm:bottom-auto sm:left-auto sm:right-auto sm:rounded-xl sm:border sm:p-5 sm:shadow-none">
+        {title && (
+          <div className="mb-3 text-center">
+            <span className="text-xs font-semibold text-muted-foreground">
+              {title}
+            </span>
           </div>
+        )}
+
+        <div className="mx-auto flex max-w-lg items-center justify-center gap-3">
+          {extraActions}
+
+          <Button
+            variant="outline"
+            className="h-11 flex-1 sm:flex-none"
+            onClick={() => setShowConfirm('download')}
+            disabled={exporting !== null}
+          >
+            {exporting?.action === 'download' ? (
+              <Loader2 className="mr-2 animate-spin" aria-hidden />
+            ) : (
+              <Download className="mr-2" aria-hidden />
+            )}
+            Descargar
+          </Button>
+
+          <Button
+            className="h-11 flex-1 sm:flex-none"
+            onClick={() => setShowConfirm('share')}
+            disabled={exporting !== null}
+          >
+            {exporting?.action === 'share' ? (
+              <Loader2 className="mr-2 animate-spin" aria-hidden />
+            ) : (
+              <Share2 className="mr-2" aria-hidden />
+            )}
+            Compartir
+          </Button>
         </div>
       </div>
 
-      {/* ── Loading Overlay ── */}
-      <AnimatePresence>
-        {exporting && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm"
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="bg-white rounded-2xl p-6 shadow-2xl border border-violet-100 flex flex-col items-center gap-3"
-            >
-              <Loader2 className="h-8 w-8 animate-spin text-violet-600" />
-              <p className="text-sm font-semibold text-violet-900">
-                Generando {exporting?.format === 'pdf' ? 'PDF' : 'imagen'}...
-              </p>
-              <p className="text-xs text-violet-500">Esto puede tomar unos segundos</p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* ── Pantalla de carga superpuesta ── */}
+      {exporting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 rounded-xl border bg-card p-6 shadow-lg">
+            <Loader2 className="size-8 animate-spin text-primary" aria-hidden />
+            <p className="text-base font-semibold">
+              Preparando {exporting.format === 'pdf' ? 'documento' : 'imagen'}...
+            </p>
+          </div>
+        </div>
+      )}
 
-      {/* ── Confirm Dialog ── */}
-      <AnimatePresence>
-        {showConfirm && <ExportConfirmDialog />}
-      </AnimatePresence>
+      {/* ── Diálogo de confirmación de formato ── */}
+      <Dialog open={showConfirm !== null} onOpenChange={(open) => !open && setShowConfirm(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              ¿Cómo quieres {showConfirm === 'share' ? 'compartir' : 'descargar'}?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <Button
+              variant="outline"
+              className="h-11 flex-1"
+              onClick={() => handleExport('png', showConfirm!)}
+            >
+              <ImageIcon className="mr-2" aria-hidden />
+              Imagen
+            </Button>
+            <Button
+              className="h-11 flex-1"
+              onClick={() => handleExport('pdf', showConfirm!)}
+            >
+              <FileText className="mr-2" aria-hidden />
+              Documento (PDF)
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

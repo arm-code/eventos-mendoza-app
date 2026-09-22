@@ -1,17 +1,20 @@
+// components/documents/sale-note-document.tsx
 'use client'
 
 import { forwardRef } from 'react'
 import { computeNoteTotals, itemAmount } from '@/lib/calculations'
 import { formatCurrency, formatDate } from '@/lib/format'
 import type { BusinessConfig, Note } from '@/lib/types'
+import { cn } from '@/lib/utils'
 
 interface SaleNoteDocumentProps {
   note: Note
   business: BusinessConfig
 }
 
-// Documento de VISTA PREVIA: se adapta responsivamente al ancho del contenedor.
-// Úsalo para mostrar los datos de la nota en pantalla.
+// ─────────────────────────────────────────────────────────────────────────────
+// VISTA PREVIA RESPONSIVA (Móvil/Desktop)
+// ─────────────────────────────────────────────────────────────────────────────
 export const SaleNoteDocument = forwardRef<HTMLDivElement, SaleNoteDocumentProps>(
   function SaleNoteDocument({ note, business }, ref) {
     const totals = computeNoteTotals(note.items, note.applyIva, note.ivaRate)
@@ -19,115 +22,57 @@ export const SaleNoteDocument = forwardRef<HTMLDivElement, SaleNoteDocumentProps
     return (
       <div
         ref={ref}
-        className="sale-note-document"
-        style={{
-          width: '100%',
-          height: 'auto',
-          backgroundColor: '#ffffff',
-          color: '#1a1626',
-          fontFamily: 'Geist, Arial, sans-serif',
-          padding: 'clamp(12px, 3vw, 32px)',
-          boxSizing: 'border-box',
-          fontSize: 'clamp(10px, 2.5vw, 13px)',
-        }}
+        className="bg-background text-foreground space-y-6 p-4 sm:p-6"
       >
         {/* Encabezado */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            borderBottom: '2px solid #7c3aed',
-            paddingBottom: 20,
-            marginBottom: 24,
-            gap: 12,
-          }}
-        >
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#5b21b6', textTransform: 'uppercase' }}>
-              {business.name}
-            </div>
-            <div style={{ fontSize: 13, color: '#6b6577', marginTop: 4 }}>
-              Renta de mobiliario para eventos
-            </div>
+        <header className="flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
+            <h1 className="text-xl font-semibold tracking-tight">{business.name}</h1>
+            <p className="text-sm text-muted-foreground">Nota de venta / Servicio</p>
             {business.phone && (
-              <div style={{ fontSize: 13, color: '#6b6577' }}>
-                Tel: {business.phone}
-              </div>
+              <p className="text-sm text-muted-foreground">{business.phone}</p>
             )}
           </div>
-          <div style={{ textAlign: 'right', minWidth: 140 }}>
-            <div
-              style={{
-                display: 'inline-block',
-                backgroundColor: note.status === 'quote' ? '#ede9fe' : '#7c3aed',
-                color: note.status === 'quote' ? '#5b21b6' : '#ffffff',
-                borderRadius: 8,
-                padding: '4px 12px',
-                fontSize: 12,
-                fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
-              }}
-            >
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            <span className={cn(
+              'rounded-lg border px-2.5 py-1 text-xs font-medium',
+              note.status === 'quote' ? 'bg-muted text-muted-foreground' : 'bg-success/10 text-success border-success/20'
+            )}>
               {note.status === 'quote' ? 'Cotización' : 'Nota de venta'}
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 700, marginTop: 10 }}>
-              {note.folio}
-            </div>
-            <div style={{ fontSize: 13, color: '#6b6577' }}>
+            </span>
+            <div className="text-lg font-semibold">{note.folio}</div>
+            <div className="text-sm text-muted-foreground">
               {formatDate(note.createdAt)}
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* Datos del cliente */}
-        <div style={{ marginBottom: 24 }}>
-          <div
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              color: '#7c3aed',
-              textTransform: 'uppercase',
-              letterSpacing: 0.6,
-              marginBottom: 6,
-            }}
-          >
-            Cliente
-          </div>
-          <div style={{ fontSize: 15, fontWeight: 600, textTransform: 'uppercase' }}>
-            {note.customer.name}
-          </div>
-          {note.customer.phone && (
-            <div style={{ fontSize: 13, color: '#6b6577' }}>
-              Tel: {note.customer.phone}
-            </div>
-          )}
-          {note.customer.address && (
-            <div style={{ fontSize: 13, color: '#6b6577', textTransform: 'uppercase' }}>
-              {note.customer.address}
-            </div>
-          )}
-        </div>
+        {/* Cliente */}
+        <section className="rounded-xl border bg-card p-4">
+          <h2 className="text-sm font-semibold text-muted-foreground">Cliente</h2>
+          <p className="mt-1 font-medium">{note.customer.name}</p>
+          {note.customer.phone && <p className="mt-1 text-sm">{note.customer.phone}</p>}
+          {note.customer.address && <p className="mt-1 text-sm">{note.customer.address}</p>}
+        </section>
 
-        {/* Tabla de conceptos */}
-        <div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f5f3ff' }}>
-                <th style={thStyle('left')}>Descripción</th>
-                <th style={thStyle('center', 70)}>Cant.</th>
-                <th style={thStyle('right', 110)}>P. Unitario</th>
-                <th style={thStyle('right', 120)}>Importe</th>
+        {/* Conceptos */}
+        <div className="overflow-x-auto rounded-xl border bg-card">
+          <table className="w-full text-left text-[15px]">
+            <thead className="border-b bg-muted/50 text-sm font-semibold text-muted-foreground">
+              <tr>
+                <th className="p-4">Descripción</th>
+                <th className="p-4 text-center">Cant.</th>
+                <th className="p-4 text-right">P. Unitario</th>
+                <th className="p-4 text-right">Importe</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y">
               {note.items.map((item) => (
-                <tr key={item.id} style={{ borderBottom: '1px solid #ececf2' }}>
-                  <td style={{ ...tdStyle('left'), textTransform: 'uppercase' }}>{item.description}</td>
-                  <td style={tdStyle('center')}>{item.quantity}</td>
-                  <td style={tdStyle('right')}>{formatCurrency(item.unitPrice)}</td>
-                  <td style={tdStyle('right')}>{formatCurrency(itemAmount(item))}</td>
+                <tr key={item.id}>
+                  <td className="p-4">{item.description}</td>
+                  <td className="p-4 text-center">{item.quantity}</td>
+                  <td className="p-4 text-right tabular-nums">{formatCurrency(item.unitPrice)}</td>
+                  <td className="p-4 text-right font-medium tabular-nums">{formatCurrency(itemAmount(item))}</td>
                 </tr>
               ))}
             </tbody>
@@ -135,269 +80,125 @@ export const SaleNoteDocument = forwardRef<HTMLDivElement, SaleNoteDocumentProps
         </div>
 
         {/* Totales */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
-          <div style={{ width: '100%', maxWidth: 280 }}>
-            <Row label="Subtotal" value={formatCurrency(totals.subtotal)} />
+        <section className="flex justify-end">
+          <div className="w-full space-y-2 rounded-xl border bg-muted/30 p-5 sm:w-72">
+            <div className="flex justify-between text-[15px] text-muted-foreground">
+              <span>Subtotal</span>
+              <span className="tabular-nums">{formatCurrency(totals.subtotal)}</span>
+            </div>
             {note.applyIva && (
-              <Row
-                label={`IVA (${Math.round(note.ivaRate * 100)}%)`}
-                value={formatCurrency(totals.iva)}
-              />
+              <div className="flex justify-between text-[15px] text-muted-foreground">
+                <span>IVA ({Math.round(note.ivaRate * 100)}%)</span>
+                <span className="tabular-nums">{formatCurrency(totals.iva)}</span>
+              </div>
             )}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                borderTop: '2px solid #7c3aed',
-                marginTop: 8,
-                paddingTop: 10,
-                fontSize: 18,
-                fontWeight: 700,
-                color: '#5b21b6',
-              }}
-            >
+            <div className="flex justify-between border-t pt-3 font-semibold">
               <span>Total</span>
-              <span>{formatCurrency(totals.total)}</span>
+              <span className="text-lg tabular-nums text-primary">
+                {formatCurrency(totals.total)}
+              </span>
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Notas */}
+        {/* Notas adicionales */}
         {note.notes && (
-          <div
-            style={{
-              marginTop: 32,
-              backgroundColor: '#faf9fc',
-              borderRadius: 8,
-              padding: 16,
-              fontSize: 12,
-              color: '#6b6577',
-            }}
-          >
-            <div style={{ fontWeight: 600, color: '#1a1626', marginBottom: 4, textTransform: 'uppercase' }}>Notas</div>
-            <div style={{ textTransform: 'uppercase' }}>{note.notes}</div>
-          </div>
+          <section className="rounded-xl border bg-muted/20 p-5 text-sm">
+            <h2 className="font-semibold text-muted-foreground">Notas</h2>
+            <p className="mt-2 leading-relaxed">{note.notes}</p>
+          </section>
         )}
-
-        <div
-          style={{
-            marginTop: 40,
-            textAlign: 'center',
-            fontSize: 12,
-            color: '#9b95a8',
-          }}
-        >
-          Gracias por su preferencia · {business.name}
-        </div>
       </div>
     )
-  },
+  }
 )
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        fontSize: 14,
-        padding: '4px 0',
-        color: '#453f52',
-      }}
-    >
-      <span>{label}</span>
-      <span>{value}</span>
-    </div>
-  )
-}
-
-function thStyle(align: 'left' | 'center' | 'right', width?: number): React.CSSProperties {
-  return {
-    textAlign: align,
-    padding: '10px 12px',
-    fontSize: 11,
-    fontWeight: 700,
-    color: '#5b21b6',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-    width,
-    whiteSpace: 'nowrap',
-  }
-}
-
-function tdStyle(align: 'left' | 'center' | 'right'): React.CSSProperties {
-  return {
-    textAlign: align,
-    padding: '10px 12px',
-    verticalAlign: 'top',
-    wordBreak: 'break-word',
-  }
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
-// PrintSaleNoteDocument — Nodo de exportación a imagen/PDF.
-// Siempre 794px de ancho con tamaños de fuente fijos (desktop). Nunca visible en
-// pantalla; se mantiene off-screen en DocumentActions para la captura.
+// NODO DE EXPORTACIÓN (PDF/PNG)
 // ─────────────────────────────────────────────────────────────────────────────
 export function PrintSaleNoteDocument({ note, business }: SaleNoteDocumentProps) {
   const totals = computeNoteTotals(note.items, note.applyIva, note.ivaRate)
 
   return (
     <div
-      style={{
-        width: 794,
-        backgroundColor: '#ffffff',
-        color: '#1a1626',
-        fontFamily: 'Arial, sans-serif',
-        padding: 40,
-        boxSizing: 'border-box',
-        fontSize: 13,
-      }}
+      className="bg-background text-foreground p-10"
+      style={{ width: 794, fontSize: '14px', lineHeight: '1.5' }}
     >
-      {/* Encabezado */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          borderBottom: '2px solid #7c3aed',
-          paddingBottom: 20,
-          marginBottom: 24,
-        }}
-      >
+      <header className="mb-8 flex items-start justify-between border-b pb-6">
         <div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: '#5b21b6', textTransform: 'uppercase' }}>
-            {business.name}
-          </div>
-          <div style={{ fontSize: 13, color: '#6b6577', marginTop: 4 }}>
-            Renta de mobiliario para eventos
-          </div>
-          {business.phone && (
-            <div style={{ fontSize: 13, color: '#6b6577' }}>Tel: {business.phone}</div>
-          )}
+          <h1 className="text-2xl font-semibold">{business.name}</h1>
+          <p className="mt-1 text-muted-foreground">Nota de venta / Servicio</p>
+          {business.phone && <p className="text-muted-foreground">{business.phone}</p>}
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div
-            style={{
-              display: 'inline-block',
-              backgroundColor: note.status === 'quote' ? '#ede9fe' : '#7c3aed',
-              color: note.status === 'quote' ? '#5b21b6' : '#ffffff',
-              borderRadius: 8,
-              padding: '4px 14px',
-              fontSize: 12,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: 0.5,
-            }}
-          >
+        <div className="flex flex-col items-end gap-2">
+          <span className={cn(
+            'rounded-md border px-3 py-1 text-xs font-semibold',
+            note.status === 'quote' ? 'bg-muted text-muted-foreground' : 'bg-success/10 text-success border-success/20'
+          )}>
             {note.status === 'quote' ? 'Cotización' : 'Nota de venta'}
-          </div>
-          <div style={{ fontSize: 18, fontWeight: 700, marginTop: 10, color: '#1a1626' }}>
-            {note.folio}
-          </div>
-          <div style={{ fontSize: 13, color: '#6b6577' }}>{formatDate(note.createdAt)}</div>
+          </span>
+          <div className="mt-2 text-xl font-semibold">{note.folio}</div>
+          <div className="text-muted-foreground">{formatDate(note.createdAt)}</div>
         </div>
-      </div>
+      </header>
 
-      {/* Datos del cliente */}
-      <div style={{ marginBottom: 24 }}>
-        <div
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color: '#7c3aed',
-            textTransform: 'uppercase',
-            letterSpacing: 0.6,
-            marginBottom: 6,
-          }}
-        >
-          Cliente
-        </div>
-        <div style={{ fontSize: 15, fontWeight: 600, textTransform: 'uppercase' }}>
-          {note.customer.name}
-        </div>
-        {note.customer.phone && (
-          <div style={{ fontSize: 13, color: '#6b6577' }}>Tel: {note.customer.phone}</div>
-        )}
-        {note.customer.address && (
-          <div style={{ fontSize: 13, color: '#6b6577', textTransform: 'uppercase' }}>
-            {note.customer.address}
-          </div>
-        )}
-      </div>
+      <section className="mb-8 rounded-xl border p-5">
+        <h2 className="text-sm font-semibold text-muted-foreground">Cliente</h2>
+        <p className="mt-2 font-medium">{note.customer.name}</p>
+        {note.customer.phone && <p className="mt-1">{note.customer.phone}</p>}
+        {note.customer.address && <p className="mt-1">{note.customer.address}</p>}
+      </section>
 
-      {/* Tabla de conceptos */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-        <thead>
-          <tr style={{ backgroundColor: '#f5f3ff' }}>
-            <th style={{ textAlign: 'left', padding: '10px 12px', fontSize: 11, fontWeight: 700, color: '#5b21b6', textTransform: 'uppercase', letterSpacing: 0.4 }}>Descripción</th>
-            <th style={{ textAlign: 'center', padding: '10px 12px', fontSize: 11, fontWeight: 700, color: '#5b21b6', textTransform: 'uppercase', letterSpacing: 0.4, width: 70, whiteSpace: 'nowrap' }}>Cant.</th>
-            <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 700, color: '#5b21b6', textTransform: 'uppercase', letterSpacing: 0.4, width: 110, whiteSpace: 'nowrap' }}>P. Unitario</th>
-            <th style={{ textAlign: 'right', padding: '10px 12px', fontSize: 11, fontWeight: 700, color: '#5b21b6', textTransform: 'uppercase', letterSpacing: 0.4, width: 120, whiteSpace: 'nowrap' }}>Importe</th>
+      <table className="mb-8 w-full border-collapse text-left text-sm">
+        <thead className="bg-muted/50 text-muted-foreground">
+          <tr>
+            <th className="border-b p-3 font-semibold">Descripción</th>
+            <th className="w-16 border-b p-3 text-center font-semibold">Cant.</th>
+            <th className="w-28 border-b p-3 text-right font-semibold">P. Unitario</th>
+            <th className="w-32 border-b p-3 text-right font-semibold">Importe</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y">
           {note.items.map((item) => (
-            <tr key={item.id} style={{ borderBottom: '1px solid #ececf2' }}>
-              <td style={{ textAlign: 'left', padding: '10px 12px', verticalAlign: 'top', textTransform: 'uppercase' }}>{item.description}</td>
-              <td style={{ textAlign: 'center', padding: '10px 12px', verticalAlign: 'top' }}>{item.quantity}</td>
-              <td style={{ textAlign: 'right', padding: '10px 12px', verticalAlign: 'top' }}>{formatCurrency(item.unitPrice)}</td>
-              <td style={{ textAlign: 'right', padding: '10px 12px', verticalAlign: 'top' }}>{formatCurrency(itemAmount(item))}</td>
+            <tr key={item.id}>
+              <td className="p-3">{item.description}</td>
+              <td className="p-3 text-center">{item.quantity}</td>
+              <td className="p-3 text-right tabular-nums">{formatCurrency(item.unitPrice)}</td>
+              <td className="p-3 text-right font-medium tabular-nums">{formatCurrency(itemAmount(item))}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Totales */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}>
-        <div style={{ width: 280 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '4px 0', color: '#453f52' }}>
-            <span>Subtotal</span><span>{formatCurrency(totals.subtotal)}</span>
+      <section className="mb-10 flex justify-end">
+        <div className="w-72 space-y-2 rounded-xl border bg-muted/30 p-5">
+          <div className="flex justify-between text-muted-foreground">
+            <span>Subtotal</span>
+            <span className="tabular-nums">{formatCurrency(totals.subtotal)}</span>
           </div>
           {note.applyIva && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '4px 0', color: '#453f52' }}>
+            <div className="flex justify-between text-muted-foreground">
               <span>IVA ({Math.round(note.ivaRate * 100)}%)</span>
-              <span>{formatCurrency(totals.iva)}</span>
+              <span className="tabular-nums">{formatCurrency(totals.iva)}</span>
             </div>
           )}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              borderTop: '2px solid #7c3aed',
-              marginTop: 8,
-              paddingTop: 10,
-              fontSize: 18,
-              fontWeight: 700,
-              color: '#5b21b6',
-            }}
-          >
+          <div className="flex justify-between border-t pt-3 font-semibold">
             <span>Total</span>
-            <span>{formatCurrency(totals.total)}</span>
+            <span className="text-lg tabular-nums text-primary">{formatCurrency(totals.total)}</span>
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Notas */}
       {note.notes && (
-        <div
-          style={{
-            marginTop: 32,
-            backgroundColor: '#faf9fc',
-            borderRadius: 8,
-            padding: 16,
-            fontSize: 12,
-            color: '#6b6577',
-          }}
-        >
-          <div style={{ fontWeight: 600, color: '#1a1626', marginBottom: 4, textTransform: 'uppercase' }}>Notas</div>
-          <div style={{ textTransform: 'uppercase' }}>{note.notes}</div>
-        </div>
+        <section className="rounded-xl border bg-muted/20 p-5 text-sm">
+          <h2 className="font-semibold text-muted-foreground">Notas</h2>
+          <p className="mt-2 leading-relaxed">{note.notes}</p>
+        </section>
       )}
 
-      <div style={{ marginTop: 40, textAlign: 'center', fontSize: 12, color: '#9b95a8' }}>
+      <footer className="mt-12 text-center text-sm text-muted-foreground">
         Gracias por su preferencia · {business.name}
-      </div>
+      </footer>
     </div>
   )
 }

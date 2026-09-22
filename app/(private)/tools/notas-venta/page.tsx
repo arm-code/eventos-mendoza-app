@@ -1,45 +1,60 @@
+// app/tools/notas-venta/page.tsx
 'use client'
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Eye, FilePlus2, Search, Trash2, Loader2, FileText, Calendar, User, ShieldAlert, Pencil } from 'lucide-react'
+import {
+  Eye,
+  FilePlus2,
+  Search,
+  Trash2,
+  FileText,
+  Pencil,
+  Plus,
+  RotateCw,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
 import { noteTotal } from '@/lib/calculations'
-import { formatCurrency, formatDate } from '@/lib/format'
+import { formatCurrency } from '@/lib/format'
 import { defaultBusinessConfig } from '@/lib/config'
 import type { Note } from '@/lib/types'
 import type { SalesNote, BusinessConfig } from '@/types/finance'
 import { PageHeader } from '@/components/admin/page-header'
-import { SaleNoteDocument, PrintSaleNoteDocument } from '@/components/documents/sale-note-document'
+import { PrintSaleNoteDocument } from '@/components/documents/sale-note-document'
 import { NoteCardPreview } from '@/components/documents/note-card-preview'
 import { DocumentActions } from '@/components/documents/document-actions'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog'
 import { AppBottomSheet } from '@/components/ui/app-bottom-sheet'
-import { FabButton } from '@/components/ui/fab-button'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { motion, AnimatePresence } from 'framer-motion'
 import { cn } from '@/lib/utils'
-import { Loader } from '@/components/Loaders/Loader.component'
+
+/* ─── Utilidades ────────────────────────────────────────────────────────── */
+
+const dateFmt = new Intl.DateTimeFormat('es-MX', {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+})
+
+function safeDate(iso?: string) {
+  if (!iso) return 'Sin fecha'
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? 'Fecha inválida' : dateFmt.format(d)
+}
+
+/* ─── Página ────────────────────────────────────────────────────────────── */
 
 export default function NotesHistoryPage() {
   const router = useRouter()
@@ -48,16 +63,10 @@ export default function NotesHistoryPage() {
   const [selected, setSelected] = useState<Note | null>(null)
   const [noteToDelete, setNoteToDelete] = useState<Note | null>(null)
 
-  const { data: rawNotes = [], isLoading } = useQuery({
+  const { data: rawNotes, isLoading, isError, refetch } = useQuery({
     queryKey: ['salesNotes', query],
     queryFn: () => financeApi.getSalesNotes({ search: query }),
   })
-
-  const { data: rawEvents = [] } = useQuery({
-    queryKey: ['businessEvents'],
-    queryFn: () => financeApi.getBusinessEvents(),
-  })
-  const eventsList = Array.isArray(rawEvents) ? rawEvents : []
 
   const { data: apiConfig } = useQuery({
     queryKey: ['businessConfig'],
@@ -69,299 +78,170 @@ export default function NotesHistoryPage() {
     mutationFn: (id: string) => financeApi.deleteSalesNote(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['salesNotes'] })
-      toast.success('Nota eliminada correctamente')
+      toast.success('Nota eliminada')
       setNoteToDelete(null)
     },
-    onError: (err: any) => {
-      toast.error(err.message || 'Error al eliminar la nota')
+    onError: () => {
+      toast.error('No se pudo eliminar la nota. Revisa tu conexión y vuelve a intentar.')
     },
   })
 
   const notesList = useMemo<Note[]>(() => {
     const list: SalesNote[] = Array.isArray(rawNotes) ? rawNotes : []
-    return list.map((n) => {
-      const items = (n.items || []).map((it, idx) => ({
-        id: it.id || `it_${idx}`,
-        description: it.concept || (it as any).description || '',
-        quantity: Number(it.quantity) || 1,
-        unitPrice: Number(it.unitPrice) || 0,
-      }))
+    return list
+      .map((n) => {
+        const items = (Array.isArray(n.items) ? n.items : []).map((it, idx) => ({
+          id: it.id || `it_${idx}`,
+          description: it.concept || (it as { description?: string }).description || '',
+          quantity: Number(it.quantity) || 1,
+          unitPrice: Number(it.unitPrice) || 0,
+        }))
 
-      return {
-        id: String(n.id),
-        folio: n.folio || `NV-${String(n.id).slice(0, 4)}`,
-        customer: {
-          name: n.customerName || n.customer?.name || 'Cliente sin nombre',
-          phone: n.customerPhone || n.customer?.phone || undefined,
-          address: n.customerAddress || n.customer?.address || undefined,
-          email: n.customerEmail || n.customer?.email || undefined,
-        },
-        items,
-        applyIva: Boolean(n.applyIva),
-        ivaRate: Number(n.ivaRate) || 0.16,
-        notes: n.notes || undefined,
-        status: (n.status === 'quote' ? 'quote' : 'issued') as any,
-        eventId: n.eventId || null,
-        createdAt: n.createdAt || new Date().toISOString(),
-      }
-    }).sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
+        return {
+          id: String(n.id),
+          folio: n.folio || `NV-${String(n.id).slice(0, 4)}`,
+          customer: {
+            name: n.customerName || n.customer?.name || 'Cliente sin nombre',
+            phone: n.customerPhone || n.customer?.phone || undefined,
+            address: n.customerAddress || n.customer?.address || undefined,
+            email: n.customerEmail || n.customer?.email || undefined,
+          },
+          items,
+          applyIva: Boolean(n.applyIva),
+          ivaRate: Number(n.ivaRate) || 0.16,
+          notes: n.notes || undefined,
+          status: (n.status === 'quote' ? 'quote' : 'issued') as 'quote' | 'issued',
+          eventId: n.eventId || null,
+          createdAt: n.createdAt || new Date().toISOString(),
+        }
+      })
+      .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))
   }, [rawNotes])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return notesList
     return notesList.filter(
-      (n) =>
-        n.folio.toLowerCase().includes(q) ||
-        n.customer.name.toLowerCase().includes(q)
+      (n) => n.folio.toLowerCase().includes(q) || n.customer.name.toLowerCase().includes(q)
     )
   }, [notesList, query])
 
-  function handleDelete(note: Note) {
-    setNoteToDelete(note)
-  }
-
-  function eventFolio(eventId?: string | null) {
-    if (!eventId) return null
-    return eventsList.find((e) => String(e.id) === String(eventId))?.folio ?? null
-  }
-
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-8 pb-28 sm:pb-8">
       <PageHeader
-        title="Historial de notas"
-        description="Consulta, exporta a PDF/Imagen o administra las notas de venta y cotizaciones."
+        title="Tus notas"
+        description="Busca, exporta o administra tus notas y cotizaciones."
         action={
-          <Button
-            asChild
-            className="hidden sm:inline-flex bg-violet-600 hover:bg-violet-700 text-white gap-2 font-semibold h-11 rounded-xl shadow-lg shadow-violet-600/20 active:scale-[0.98] transition-all touch-manipulation"
-          >
+          <Button asChild className="hidden sm:flex">
             <Link href="/tools/notas-venta/crear-nota-venta">
-              <FilePlus2 className="h-4 w-4" />
-              <span>Nueva nota</span>
+              <FilePlus2 className="mr-2" aria-hidden />
+              Crear nota
             </Link>
           </Button>
         }
       />
 
       {/* Buscador */}
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-violet-400" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar por folio o cliente..."
-          className="h-12 pl-10 rounded-xl border-violet-200 bg-white focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 shadow-sm text-sm"
-        />
-      </div>
+      <section aria-label="Buscar notas">
+        <div className="relative max-w-md">
+          <Search
+            className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"
+            aria-hidden
+          />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por folio o cliente..."
+            className="h-11 pl-10 text-base sm:text-sm"
+          />
+        </div>
+      </section>
 
-      {/* Vista de tabla (desktop) */}
-      <Card className="hidden md:block border-violet-100 bg-white shadow-sm overflow-hidden">
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-violet-50/70 hover:bg-violet-50/70 border-b border-violet-100">
-                <TableHead className="font-bold text-violet-950">Folio</TableHead>
-                <TableHead className="font-bold text-violet-950">Cliente</TableHead>
-                <TableHead className="font-bold text-violet-950">Tipo</TableHead>
-                <TableHead className="font-bold text-violet-950">Fecha</TableHead>
-                <TableHead className="font-bold text-violet-950 text-right">Total</TableHead>
-                <TableHead className="font-bold text-violet-950 text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+      {/* Lista de notas */}
+      <section aria-label="Lista de notas">
+        {isLoading ? (
+          <NotesSkeleton />
+        ) : isError ? (
+          <InlineError message="No se pudieron cargar tus notas." onRetry={() => refetch()} />
+        ) : filtered.length === 0 ? (
+          <EmptyNotes />
+        ) : (
+          <Card className="gap-0 overflow-hidden py-0">
+            <ul className="divide-y">
               {filtered.map((note) => (
-                <TableRow
+                <li
                   key={note.id}
-                  className="hover:bg-violet-50/40 border-b border-violet-100/60 transition-colors"
+                  className="flex min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <TableCell className="font-bold text-violet-950">{note.folio}</TableCell>
-                  <TableCell className="font-medium text-violet-900 capitalize">{note.customer.name}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        "rounded-full px-2.5 py-0.5 text-xs font-medium",
-                        note.status === 'quote'
-                          ? 'bg-violet-100 text-violet-700 border-violet-200'
-                          : 'bg-green-100 text-green-700 border-green-200'
-                      )}
-                    >
-                      {note.status === 'quote' ? 'Cotización' : 'Nota de venta'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-violet-600/80 text-xs font-medium">
-                    {formatDate(note.createdAt)}
-                  </TableCell>
-                  <TableCell className="text-right font-bold text-violet-950">
-                    {formatCurrency(noteTotal(note))}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex justify-end gap-1">
-                      <motion.div whileTap={{ scale: 0.9 }}>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setSelected(note)}
-                          className="text-violet-600 hover:bg-violet-100 hover:text-violet-900 h-9 w-9 rounded-lg touch-manipulation"
-                          aria-label="Ver nota"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </motion.div>
-                      <motion.div whileTap={{ scale: 0.9 }}>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          disabled={deleteMutation.isPending}
-                          className="text-red-500 hover:bg-red-50 hover:text-red-700 h-9 w-9 rounded-lg touch-manipulation"
-                          onClick={() => handleDelete(note)}
-                          aria-label="Eliminar nota"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </motion.div>
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <p className="truncate font-medium">{note.customer.name}</p>
+                    <div className="mt-0.5 flex items-center gap-1.5 text-[13px] text-muted-foreground">
+                      <span className="font-mono">{note.folio}</span>
+                      <span aria-hidden>&bull;</span>
+                      <span>{safeDate(note.createdAt)}</span>
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filtered.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} className="py-12 text-center text-violet-400">
-                    {isLoading ? (
-                      <div className="flex items-center justify-center gap-2 font-medium">
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        <span>Cargando notas...</span>
-                      </div>
-                    ) : (
-                      'No hay notas guardadas.'
-                    )}
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                  </div>
 
-      {/* Vista de tarjetas (móvil) */}
-      <div className="flex flex-col gap-3 md:hidden">
-        <AnimatePresence>
-          {filtered.map((note, index) => {
-            const ef = eventFolio(note.eventId)
-            return (
-              <motion.div
-                key={note.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.03 }}
-                whileTap={{ scale: 0.995, backgroundColor: "rgba(139, 92, 246, 0.04)" }}
-              >
-                <Card className="border-violet-100 bg-white shadow-sm active:shadow-md transition-shadow touch-manipulation">
-                  <CardContent className="flex flex-col gap-3 p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <User className="h-3.5 w-3.5 text-violet-400 flex-shrink-0" />
-                          <p className="font-bold text-violet-950 truncate text-sm uppercase">{note.customer.name}</p>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-violet-500">
-                          <FileText className="h-3 w-3 flex-shrink-0" />
-                          <span className="font-mono">{note.folio}</span>
-                          <span className="w-1 h-1 rounded-full bg-violet-300" />
-                          <span className="flex items-center gap-1 uppercase">
-                            <Calendar className="h-3 w-3" />
-                            {formatDate(note.createdAt)}
-                          </span>
-                        </div>
-                      </div>
+                  <div className="flex items-center justify-between sm:w-auto sm:justify-end sm:gap-6">
+                    <div className="flex flex-col items-start sm:items-end gap-1">
+                      <span className="font-medium tabular-nums">
+                        {formatCurrency(noteTotal(note))}
+                      </span>
                       <Badge
                         variant="secondary"
                         className={cn(
-                          "rounded-full px-2.5 py-0.5 text-[10px] font-medium flex-shrink-0",
-                          note.status === 'quote'
-                            ? 'bg-violet-100 text-violet-700 border-violet-200'
-                            : 'bg-green-100 text-green-700 border-green-200'
+                          'px-2 py-0.5 text-xs',
+                          note.status === 'quote' ? 'text-muted-foreground' : 'bg-success/10 text-success'
                         )}
                       >
                         {note.status === 'quote' ? 'Cotización' : 'Nota'}
                       </Badge>
                     </div>
 
-                    {ef && (
-                      <span className="text-xs text-violet-500 font-medium bg-violet-50 px-2 py-1 rounded-lg inline-block w-fit">
-                        Evento {ef}
-                      </span>
-                    )}
-
-                    <div className="flex items-center justify-between pt-2 border-t border-violet-50">
-                      <span className="text-lg font-extrabold text-violet-950">
-                        {formatCurrency(noteTotal(note))}
-                      </span>
-                      <div className="flex gap-2">
-                        <motion.div whileTap={{ scale: 0.9 }}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelected(note)}
-                            className="border-violet-200 text-violet-700 hover:bg-violet-50 font-semibold h-10 rounded-xl touch-manipulation gap-1.5 uppercase"
-                          >
-                            <Eye className="h-4 w-4 text-violet-600" />
-                            Ver
-                          </Button>
-                        </motion.div>
-                        <motion.div whileTap={{ scale: 0.9 }}>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            disabled={deleteMutation.isPending}
-                            className="text-red-500 hover:bg-red-50 hover:text-red-700 h-10 w-10 rounded-xl touch-manipulation"
-                            onClick={() => handleDelete(note)}
-                            aria-label="Eliminar nota"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </motion.div>
-                      </div>
+                    <div className="flex items-center gap-1 sm:ml-4">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-11 text-muted-foreground hover:text-foreground"
+                        onClick={() => setSelected(note)}
+                        aria-label={`Ver nota ${note.folio}`}
+                      >
+                        <Eye aria-hidden />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-11 text-destructive hover:bg-destructive/10"
+                        onClick={() => setNoteToDelete(note)}
+                        aria-label={`Eliminar nota ${note.folio}`}
+                      >
+                        <Trash2 aria-hidden />
+                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )
-          })}
-        </AnimatePresence>
-
-        {filtered.length === 0 && (
-          <Card className="border-violet-100 bg-white">
-            <CardContent className="py-12 text-center text-violet-400 flex flex-col items-center gap-3">
-              {isLoading ? (
-                <>
-                  <Loader />
-                  <p className="text-sm font-medium">Cargando notas...</p>
-                </>
-              ) : (
-                <>
-                  <div className="p-4 rounded-full bg-violet-50">
-                    <FileText className="h-6 w-6 text-violet-300" />
                   </div>
-                  <p className="text-sm font-medium">No hay notas registradas</p>
-                  <p className="text-xs">Crea tu primera nota de venta</p>
-                </>
-              )}
-            </CardContent>
+                </li>
+              ))}
+            </ul>
           </Card>
         )}
-      </div>
+      </section>
 
-      {/* FAB móvil */}
-      <FabButton
-        icon={<FilePlus2 className="h-6 w-6" />}
-        title="Crear nueva nota de venta"
+      {/* Botón flotante */}
+      <Link
         href="/tools/notas-venta/crear-nota-venta"
-        ariaLabel="Nueva nota"
-      />
+        aria-label="Nueva nota de venta"
+        className={cn(
+          'fixed right-4 z-40 flex size-14 items-center justify-center rounded-full sm:hidden',
+          'bottom-[calc(5rem+env(safe-area-inset-bottom))]',
+          'bg-primary text-primary-foreground shadow-lg shadow-primary/25',
+          'transition-transform active:scale-95 motion-reduce:transition-none',
+          'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+        )}
+      >
+        <Plus className="size-6" strokeWidth={2.5} aria-hidden />
+      </Link>
 
-      {/* Vista y exportación de nota */}
+      {/* Visor y exportación de nota */}
       <AppBottomSheet
         open={selected !== null}
         onOpenChange={(o) => !o && setSelected(null)}
@@ -371,71 +251,115 @@ export default function NotesHistoryPage() {
         {selected && (
           <DocumentActions
             filename={`nota-${selected.folio}`}
-            title='Puedes exportar la nota de venta'
+            title="Exportar documento"
             exportNode={<PrintSaleNoteDocument note={selected} business={businessConfig} />}
             extraActions={
-              <motion.div whileTap={{ scale: 0.94 }} className="flex-1 sm:flex-none">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSelected(null)
-                    router.push(`/tools/notas-venta/editar-nota-venta/${selected?.id}`)
-                  }}
-                  className="w-full sm:w-auto h-11 rounded-xl border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 text-xs sm:text-sm font-semibold px-4"
-                >
-                  <Pencil className="h-4 w-4 text-violet-500" />
-                  Editar
-                </Button>
-              </motion.div>
+              <Button
+                variant="outline"
+                className="h-11 px-4 sm:px-5"
+                onClick={() => {
+                  const id = selected.id
+                  setSelected(null)
+                  router.push(`/tools/notas-venta/editar-nota-venta/${id}`)
+                }}
+              >
+                <Pencil className="mr-2 size-4" aria-hidden />
+                Editar nota
+              </Button>
             }
           >
-            {/* Vista mobile: tarjetas legibles sin desbordamiento horizontal */}
             <NoteCardPreview note={selected} business={businessConfig} />
           </DocumentActions>
         )}
       </AppBottomSheet>
 
-      {/* Modal de confirmación para eliminar nota */}
+      {/* Diálogo de eliminación */}
       <Dialog open={noteToDelete !== null} onOpenChange={(o) => !o && setNoteToDelete(null)}>
-        <DialogContent className="max-w-md rounded-2xl border-violet-100 bg-white p-6">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-violet-950 flex items-center gap-2">
-              <ShieldAlert className="h-5 w-5 text-red-500" />
-              ¿Eliminar nota {noteToDelete?.folio}?
-            </DialogTitle>
-            <DialogDescription className="text-sm text-violet-600 pt-1">
-              Esta acción es permanente y eliminará el registro de la nota de venta del cliente{' '}
-              <span className="font-semibold text-violet-950 uppercase">{noteToDelete?.customer.name}</span>.
-            </DialogDescription>
+            <DialogTitle>¿Eliminar la nota {noteToDelete?.folio}?</DialogTitle>
           </DialogHeader>
-
-          <div className="flex justify-end gap-3 pt-4">
+          <p className="text-[15px] text-muted-foreground">
+            El registro se borrará permanentemente. Esta acción no se puede deshacer.
+          </p>
+          <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button
               variant="outline"
+              className="h-11 sm:h-10"
               onClick={() => setNoteToDelete(null)}
-              className="rounded-xl border-violet-200 text-violet-700 h-11 px-4 font-semibold"
+              disabled={deleteMutation.isPending}
             >
               Cancelar
             </Button>
             <Button
+              variant="destructive"
+              className="h-11 sm:h-10"
+              onClick={() => noteToDelete && deleteMutation.mutate(noteToDelete.id)}
               disabled={deleteMutation.isPending}
-              onClick={() => {
-                if (noteToDelete) {
-                  deleteMutation.mutate(noteToDelete.id)
-                }
-              }}
-              className="bg-red-600 hover:bg-red-700 text-white rounded-xl h-11 px-5 font-bold shadow-md shadow-red-200 touch-manipulation gap-2"
             >
-              {deleteMutation.isPending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
-              Eliminar
+              {deleteMutation.isPending ? 'Eliminando...' : 'Eliminar nota'}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+/* ─── Subcomponentes ────────────────────────────────────────────────────── */
+
+function EmptyNotes() {
+  return (
+    <Card className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+      <div className="flex size-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <FileText className="size-6" aria-hidden />
+      </div>
+      <p className="text-[15px] font-medium">Aún no tienes notas registradas</p>
+      <Button asChild className="mt-2">
+        <Link href="/tools/notas-venta/crear-nota-venta">Crear nota</Link>
+      </Button>
+    </Card>
+  )
+}
+
+function InlineError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <Card className="flex flex-col items-center justify-between gap-4 p-5 sm:flex-row">
+      <p className="text-[15px] text-muted-foreground">{message} Revisa tu conexión.</p>
+      <Button variant="outline" onClick={onRetry} className="w-full sm:w-auto">
+        <RotateCw className="mr-2 size-4" aria-hidden />
+        Reintentar
+      </Button>
+    </Card>
+  )
+}
+
+function NotesSkeleton() {
+  return (
+    <Card className="gap-0 py-0" aria-busy="true" aria-label="Cargando notas">
+      <div className="divide-y">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex min-h-16 flex-col justify-between gap-4 px-4 py-3 sm:flex-row sm:items-center"
+          >
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-40" />
+              <Skeleton className="h-4 w-28" />
+            </div>
+            <div className="flex items-center justify-between sm:justify-end sm:gap-6">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-20" />
+                <Skeleton className="h-4 w-14" />
+              </div>
+              <div className="flex gap-2 sm:ml-4">
+                <Skeleton className="size-11 rounded-md" />
+                <Skeleton className="size-11 rounded-md" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
   )
 }
