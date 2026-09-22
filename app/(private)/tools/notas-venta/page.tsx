@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation'
 import {
   Eye,
   FilePlus2,
-  Search,
   Trash2,
   FileText,
   Pencil,
@@ -29,6 +28,7 @@ import { DocumentActions } from '@/components/documents/document-actions'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { SearchInput } from '@/components/ui/search-input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -143,18 +143,11 @@ export default function NotesHistoryPage() {
 
       {/* Buscador */}
       <section aria-label="Buscar notas">
-        <div className="relative max-w-md">
-          <Search
-            className="absolute left-3 top-1/2 size-5 -translate-y-1/2 text-muted-foreground"
-            aria-hidden
-          />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por folio o cliente..."
-            className="h-11 pl-10 text-base sm:text-sm"
-          />
-        </div>
+        <SearchInput
+          value={query}
+          onChange={setQuery}
+          placeholder="Buscar por folio o cliente..."
+        />
       </section>
 
       {/* Lista de notas */}
