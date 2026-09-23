@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Check, Loader2, MapPin, MessageCircle, Pencil, Phone } from 'lucide-react'
+import { Loader2, MapPin, MessageCircle, Pencil, Phone } from 'lucide-react'
 import { toast } from 'sonner'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
@@ -15,6 +15,13 @@ import { DocumentActions } from '@/components/documents/document-actions'
 import { PrintEventContractDocument, type EventContractData } from '@/components/documents/event-contract-document'
 import { cn } from '@/lib/utils'
 
+/* ─── Estilos compartidos ───────────────────────────────────────────────── */
+
+// Una sola etiqueta para todo el sheet: encabezados de sección y datos del resumen
+const LABEL = 'text-sm font-medium text-muted-foreground'
+// Un solo tamaño y radio para todos los botones táctiles del sheet
+const TOUCH = 'h-12 rounded-xl text-[15px]'
+
 /* ─── Constantes ────────────────────────────────────────────────────────── */
 
 // Estados de avance normales. "Cancelado" va aparte porque es destructivo.
@@ -26,14 +33,18 @@ const PROGRESS_STATUSES: readonly { value: EventStatus; label: string }[] = [
 
 const KNOWN_STATUSES = new Set(['pending', 'delivered', 'collected', 'cancelled'])
 
-const longDateFmt = new Intl.DateTimeFormat('es-MX', {
+const dateFmt = new Intl.DateTimeFormat('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
+const dateWithYearFmt = new Intl.DateTimeFormat('es-MX', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
 })
+const relativeFmt = new Intl.RelativeTimeFormat('es-MX', { numeric: 'auto' })
 
 /* ─── Utilidades ────────────────────────────────────────────────────────── */
+
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1)
 
 /** Construye fechas YYYY-MM-DD en hora local (evita que se muestre un día antes). */
 function parseLocalDate(value?: string | null): Date | null {
@@ -43,17 +54,30 @@ function parseLocalDate(value?: string | null): Date | null {
     return Number.isNaN(date.getTime()) ? null : date
 }
 
-function formatLongDate(value?: string | null): string | null {
+/** Fecha legible + distancia en días ("Mañana", "En 3 días", "Hace 2 días"). Solo cliente. */
+function describeEventDate(value?: string | null): { label: string; relative: string; days: number } | null {
     const date = parseLocalDate(value)
     if (!date) return null
-    const text = longDateFmt.format(date)
-    return text.charAt(0).toUpperCase() + text.slice(1)
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const target = new Date(date)
+    target.setHours(0, 0, 0, 0)
+    // Math.round compensa los cambios de horario de verano
+    const days = Math.round((target.getTime() - today.getTime()) / 86_400_000)
+
+    const fmt = date.getFullYear() === today.getFullYear() ? dateFmt : dateWithYearFmt
+    return {
+        label: capitalize(fmt.format(date)),
+        relative: capitalize(relativeFmt.format(days, 'day')),
+        days,
+    }
 }
 
 /**
  * Normaliza un teléfono mexicano a 10 dígitos.
  * Acepta "656 123 4567", "+52 656…", "52656…" y el antiguo "521…".
- * Devuelve null si no es un número válido (así no se generan enlaces rotos).
+ * Devuelve null si no es válido (así no se generan enlaces rotos).
  */
 function toMxPhone(raw?: string | null): string | null {
     if (!raw) return null
@@ -79,6 +103,17 @@ function toSlug(value?: string | null, fallback = 'evento'): string {
     return slug || fallback
 }
 
+/* ─── Sección reutilizable ──────────────────────────────────────────────── */
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+    return (
+        <section className="space-y-3">
+            <h3 className={LABEL}>{title}</h3>
+            {children}
+        </section>
+    )
+}
+
 /* ─── Componente ────────────────────────────────────────────────────────── */
 
 interface EventDetailSheetProps {
@@ -97,7 +132,6 @@ export function EventDetailSheet({
     businessConfig,
 }: EventDetailSheetProps) {
     const queryClient = useQueryClient()
-    const statusLabelId = useId()
     const [confirmCancel, setConfirmCancel] = useState(false)
 
     // Al cerrar o cambiar de evento, se descarta la confirmación pendiente
@@ -127,8 +161,7 @@ export function EventDetailSheet({
     const isCancelled = status === 'cancelled'
     const cost = Number.isFinite(Number(event.cost)) ? Number(event.cost) : 0
     const phone = toMxPhone(event.clientPhone)
-    // Verifica el nombre del campo: en el dashboard se usa `eventDate`
-    const dateText = formatLongDate(event.eventDate || event.date)
+    const eventDate = describeEventDate(event.date || event.eventDate)
     const pendingStatus = statusMutation.isPending ? statusMutation.variables?.status : undefined
 
     const changeStatus = (next: EventStatus) => {
@@ -158,37 +191,45 @@ export function EventDetailSheet({
                 </Button>
             }
         >
-            <div className="space-y-6 px-4 pb-8 sm:px-6">
-                {/* Lo más consultado primero: cuándo y cuánto */}
-                <dl className="grid grid-cols-2 gap-4 rounded-xl bg-muted/60 p-4">
-                    <div className="min-w-0">
-                        <dt className="text-sm text-muted-foreground">Fecha</dt>
-                        <dd className="mt-1 text-[15px] font-medium leading-snug text-pretty">
-                            {dateText ?? 'Por definir'}
+            {/* Ritmo único: space-y-8 entre secciones, sin líneas divisorias */}
+            <div className="space-y-8 px-4 pb-8 sm:px-6">
+                {/* Resumen: único bloque con fondo, porque es lo más consultado */}
+                <dl className="divide-y divide-border/60 rounded-xl bg-muted/60">
+                    <div className="flex items-start justify-between gap-4 px-4 py-3.5">
+                        <dt className={cn(LABEL, 'pt-0.5')}>Fecha</dt>
+                        <dd className="min-w-0 text-right">
+                            {eventDate ? (
+                                <>
+                                    <p className="text-base font-medium leading-snug text-pretty">{eventDate.label}</p>
+                                    <p
+                                        className={cn(
+                                            'text-sm',
+                                            eventDate.days >= 0 ? 'font-medium text-primary' : 'text-muted-foreground'
+                                        )}
+                                    >
+                                        {eventDate.relative}
+                                    </p>
+                                </>
+                            ) : (
+                                <p className="text-base text-muted-foreground">Por definir</p>
+                            )}
                         </dd>
                     </div>
-                    <div className="text-right">
-                        <dt className="text-sm text-muted-foreground">Total</dt>
-                        <dd className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">
-                            {formatCurrency(cost)}
-                        </dd>
+
+                    <div className="flex items-baseline justify-between gap-4 px-4 py-3.5">
+                        <dt className={LABEL}>Total</dt>
+                        <dd className="text-2xl font-semibold tracking-tight tabular-nums">{formatCurrency(cost)}</dd>
                     </div>
                 </dl>
 
-                {/* Estado: botones grandes en vez de un Select dentro del sheet */}
-                {/* Estado */}
-                <section className="space-y-3">
-                    <h3 id={statusLabelId} className="text-sm font-medium text-muted-foreground">
-                        Estado
-                    </h3>
-
+                <Section title="Estado">
                     {isCancelled && (
                         <p className="text-[15px] text-destructive">
                             Este evento está cancelado. Elige un estado para reactivarlo.
                         </p>
                     )}
 
-                    <div role="group" aria-labelledby={statusLabelId} className="grid grid-cols-3 gap-2">
+                    <div role="group" aria-label="Estado del evento" className="grid grid-cols-3 gap-2">
                         {PROGRESS_STATUSES.map(({ value, label }) => {
                             const selected = status === value
                             const loading = pendingStatus === value
@@ -201,7 +242,7 @@ export function EventDetailSheet({
                                     disabled={statusMutation.isPending}
                                     onClick={() => changeStatus(value)}
                                     variant={selected ? 'default' : 'outline'}
-                                    className="h-12 rounded-xl px-2 text-[15px]"
+                                    className={cn(TOUCH, 'px-2')}
                                 >
                                     {loading ? (
                                         <>
@@ -215,11 +256,9 @@ export function EventDetailSheet({
                             )
                         })}
                     </div>
-                </section>
+                </Section>
 
-                {/* Cliente */}
-                <section className="space-y-3 border-t pt-6">
-                    <h3 className="text-sm font-medium text-muted-foreground">Cliente</h3>
+                <Section title="Cliente">
                     <div>
                         <p className="text-base font-medium">{event.clientName || 'Sin cliente'}</p>
                         {event.clientPhone && (
@@ -230,14 +269,14 @@ export function EventDetailSheet({
                     </div>
 
                     {phone && (
-                        <div className="grid grid-cols-2 gap-3">
-                            <Button asChild variant="outline" className="h-12 text-[15px]">
+                        <div className="grid grid-cols-2 gap-2">
+                            <Button asChild variant="outline" className={TOUCH}>
                                 <a href={`tel:+52${phone}`}>
                                     <Phone aria-hidden />
                                     Llamar
                                 </a>
                             </Button>
-                            <Button asChild variant="outline" className="h-12 text-[15px]">
+                            <Button asChild variant="outline" className={TOUCH}>
                                 <a href={`https://wa.me/52${phone}`} target="_blank" rel="noopener noreferrer">
                                     <MessageCircle aria-hidden />
                                     WhatsApp
@@ -245,14 +284,12 @@ export function EventDetailSheet({
                             </Button>
                         </div>
                     )}
-                </section>
+                </Section>
 
-                {/* Dirección */}
                 {event.eventAddress && (
-                    <section className="space-y-3 border-t pt-6">
-                        <h3 className="text-sm font-medium text-muted-foreground">Dirección</h3>
-                        <p className="text-[15px] leading-relaxed text-pretty">{event.eventAddress}</p>
-                        <Button asChild variant="outline" className="h-12 w-full text-[15px]">
+                    <Section title="Dirección">
+                        <p className="text-base leading-relaxed text-pretty">{event.eventAddress}</p>
+                        <Button asChild variant="outline" className={cn(TOUCH, 'w-full')}>
                             <a
                                 href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.eventAddress)}`}
                                 target="_blank"
@@ -262,73 +299,70 @@ export function EventDetailSheet({
                                 Ver en el mapa
                             </a>
                         </Button>
-                    </section>
+                    </Section>
                 )}
 
-                {/* Observaciones */}
                 {(event.notes || event.noteFolio) && (
-                    <section className="space-y-2 border-t pt-6">
-                        <h3 className="text-sm font-medium text-muted-foreground">Observaciones</h3>
+                    <Section title="Observaciones">
                         {event.notes && (
-                            <p className="whitespace-pre-line text-[15px] leading-relaxed text-pretty">{event.notes}</p>
+                            <p className="whitespace-pre-line text-base leading-relaxed text-pretty">{event.notes}</p>
                         )}
                         {event.noteFolio && (
                             <p className="text-[15px] text-muted-foreground">
                                 Viene de la nota <span className="font-medium text-foreground">{event.noteFolio}</span>
                             </p>
                         )}
-                    </section>
+                    </Section>
                 )}
 
-                {/* Contrato y Cancelar */}
-                <div className="border-t pt-6">
-                    <DocumentActions
-                        title="Contrato de servicio"
-                        filename={`contrato-${toSlug(event.clientName)}`}
-                        exportNode={
-                            <PrintEventContractDocument event={event as EventContractData} business={businessConfig} />
-                        }
-                    >
-                        {!isCancelled && (
-                            <div className="mt-2 border-t pt-6">
-                                {confirmCancel ? (
-                                    <div className="space-y-3 rounded-xl border border-destructive/30 p-4">
-                                        <p className="text-[15px] font-medium">¿Cancelar este evento?</p>
-                                        <p className="text-sm text-muted-foreground">Podrás reactivarlo después si te equivocas.</p>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            <Button
-                                                variant="outline"
-                                                className="h-12 text-[15px]"
-                                                onClick={() => setConfirmCancel(false)}
-                                                disabled={statusMutation.isPending}
-                                            >
-                                                No, volver
-                                            </Button>
-                                            <Button
-                                                variant="destructive"
-                                                className="h-12 text-[15px]"
-                                                onClick={() => changeStatus('cancelled' as EventStatus)}
-                                                disabled={statusMutation.isPending}
-                                            >
-                                                {pendingStatus === 'cancelled' && <Loader2 className="animate-spin" aria-hidden />}
-                                                Sí, cancelar
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ) : (
+
+                {/* Única línea del sheet: marca la zona de acciones que no son de rutina */}
+                {!isCancelled && (
+                    <div className="border-t pt-6">
+                        {confirmCancel ? (
+                            <div className="space-y-3 rounded-xl border border-destructive/30 p-4">
+                                <div>
+                                    <p className="text-base font-medium">¿Cancelar este evento?</p>
+                                    <p className="text-sm text-muted-foreground">Podrás reactivarlo después si te equivocas.</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
                                     <Button
-                                        variant="ghost"
-                                        className="h-12 w-full text-[15px] text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                        onClick={() => setConfirmCancel(true)}
+                                        variant="outline"
+                                        className={TOUCH}
+                                        onClick={() => setConfirmCancel(false)}
                                         disabled={statusMutation.isPending}
                                     >
-                                        Cancelar evento
+                                        No, volver
                                     </Button>
-                                )}
+                                    <Button
+                                        variant="destructive"
+                                        className={TOUCH}
+                                        onClick={() => changeStatus('cancelled' as EventStatus)}
+                                        disabled={statusMutation.isPending}
+                                    >
+                                        {pendingStatus === 'cancelled' && <Loader2 className="animate-spin" aria-hidden />}
+                                        Sí, cancelar
+                                    </Button>
+                                </div>
                             </div>
+                        ) : (
+                            <Button
+                                variant="ghost"
+                                className={cn(TOUCH, 'w-full text-destructive hover:bg-destructive/10 hover:text-destructive')}
+                                onClick={() => setConfirmCancel(true)}
+                                disabled={statusMutation.isPending}
+                            >
+                                Cancelar evento
+                            </Button>
                         )}
-                    </DocumentActions>
-                </div>
+                    </div>
+                )}
+                {/* Barra de contrato: fija abajo en móvil, por eso va al final */}
+                <DocumentActions
+                    title="Contrato de servicio"
+                    filename={`contrato-${toSlug(event.clientName)}`}
+                    exportNode={<PrintEventContractDocument event={event as EventContractData} business={businessConfig} />}
+                />
             </div>
         </AppBottomSheet>
     )
