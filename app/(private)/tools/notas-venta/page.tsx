@@ -5,19 +5,13 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  Eye,
   FilePlus2,
-  Trash2,
-  FileText,
   Pencil,
-  Plus,
-  RotateCw,
+  Trash2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
-import { noteTotal } from '@/lib/calculations'
-import { formatCurrency } from '@/lib/format'
 import { defaultBusinessConfig } from '@/lib/config'
 import type { Note } from '@/lib/types'
 import type { SalesNote, BusinessConfig } from '@/types/finance'
@@ -25,12 +19,10 @@ import { PageHeader } from '@/components/admin/page-header'
 import { PrintSaleNoteDocument } from '@/components/documents/sale-note-document'
 import { NoteCardPreview } from '@/components/documents/note-card-preview'
 import { DocumentActions } from '@/components/documents/document-actions'
+import { ListaNotas } from '@/components/documents/ListaNotas'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
 import { MobileFab } from '@/components/ui/mobile-fab'
 import { SearchInput } from '@/components/ui/search-input'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
@@ -38,21 +30,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { AppBottomSheet } from '@/components/ui/app-bottom-sheet'
-import { cn } from '@/lib/utils'
-
-/* ─── Utilidades ────────────────────────────────────────────────────────── */
-
-const dateFmt = new Intl.DateTimeFormat('es-MX', {
-  year: 'numeric',
-  month: 'short',
-  day: 'numeric',
-})
-
-function safeDate(iso?: string) {
-  if (!iso) return 'Sin fecha'
-  const d = new Date(iso)
-  return Number.isNaN(d.getTime()) ? 'Fecha inválida' : dateFmt.format(d)
-}
 
 /* ─── Página ────────────────────────────────────────────────────────────── */
 
@@ -152,71 +129,13 @@ export default function NotesHistoryPage() {
 
       {/* Lista de notas */}
       <section aria-label="Lista de notas">
-        {isLoading ? (
-          <NotesSkeleton />
-        ) : isError ? (
-          <InlineError message="No se pudieron cargar tus notas." onRetry={() => refetch()} />
-        ) : filtered.length === 0 ? (
-          <EmptyNotes />
-        ) : (
-          <Card className="gap-0 overflow-hidden py-0">
-            <ul className="divide-y">
-              {filtered.map((note) => (
-                <li
-                  key={note.id}
-                  className="flex min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <p className="truncate font-medium capitalize">{note.customer.name}</p>
-                    <div className="mt-0.5 flex items-center gap-1.5 text-[13px] text-muted-foreground">
-                      <span className="font-mono">{note.folio}</span>
-                      <span aria-hidden>&bull;</span>
-                      <span>{safeDate(note.createdAt)}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between sm:w-auto sm:justify-end sm:gap-6">
-                    <div className="flex flex-col items-start sm:items-end gap-1">
-                      <span className="font-medium tabular-nums">
-                        {formatCurrency(noteTotal(note))}
-                      </span>
-                      <Badge
-                        variant="secondary"
-                        className={cn(
-                          'px-2 py-0.5 text-xs',
-                          note.status === 'quote' ? 'text-muted-foreground' : 'bg-success/10 text-success'
-                        )}
-                      >
-                        {note.status === 'quote' ? 'Cotización' : 'Nota'}
-                      </Badge>
-                    </div>
-
-                    <div className="flex items-center gap-1 sm:ml-4">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-11 text-muted-foreground hover:text-foreground"
-                        onClick={() => setSelected(note)}
-                        aria-label={`Ver nota ${note.folio}`}
-                      >
-                        <Eye aria-hidden />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="size-11 text-destructive hover:bg-destructive/10"
-                        onClick={() => setNoteToDelete(note)}
-                        aria-label={`Eliminar nota ${note.folio}`}
-                      >
-                        <Trash2 aria-hidden />
-                      </Button>
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        )}
+        <ListaNotas
+          notes={filtered}
+          isLoading={isLoading}
+          isError={isError}
+          onRetry={refetch}
+          onSelect={setSelected}
+        />
       </section>
 
       <MobileFab
@@ -233,19 +152,33 @@ export default function NotesHistoryPage() {
         mobileHeight="h-[92vh] max-h-[92dvh]"
         headerAction={
           selected ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                const id = selected.id
-                setSelected(null)
-                router.push(`/tools/notas-venta/editar-nota-venta/${id}`)
-              }}
-              className="size-11 rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              aria-label="Editar nota"
-            >
-              <Pencil className="size-5" aria-hidden />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setNoteToDelete(selected)
+                  setSelected(null)
+                }}
+                className="size-11 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
+                aria-label="Eliminar nota"
+              >
+                <Trash2 className="size-5" aria-hidden />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  const id = selected.id
+                  setSelected(null)
+                  router.push(`/tools/notas-venta/editar-nota-venta/${id}`)
+                }}
+                className="size-11 rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                aria-label="Editar nota"
+              >
+                <Pencil className="size-5" aria-hidden />
+              </Button>
+            </div>
           ) : null
         }
       >
@@ -290,62 +223,4 @@ export default function NotesHistoryPage() {
       </Dialog>
     </div>
   )
-}
-
-/* ─── Subcomponentes ────────────────────────────────────────────────────── */
-
-function EmptyNotes() {
-  return (
-    <Card className="flex flex-col items-center gap-3 px-6 py-12 text-center">
-      <div className="flex size-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
-        <FileText className="size-6" aria-hidden />
-      </div>
-      <p className="text-[15px] font-medium">Aún no tienes notas registradas</p>
-      <Button asChild className="mt-2">
-        <Link href="/tools/notas-venta/crear-nota-venta">Crear nota</Link>
-      </Button>
-    </Card>
-  )
-}
-
-function InlineError({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <Card className="flex flex-col items-center justify-between gap-4 p-5 sm:flex-row">
-      <p className="text-[15px] text-muted-foreground">{message} Revisa tu conexión.</p>
-      <Button variant="outline" onClick={onRetry} className="w-full sm:w-auto">
-        <RotateCw className="mr-2 size-4" aria-hidden />
-        Reintentar
-      </Button>
-    </Card>
-  )
-}
-
-function NotesSkeleton() {
-  return (
-    <Card className="gap-0 py-0" aria-busy="true" aria-label="Cargando notas">
-      <div className="divide-y">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="flex min-h-16 flex-col justify-between gap-4 px-4 py-3 sm:flex-row sm:items-center"
-          >
-            <div className="space-y-2">
-              <Skeleton className="h-5 w-40" />
-              <Skeleton className="h-4 w-28" />
-            </div>
-            <div className="flex items-center justify-between sm:justify-end sm:gap-6">
-              <div className="space-y-2">
-                <Skeleton className="h-5 w-20" />
-                <Skeleton className="h-4 w-14" />
-              </div>
-              <div className="flex gap-2 sm:ml-4">
-                <Skeleton className="size-11 rounded-md" />
-                <Skeleton className="size-11 rounded-md" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </Card>
-  )
-}
+}
