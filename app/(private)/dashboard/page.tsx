@@ -144,14 +144,11 @@ export default function PrincipalPage() {
               key={href}
               href={href}
               className={cn(
-                'flex min-h-24 flex-col justify-between gap-3 rounded-xl border bg-card p-4',
+                'flex min-h-24 flex-col justify-center items-center gap-3 rounded-xl border bg-card p-4',
                 'transition-colors hover:bg-accent active:bg-accent',
                 'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
               )}
             >
-              <span className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <Icon className="size-5" aria-hidden />
-              </span>
               <span className="text-[15px] font-medium leading-snug">{label}</span>
             </Link>
           ))}
@@ -284,12 +281,12 @@ function EventRow({ event }: { event: BusinessEvent }) {
 
       <div className="min-w-0 flex-1">
         <p className="truncate font-medium">{event.name || 'Evento sin nombre'}</p>
-        <p className="truncate text-sm text-muted-foreground">{event.clientName || 'Sin cliente'}</p>
+        <p className="truncate text-sm text-muted-foreground capitalize">{event.clientName || 'Sin cliente'}</p>
       </div>
 
       <div className="flex shrink-0 flex-col items-end gap-0.5">
         <span className="font-medium tabular-nums">{formatCurrency(toNumber(event.cost))}</span>
-        <span className={cn('text-xs', isPending ? 'text-primary' : 'text-muted-foreground')}>
+        <span className={cn('text-xs capitalize', isPending ? 'text-primary' : 'text-muted-foreground')}>
           {STATUS_LABEL[event.status ?? '']}
         </span>
       </div>
