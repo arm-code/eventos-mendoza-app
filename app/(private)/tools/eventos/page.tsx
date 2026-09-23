@@ -134,6 +134,7 @@ export default function EventosPage() {
       <MobileFab
         href="/tools/eventos/crear-evento"
         aria-label="Nuevo evento"
+        title="Nuevo evento"
       />
 
       <EventDetailSheet

@@ -219,10 +219,10 @@ export default function NotesHistoryPage() {
         )}
       </section>
 
-      {/* Botón flotante */}
       <MobileFab
         href="/tools/notas-venta/crear-nota-venta"
         aria-label="Nueva nota de venta"
+        title="Nueva nota"
       />
 
       {/* Visor y exportación de nota */}
