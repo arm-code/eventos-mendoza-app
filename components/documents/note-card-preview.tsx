@@ -27,12 +27,13 @@ export function NoteCardPreview({ note, business }: NoteCardPreviewProps) {
         </div>
       </div>
 
+      {/* Cliente */}
       <section className="rounded-xl border bg-muted/10 p-4">
         <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           <User className="size-4" aria-hidden />
           Cliente
         </h3>
-        <p className="font-medium">{note.customer.name}</p>
+        <p className="font-medium capitalize">{note.customer.name}</p>
         {note.customer.phone && (
           <p className="mt-1.5 flex items-center gap-2 text-sm text-muted-foreground">
             <Phone className="size-3.5 shrink-0" aria-hidden />
@@ -42,11 +43,12 @@ export function NoteCardPreview({ note, business }: NoteCardPreviewProps) {
         {note.customer.address && (
           <p className="mt-1.5 flex items-start gap-2 text-sm text-muted-foreground">
             <MapPin className="size-3.5 shrink-0" aria-hidden />
-            <span>{note.customer.address}</span>
+            <span className='capitalize'>{note.customer.address}</span>
           </p>
         )}
       </section>
 
+      {/* Conceptos */}
       <section>
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Conceptos
@@ -55,7 +57,7 @@ export function NoteCardPreview({ note, business }: NoteCardPreviewProps) {
           {note.items.map((item) => (
             <li key={item.id} className="flex items-start justify-between gap-4 py-3">
               <div className="min-w-0 flex-1">
-                <p className="text-[15px] font-medium leading-snug">{item.description}</p>
+                <p className="text-[15px] font-medium leading-snug capitalize">{item.description}</p>
                 <p className="mt-1 text-[13px] text-muted-foreground">
                   {item.quantity} x {formatCurrency(item.unitPrice)}
                 </p>
