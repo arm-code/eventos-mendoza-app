@@ -13,7 +13,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useState } from 'react'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { AdminSidebarContent } from './admin-sidebar'
 import { BusinessSwitcher } from './BusinessSwitcher'
 
@@ -29,8 +29,8 @@ export function AdminHeader() {
 
             <div className="flex items-center gap-1">
                 {/* Menu hamburguesa para navegación rápida en móvil */}
-                <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-                    <SheetTrigger asChild>
+                <Drawer open={menuOpen} onOpenChange={setMenuOpen}>
+                    <DrawerTrigger asChild>
                         <Button
                             variant="ghost"
                             size="icon"
@@ -39,26 +39,18 @@ export function AdminHeader() {
                         >
                             <Menu className="h-5 w-5" />
                         </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-[280px] p-0 border-r border-violet-100">
-                        <div className="flex flex-col h-full">
-                            <SheetHeader className="px-5 py-4 border-b border-violet-100">
-                                <SheetTitle className="flex items-center gap-3 text-left">
-                                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-white border border-violet-200 shadow-sm overflow-hidden flex-shrink-0">
-                                        <Image src="/images/eventos-mendoza.png" alt="Logo" width={28} height={28} className="object-contain" />
-                                    </span>
-                                    <div className="leading-tight">
-                                        <p className="text-sm font-bold text-violet-950">Eventos Mendoza</p>
-                                        <p className="text-xs text-violet-600 font-medium">Gestión de Renta</p>
-                                    </div>
-                                </SheetTitle>
-                            </SheetHeader>
-                            <div className="flex-1 overflow-y-auto">
+                    </DrawerTrigger>
+                    <DrawerContent className="p-0 border-t border-violet-100 rounded-t-2xl max-h-[85vh]">
+                        <div className="flex flex-col h-full overflow-hidden">
+                            <DrawerHeader className="sr-only">
+                                <DrawerTitle>Menú principal</DrawerTitle>
+                            </DrawerHeader>
+                            <div className="flex-1 overflow-y-auto pb-6">
                                 <AdminSidebarContent onNavigate={() => setMenuOpen(false)} />
                             </div>
                         </div>
-                    </SheetContent>
-                </Sheet>
+                    </DrawerContent>
+                </Drawer>
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
