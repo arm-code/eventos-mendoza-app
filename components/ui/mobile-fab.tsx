@@ -53,14 +53,14 @@ export const MobileFab = React.forwardRef<HTMLButtonElement, MobileFabProps>(
       'flex size-14 items-center justify-center rounded-full',
       'bg-primary text-primary-foreground shadow-lg shadow-primary/25',
       'transition-transform active:scale-95 motion-reduce:transition-none',
-      'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50',
+      'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 cursor-pointer',
       className
     )
 
     const innerContent = icon || <Plus className="size-6" strokeWidth={2.5} aria-hidden />
 
     return (
-      <div 
+      <div
         className={cn(
           'fixed right-4 z-40 sm:hidden',
           'bottom-[calc(5rem+env(safe-area-inset-bottom))]'
