@@ -277,7 +277,7 @@ export function EventDetailSheet({
                     </section>
                 )}
 
-                {/* Contrato */}
+                {/* Contrato y Cancelar */}
                 <div className="border-t pt-6">
                     <DocumentActions
                         title="Contrato de servicio"
@@ -285,48 +285,47 @@ export function EventDetailSheet({
                         exportNode={
                             <PrintEventContractDocument event={event as EventContractData} business={businessConfig} />
                         }
-                    />
-                </div>
-
-                {/* Cancelar: al final, separado y con confirmación en el mismo lugar */}
-                {!isCancelled && (
-                    <div className="border-t pt-6">
-                        {confirmCancel ? (
-                            <div className="space-y-3 rounded-xl border border-destructive/30 p-4">
-                                <p className="text-[15px] font-medium">¿Cancelar este evento?</p>
-                                <p className="text-sm text-muted-foreground">Podrás reactivarlo después si te equivocas.</p>
-                                <div className="grid grid-cols-2 gap-3">
+                    >
+                        {!isCancelled && (
+                            <div className="mt-2 border-t pt-6">
+                                {confirmCancel ? (
+                                    <div className="space-y-3 rounded-xl border border-destructive/30 p-4">
+                                        <p className="text-[15px] font-medium">¿Cancelar este evento?</p>
+                                        <p className="text-sm text-muted-foreground">Podrás reactivarlo después si te equivocas.</p>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <Button
+                                                variant="outline"
+                                                className="h-12 text-[15px]"
+                                                onClick={() => setConfirmCancel(false)}
+                                                disabled={statusMutation.isPending}
+                                            >
+                                                No, volver
+                                            </Button>
+                                            <Button
+                                                variant="destructive"
+                                                className="h-12 text-[15px]"
+                                                onClick={() => changeStatus('cancelled' as EventStatus)}
+                                                disabled={statusMutation.isPending}
+                                            >
+                                                {pendingStatus === 'cancelled' && <Loader2 className="animate-spin" aria-hidden />}
+                                                Sí, cancelar
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
                                     <Button
-                                        variant="outline"
-                                        className="h-12 text-[15px]"
-                                        onClick={() => setConfirmCancel(false)}
+                                        variant="ghost"
+                                        className="h-12 w-full text-[15px] text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                        onClick={() => setConfirmCancel(true)}
                                         disabled={statusMutation.isPending}
                                     >
-                                        No, volver
+                                        Cancelar evento
                                     </Button>
-                                    <Button
-                                        variant="destructive"
-                                        className="h-12 text-[15px]"
-                                        onClick={() => changeStatus('cancelled' as EventStatus)}
-                                        disabled={statusMutation.isPending}
-                                    >
-                                        {pendingStatus === 'cancelled' && <Loader2 className="animate-spin" aria-hidden />}
-                                        Sí, cancelar
-                                    </Button>
-                                </div>
+                                )}
                             </div>
-                        ) : (
-                            <Button
-                                variant="ghost"
-                                className="h-12 w-full text-[15px] text-destructive hover:bg-destructive/10 hover:text-destructive"
-                                onClick={() => setConfirmCancel(true)}
-                                disabled={statusMutation.isPending}
-                            >
-                                Cancelar evento
-                            </Button>
                         )}
-                    </div>
-                )}
+                    </DocumentActions>
+                </div>
             </div>
         </AppBottomSheet>
     )
