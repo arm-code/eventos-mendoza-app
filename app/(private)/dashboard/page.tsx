@@ -20,6 +20,7 @@ import { PageHeader } from '@/components/admin/page-header'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { MobileFab } from '@/components/ui/mobile-fab'
 import { cn } from '@/lib/utils'
 
 /* ─── Tipos ─────────────────────────────────────────────────────────────── */
@@ -188,20 +189,12 @@ export default function PrincipalPage() {
         )}
       </section>
 
-      {/* Botón flotante: solo en móvil, vía CSS (sin parpadeo de hidratación) */}
-      <Link
+      {/* Botón flotante: solo en móvil */}
+      <MobileFab
         href="/tools/notas-venta/crear-nota-venta"
         aria-label="Nueva nota de venta"
-        className={cn(
-          'fixed right-4 z-40 flex size-14 items-center justify-center rounded-full sm:hidden',
-          'bottom-[calc(5rem+env(safe-area-inset-bottom))]',
-          'bg-primary text-primary-foreground shadow-lg shadow-primary/25',
-          'transition-transform active:scale-95 motion-reduce:transition-none',
-          'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
-        )}
-      >
-        <Plus className="size-6" strokeWidth={2.5} aria-hidden />
-      </Link>
+        title="Nueva nota"
+      />
     </div>
   )
 }
