@@ -1,6 +1,7 @@
+// components/admin/admin-header.tsx
 'use client'
 
-import Image from 'next/image'
+import { useState } from 'react'
 import { LogOut, User, Menu } from 'lucide-react'
 import { useAuth } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
@@ -12,68 +13,79 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { useState } from 'react'
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
+import {
+    Drawer,
+    DrawerContent,
+    DrawerHeader,
+    DrawerTitle,
+    DrawerDescription,
+    DrawerTrigger
+} from '@/components/ui/drawer'
 import { AdminSidebarContent } from './admin-sidebar'
 import { BusinessSwitcher } from './BusinessSwitcher'
+import { cn } from '@/lib/utils'
 
 export function AdminHeader() {
     const { user, signOut } = useAuth()
     const [menuOpen, setMenuOpen] = useState(false)
 
     return (
-        <header className="sticky top-0 z-40 flex items-center justify-between border-b border-violet-100/80 bg-white/90 backdrop-blur-xl px-3 sm:px-4 py-2.5 md:hidden safe-area-top">
-            <div className="flex items-center gap-2 max-w-[65%] min-w-0">
+        <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 px-3 pb-2.5 pt-[max(0.625rem,env(safe-area-inset-top))] backdrop-blur-xl md:hidden">
+            <div className="flex min-w-0 max-w-[65%] items-center gap-2">
                 <BusinessSwitcher compact />
             </div>
 
             <div className="flex items-center gap-1">
-                {/* Menu hamburguesa para navegación rápida en móvil */}
+                {/* Menú hamburguesa */}
                 <Drawer open={menuOpen} onOpenChange={setMenuOpen}>
                     <DrawerTrigger asChild>
                         <Button
                             variant="ghost"
                             size="icon"
-                            aria-label="Menú"
-                            className="h-10 w-10 rounded-xl text-violet-700 hover:bg-violet-50 active:bg-violet-100 touch-manipulation"
+                            aria-label="Abrir menú de navegación"
+                            className="size-11 shrink-0 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground active:scale-95"
                         >
-                            <Menu className="h-5 w-5" />
+                            <Menu className="size-5" aria-hidden />
                         </Button>
                     </DrawerTrigger>
-                    <DrawerContent className="p-0 border-t border-violet-100 rounded-t-2xl max-h-[85vh]">
-                        <div className="flex flex-col h-full overflow-hidden">
-                            <DrawerHeader className="sr-only">
-                                <DrawerTitle>Menú principal</DrawerTitle>
-                            </DrawerHeader>
-                            <div className="flex-1 overflow-y-auto pb-6">
-                                <AdminSidebarContent onNavigate={() => setMenuOpen(false)} />
-                            </div>
+                    <DrawerContent className="flex flex-col border-t p-0">
+                        <DrawerHeader className="sr-only">
+                            <DrawerTitle>Menú principal</DrawerTitle>
+                            <DrawerDescription>Navegación de la aplicación</DrawerDescription>
+                        </DrawerHeader>
+                        <div className="flex-1 overflow-y-auto pb-6 pt-2">
+                            <AdminSidebarContent onNavigate={() => setMenuOpen(false)} />
                         </div>
                     </DrawerContent>
                 </Drawer>
 
+                {/* Menú de usuario */}
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
                             variant="ghost"
                             size="icon"
-                            aria-label="Cuenta"
-                            className="h-10 w-10 rounded-xl text-violet-700 hover:bg-violet-50 active:bg-violet-100 touch-manipulation"
+                            aria-label="Abrir menú de cuenta"
+                            className="size-11 shrink-0 rounded-xl text-muted-foreground hover:bg-accent hover:text-foreground active:scale-95"
                         >
-                            <User className="h-5 w-5" />
+                            <User className="size-5" aria-hidden />
                         </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-64 border-violet-100 rounded-xl shadow-xl">
-                        <DropdownMenuLabel className="flex flex-col gap-1 p-4">
-                            <span className="font-semibold text-violet-950 text-sm">{user?.name || 'Usuario'}</span>
-                            <span className="text-xs font-normal text-violet-500">{user?.email || 'admin@eventosmendoza.com'}</span>
+                    <DropdownMenuContent align="end" className="w-64 sm:w-72">
+                        <DropdownMenuLabel className="flex flex-col gap-1 p-3">
+                            <span className="text-[15px] font-semibold leading-none text-foreground">
+                                {user?.name || 'Usuario'}
+                            </span>
+                            <span className="text-xs font-normal text-muted-foreground">
+                                {user?.email || 'admin@eventosmendoza.com'}
+                            </span>
                         </DropdownMenuLabel>
-                        <DropdownMenuSeparator className="bg-violet-100" />
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                             onClick={signOut}
-                            className="text-red-600 focus:bg-red-50 focus:text-red-700 cursor-pointer mx-2 mb-2 rounded-lg h-11 touch-manipulation"
+                            className="h-11 cursor-pointer text-destructive focus:bg-destructive/10 focus:text-destructive m-1"
                         >
-                            <LogOut className="h-4 w-4 mr-2" />
+                            <LogOut className="mr-2 size-4" aria-hidden />
                             Cerrar sesión
                         </DropdownMenuItem>
                     </DropdownMenuContent>
