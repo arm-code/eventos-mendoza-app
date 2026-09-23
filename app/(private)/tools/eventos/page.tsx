@@ -2,26 +2,18 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Plus, CheckCircle2, XCircle, Filter, Clock } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
 import { defaultBusinessConfig } from '@/lib/config'
 import { PageHeader } from '@/components/admin/page-header'
 import { EventDetailSheet } from '@/components/events/EventDetailSheet'
 import { ListaEventos } from '@/components/events/ListaEventos'
+import { EventTabs, type TabKey } from '@/components/events/EventTabs'
 import { Button } from '@/components/ui/button'
 import { SearchInput } from '@/components/ui/search-input'
 import type { EventStatus, BusinessEvent, BusinessConfig } from '@/types/finance'
 import { cn } from '@/lib/utils'
-
-const TABS = [
-  { key: 'upcoming' as const, label: 'Próximos', short: 'Próx.', icon: Clock },
-  { key: 'finished' as const, label: 'Terminados', short: 'Fin.', icon: CheckCircle2 },
-  { key: 'cancelled' as const, label: 'Cancelados', short: 'Canc.', icon: XCircle },
-  { key: 'all' as const, label: 'Todos', short: 'Todos', icon: Filter },
-] as const
-
-type TabKey = typeof TABS[number]['key']
 
 export default function EventosPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('upcoming')
@@ -122,40 +114,11 @@ export default function EventosPage() {
           className="h-12 text-base"
         />
 
-        <div className="relative">
-          <div className="flex snap-x snap-mandatory gap-2 overflow-x-auto pb-1 no-scrollbar">
-            {TABS.map((tab) => {
-              const count = tabCounts[tab.key]
-              const isActive = activeTab === tab.key
-
-              return (
-                <Button
-                  key={tab.key}
-                  variant={isActive ? 'default' : 'outline'}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={cn(
-                    'flex shrink-0 snap-start items-center gap-1.5 rounded-full px-4 text-sm font-medium transition-all duration-150',
-                    'min-h-[44px] active:scale-95',
-                    isActive ? 'shadow-sm' : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  <tab.icon className="size-3.5" aria-hidden />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                  <span className="sm:hidden">{tab.short}</span>
-                  <span
-                    className={cn(
-                      'ml-1 rounded-full px-1.5 py-0.5 text-xs font-semibold tabular-nums',
-                      isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'
-                    )}
-                  >
-                    {count}
-                  </span>
-                </Button>
-              )
-            })}
-          </div>
-          <div className="pointer-events-none absolute bottom-1 right-0 top-0 w-8 bg-gradient-to-l from-background to-transparent sm:hidden" aria-hidden="true" />
-        </div>
+        <EventTabs
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          tabCounts={tabCounts}
+        />
       </section>
 
       <section aria-label="Lista de eventos">
