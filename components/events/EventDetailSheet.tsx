@@ -176,6 +176,7 @@ export function EventDetailSheet({
                 </dl>
 
                 {/* Estado: botones grandes en vez de un Select dentro del sheet */}
+                {/* Estado */}
                 <section className="space-y-3">
                     <h3 id={statusLabelId} className="text-sm font-medium text-muted-foreground">
                         Estado
@@ -187,7 +188,7 @@ export function EventDetailSheet({
                         </p>
                     )}
 
-                    <div role="radiogroup" aria-labelledby={statusLabelId} className="grid grid-cols-3 gap-2">
+                    <div role="group" aria-labelledby={statusLabelId} className="grid grid-cols-3 gap-2">
                         {PROGRESS_STATUSES.map(({ value, label }) => {
                             const selected = status === value
                             const loading = pendingStatus === value
@@ -195,19 +196,21 @@ export function EventDetailSheet({
                                 <Button
                                     key={value}
                                     type="button"
-                                    role="radio"
-                                    aria-checked={selected}
+                                    aria-pressed={selected}
+                                    aria-busy={loading}
                                     disabled={statusMutation.isPending}
                                     onClick={() => changeStatus(value)}
                                     variant={selected ? 'default' : 'outline'}
-                                    className="h-12 rounded-xl text-[15px]"
+                                    className="h-12 rounded-xl px-2 text-[15px]"
                                 >
                                     {loading ? (
-                                        <Loader2 className="size-4 animate-spin" aria-hidden />
+                                        <>
+                                            <Loader2 className="animate-spin" aria-hidden />
+                                            <span className="sr-only">Cambiando a {label}</span>
+                                        </>
                                     ) : (
-                                        selected && <Check className="size-4" aria-hidden />
+                                        label
                                     )}
-                                    {label}
                                 </Button>
                             )
                         })}
