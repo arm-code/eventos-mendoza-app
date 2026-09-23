@@ -190,14 +190,14 @@ export default function NotesHistoryPage() {
       {/* Diálogo de eliminación */}
       <ConfirmDialog
         open={noteToDelete !== null}
-        onOpenChange={(o) => !o && setNoteToDelete(null)}
+        onOpenChange={(isOpen) => !isOpen && setNoteToDelete(null)}
         title={`¿Eliminar la nota ${noteToDelete?.folio}?`}
-        description="El registro se borrará permanentemente. Esta acción no se puede deshacer."
-        confirmText={deleteMutation.isPending ? 'Eliminando...' : 'Eliminar nota'}
+        description="Se borrará por completo y no podrás recuperarla."
+        confirmText="Eliminar nota"
         onConfirm={() => noteToDelete && deleteMutation.mutate(noteToDelete.id)}
         isPending={deleteMutation.isPending}
-        variant="destructive"
+
       />
     </div>
   )
-}
+}
