@@ -473,19 +473,7 @@ export default function CreateNotePage() {
           <DocumentActions
             filename={`nota-${savedNote.folio}`}
             exportNode={<PrintSaleNoteDocument note={savedNote} business={businessConfig} />}
-            extraActions={
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSavedNote(null)
-                  router.push(`/tools/notas-venta/editar-nota-venta/${savedNote.id}`)
-                }}
-                className="h-11 w-full px-4 sm:w-auto"
-              >
-                <Pencil className="mr-2 size-4" aria-hidden />
-                Editar nota
-              </Button>
-            }
+
           >
             <NoteCardPreview note={savedNote} business={businessConfig} />
           </DocumentActions>
