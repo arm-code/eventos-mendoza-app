@@ -20,13 +20,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Accordion,
   AccordionContent,
@@ -46,10 +40,8 @@ export default function CreateNotePage() {
   const router = useRouter()
   const queryClient = useQueryClient()
 
-  // Navegación por pasos
   const [step, setStep] = useState<1 | 2 | 3>(1)
 
-  // Estado del formulario
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerAddress, setCustomerAddress] = useState('')
@@ -60,15 +52,8 @@ export default function CreateNotePage() {
   const [applyIva, setApplyIva] = useState(false)
   const [notes, setNotes] = useState('')
   const [status, setStatus] = useState<'quote' | 'issued'>('quote')
-  const [eventId, setEventId] = useState<string>('none')
 
   const [savedNote, setSavedNote] = useState<Note | null>(null)
-
-  const { data: apiEvents = [] } = useQuery({
-    queryKey: ['businessEvents'],
-    queryFn: () => financeApi.getBusinessEvents(),
-  })
-  const availableEvents = Array.isArray(apiEvents) ? apiEvents : []
 
   const { data: apiConfig } = useQuery({
     queryKey: ['businessConfig'],
@@ -100,7 +85,7 @@ export default function CreateNotePage() {
         ivaRate: Number(apiNote.ivaRate || IVA_RATE),
         notes: apiNote.notes || notes.trim() || undefined,
         status: (apiNote.status as 'issued' | 'quote') === 'issued' ? 'issued' : 'quote',
-        eventId: apiNote.eventId || (eventId === 'none' ? null : eventId),
+        eventId: null,
         createdAt: apiNote.createdAt || new Date().toISOString(),
       }
       setSavedNote(mappedNote)
@@ -111,8 +96,6 @@ export default function CreateNotePage() {
   })
 
   const totals = useMemo(() => computeNoteTotals(items, applyIva, IVA_RATE), [items, applyIva])
-
-  // ─── Funciones de navegación ───────────────────────────────────────────
 
   function handleNextStep1() {
     if (!customerName.trim()) {
@@ -131,8 +114,6 @@ export default function CreateNotePage() {
     setStep(3)
   }
 
-  // ─── Manipulación de conceptos ─────────────────────────────────────────
-
   function updateItem(id: string, patch: Partial<NoteItem>) {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)))
   }
@@ -146,15 +127,12 @@ export default function CreateNotePage() {
   function removeItem(id: string) {
     setItems((prev) => {
       const filtered = prev.filter((it) => it.id !== id)
-      // Si eliminamos el que estaba abierto, abrimos el último disponible
       if (filtered.length > 0 && expandedItemId === id) {
         setExpandedItemId(filtered[filtered.length - 1].id)
       }
       return filtered.length > 0 ? filtered : [emptyItem()]
     })
   }
-
-  // ─── Guardado final ────────────────────────────────────────────────────
 
   function handleSave() {
     const validItems = items.filter((it) => it.description.trim() !== '')
@@ -166,7 +144,7 @@ export default function CreateNotePage() {
       applyIva,
       ivaRate: IVA_RATE,
       notes: notes.trim() || undefined,
-      eventId: eventId === 'none' ? undefined : eventId,
+      eventId: undefined,
       items: validItems.map((it) => ({
         concept: it.description.trim(),
         quantity: it.quantity,
@@ -177,30 +155,51 @@ export default function CreateNotePage() {
     createMutation.mutate(dto)
   }
 
+  // Footer unificado para navegación de pasos
+  const renderWizardFooter = (primaryAction: () => void, primaryLabel: string, showBack = true) => (
+    <div className="flex flex-col-reverse gap-3 border-t bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+      <Button
+        variant="ghost"
+        onClick={() => router.push('/tools/notas-venta')}
+        className="text-muted-foreground hover:text-destructive h-11"
+      >
+        Cancelar y salir
+      </Button>
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+        {showBack && (
+          <Button variant="outline" onClick={() => setStep((s) => (s - 1) as 1 | 2)} className="h-11 w-full sm:w-auto px-4">
+            <ArrowLeft className="mr-2 size-4" aria-hidden />
+            Atrás
+          </Button>
+        )}
+        <Button
+          onClick={primaryAction}
+          disabled={createMutation.isPending}
+          className="h-11 w-full sm:w-auto px-8"
+        >
+          {createMutation.isPending ? (
+            <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+          ) : step === 3 ? (
+            <Save className="mr-2 size-4" aria-hidden />
+          ) : null}
+          {primaryLabel}
+          {step !== 3 && <ArrowRight className="ml-2 size-4" aria-hidden />}
+        </Button>
+      </div>
+    </div>
+  )
+
   return (
     <div className="space-y-6 pb-28 sm:pb-8">
-      <PageHeader
-        title="Nueva nota"
-        action={
-          <Button
-            variant="ghost"
-            onClick={() => router.push('/tools/notas-venta')}
-            className="h-11 px-4 sm:h-10"
-          >
-            <ArrowLeft className="mr-2 size-4" aria-hidden />
-            Cancelar
-          </Button>
-        }
-      />
+      <PageHeader title="Nueva nota" />
 
-      {/* Indicador de progreso (Stepper visual minimalista) */}
       <div aria-hidden="true" className="flex items-center gap-2 px-1">
         <div className={cn("h-1.5 flex-1 rounded-full transition-colors", step >= 1 ? "bg-primary" : "bg-muted")} />
         <div className={cn("h-1.5 flex-1 rounded-full transition-colors", step >= 2 ? "bg-primary" : "bg-muted")} />
         <div className={cn("h-1.5 flex-1 rounded-full transition-colors", step >= 3 ? "bg-primary" : "bg-muted")} />
       </div>
 
-      {/* ─── PASO 1: CLIENTE ──────────────────────────────────────────────── */}
+      {/* ─── PASO 1 ──────────────────────────────────────────────── */}
       {step === 1 && (
         <section aria-labelledby="step-1-title" className="animate-in fade-in slide-in-from-right-4 duration-300">
           <div className="mb-4">
@@ -217,8 +216,8 @@ export default function CreateNotePage() {
                   id="cname"
                   value={customerName}
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomerName(e.target.value)}
-                  placeholder="Nombre completo o negocio"
-                  className="h-11 text-base"
+                  placeholder="Nombre completo / negocio"
+                  className="h-11 text-base capitalize"
                   autoFocus
                 />
               </div>
@@ -241,22 +240,17 @@ export default function CreateNotePage() {
                     value={customerAddress}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => setCustomerAddress(e.target.value)}
                     placeholder="Lugar de entrega"
-                    className="h-11 text-base"
+                    className="h-11 text-base capitalize"
                   />
                 </div>
               </div>
             </div>
-            <div className="flex justify-end border-t bg-muted/20 p-4 sm:p-5">
-              <Button onClick={handleNextStep1} className="h-11 w-full sm:w-auto px-8">
-                Siguiente
-                <ArrowRight className="ml-2 size-4" aria-hidden />
-              </Button>
-            </div>
+            {renderWizardFooter(handleNextStep1, 'Siguiente', false)}
           </Card>
         </section>
       )}
 
-      {/* ─── PASO 2: CONCEPTOS ────────────────────────────────────────────── */}
+      {/* ─── PASO 2 ────────────────────────────────────────────── */}
       {step === 2 && (
         <section aria-labelledby="step-2-title" className="animate-in fade-in slide-in-from-right-4 duration-300">
           <div className="mb-4 flex items-end justify-between">
@@ -276,7 +270,6 @@ export default function CreateNotePage() {
             >
               {items.map((item, index) => (
                 <AccordionItem key={item.id} value={item.id} className="border-b-0">
-                  {/* Cabecera del acordeón: Resumen del ítem */}
                   <AccordionTrigger className="border-b px-4 py-4 hover:bg-muted/30 hover:no-underline sm:px-5">
                     <div className="flex w-full min-w-0 flex-1 items-center justify-between pr-4">
                       <div className="flex min-w-0 flex-col items-start gap-1">
@@ -293,7 +286,6 @@ export default function CreateNotePage() {
                     </div>
                   </AccordionTrigger>
 
-                  {/* Contenido expandible del ítem */}
                   <AccordionContent className="border-b bg-muted/10 px-4 pb-5 pt-4 sm:px-5">
                     <div className="space-y-4">
                       <div className="space-y-2">
@@ -302,7 +294,7 @@ export default function CreateNotePage() {
                           value={item.description}
                           onChange={(e: ChangeEvent<HTMLInputElement>) => updateItem(item.id, { description: e.target.value })}
                           placeholder="Ej. Renta de mesa y sillas"
-                          className="h-11 text-base bg-background"
+                          className="h-11 text-base bg-background capitalize"
                         />
                       </div>
 
@@ -353,29 +345,18 @@ export default function CreateNotePage() {
               ))}
             </Accordion>
 
-            {/* Botón para agregar más items */}
             <div className="p-4 sm:p-5">
               <Button variant="outline" onClick={addItem} className="h-11 w-full border-dashed text-primary">
                 <Plus className="mr-2 size-4" aria-hidden />
                 Agregar otro concepto
               </Button>
             </div>
-
-            <div className="flex items-center justify-between border-t bg-muted/20 p-4 sm:p-5">
-              <Button variant="ghost" onClick={() => setStep(1)} className="h-11 px-4">
-                <ArrowLeft className="mr-2 size-4" aria-hidden />
-                Atrás
-              </Button>
-              <Button onClick={handleNextStep2} className="h-11 px-8">
-                Siguiente
-                <ArrowRight className="ml-2 size-4" aria-hidden />
-              </Button>
-            </div>
+            {renderWizardFooter(handleNextStep2, 'Siguiente')}
           </Card>
         </section>
       )}
 
-      {/* ─── PASO 3: DETALLES Y COBRO ───────────────────────────────────────── */}
+      {/* ─── PASO 3 ───────────────────────────────────────── */}
       {step === 3 && (
         <section aria-labelledby="step-3-title" className="animate-in fade-in slide-in-from-right-4 duration-300">
           <div className="mb-4">
@@ -385,38 +366,40 @@ export default function CreateNotePage() {
 
           <Card className="gap-0 py-0">
             <div className="grid gap-6 p-4 sm:p-5 lg:grid-cols-2">
-              <div className="space-y-5">
-                <div className="space-y-2">
-                  <Label>Tipo de documento</Label>
-                  <Select value={status} onValueChange={(v) => setStatus(v as 'quote' | 'issued')}>
-                    <SelectTrigger className="h-11 text-base sm:text-sm">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="quote">Cotización (No afecta reportes)</SelectItem>
-                      <SelectItem value="issued">Nota de venta (Venta confirmada)</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-6">
+
+                {/* Opciones en formato Radio Card (Sin Select) */}
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Tipo de documento</Label>
+                  <RadioGroup
+                    value={status}
+                    onValueChange={(v) => setStatus(v as 'quote' | 'issued')}
+                    className="grid grid-cols-2 gap-3"
+                  >
+                    <div>
+                      <RadioGroupItem value="quote" id="quote" className="peer sr-only" />
+                      <Label
+                        htmlFor="quote"
+                        className="flex h-full cursor-pointer flex-col items-center justify-between rounded-xl border-2 border-muted bg-transparent p-4 hover:bg-muted/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 active:scale-[0.98] transition-all"
+                      >
+                        <span className="text-[15px] font-semibold">Cotización</span>
+                        <span className="mt-1 text-center text-xs font-normal text-muted-foreground">No afecta reportes</span>
+                      </Label>
+                    </div>
+                    <div>
+                      <RadioGroupItem value="issued" id="issued" className="peer sr-only" />
+                      <Label
+                        htmlFor="issued"
+                        className="flex h-full cursor-pointer flex-col items-center justify-between rounded-xl border-2 border-muted bg-transparent p-4 hover:bg-muted/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 active:scale-[0.98] transition-all"
+                      >
+                        <span className="text-[15px] font-semibold">Nota de venta</span>
+                        <span className="mt-1 text-center text-xs font-normal text-muted-foreground">Venta confirmada</span>
+                      </Label>
+                    </div>
+                  </RadioGroup>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Vincular a evento (opcional)</Label>
-                  <Select value={eventId} onValueChange={setEventId}>
-                    <SelectTrigger className="h-11 text-base sm:text-sm">
-                      <SelectValue placeholder="Sin evento vinculado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Sin evento</SelectItem>
-                      {availableEvents.map((ev: any) => (
-                        <SelectItem key={ev.id} value={String(ev.id)}>
-                          {ev.name || ev.serviceDescription || `Evento #${String(ev.id).slice(0, 6)}`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <label className="flex items-center gap-3 rounded-xl border bg-muted/30 p-4 active:bg-muted/50">
+                <label className="flex cursor-pointer items-center gap-3 rounded-xl border bg-muted/30 p-4 hover:bg-muted/50 active:bg-muted/70 transition-colors">
                   <input
                     type="checkbox"
                     checked={applyIva}
@@ -433,7 +416,7 @@ export default function CreateNotePage() {
                     value={notes}
                     onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setNotes(e.target.value)}
                     placeholder="Condiciones de pago, validez de la cotización..."
-                    className="flex min-h-[100px] w-full resize-none rounded-md border border-input bg-background px-3 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    className="flex min-h-[100px] w-full resize-none rounded-xl border border-input bg-background px-4 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                   />
                 </div>
               </div>
@@ -460,30 +443,7 @@ export default function CreateNotePage() {
               </div>
             </div>
 
-            <div className="flex flex-col-reverse gap-3 border-t bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-              <Button variant="ghost" onClick={() => setStep(2)} className="h-11 w-full sm:w-auto px-4">
-                <ArrowLeft className="mr-2 size-4" aria-hidden />
-                Volver a conceptos
-              </Button>
-              <Button
-                size="lg"
-                disabled={createMutation.isPending}
-                className="h-14 w-full sm:w-auto sm:px-10 text-base font-semibold"
-                onClick={handleSave}
-              >
-                {createMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 size-5 animate-spin" aria-hidden />
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 size-5" aria-hidden />
-                    Finalizar y guardar
-                  </>
-                )}
-              </Button>
-            </div>
+            {renderWizardFooter(handleSave, 'Finalizar y guardar')}
           </Card>
         </section>
       )}
