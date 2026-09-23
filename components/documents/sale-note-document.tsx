@@ -50,9 +50,9 @@ export const SaleNoteDocument = forwardRef<HTMLDivElement, SaleNoteDocumentProps
         {/* Cliente */}
         <section className="rounded-xl border bg-card p-4">
           <h2 className="text-sm font-semibold text-muted-foreground">Cliente</h2>
-          <p className="mt-1 font-medium">{note.customer.name}</p>
+          <p className="mt-1 font-medium capitalize">{note.customer.name}</p>
           {note.customer.phone && <p className="mt-1 text-sm">{note.customer.phone}</p>}
-          {note.customer.address && <p className="mt-1 text-sm">{note.customer.address}</p>}
+          {note.customer.address && <p className="mt-1 text-sm capitalize">{note.customer.address}</p>}
         </section>
 
         {/* Conceptos */}
@@ -69,7 +69,7 @@ export const SaleNoteDocument = forwardRef<HTMLDivElement, SaleNoteDocumentProps
             <tbody className="divide-y">
               {note.items.map((item) => (
                 <tr key={item.id}>
-                  <td className="p-4">{item.description}</td>
+                  <td className="p-4 capitalize">{item.description}</td>
                   <td className="p-4 text-center">{item.quantity}</td>
                   <td className="p-4 text-right tabular-nums">{formatCurrency(item.unitPrice)}</td>
                   <td className="p-4 text-right font-medium tabular-nums">{formatCurrency(itemAmount(item))}</td>
@@ -105,7 +105,7 @@ export const SaleNoteDocument = forwardRef<HTMLDivElement, SaleNoteDocumentProps
         {note.notes && (
           <section className="rounded-xl border bg-muted/20 p-5 text-sm">
             <h2 className="font-semibold text-muted-foreground">Notas</h2>
-            <p className="mt-2 leading-relaxed">{note.notes}</p>
+            <p className="mt-2 leading-relaxed first-letter:uppercase">{note.notes}</p>
           </section>
         )}
       </div>
@@ -144,9 +144,9 @@ export function PrintSaleNoteDocument({ note, business }: SaleNoteDocumentProps)
 
       <section className="mb-8 rounded-xl border p-5">
         <h2 className="text-sm font-semibold text-muted-foreground">Cliente</h2>
-        <p className="mt-2 font-medium">{note.customer.name}</p>
+        <p className="mt-2 font-medium capitalize">{note.customer.name}</p>
         {note.customer.phone && <p className="mt-1">{note.customer.phone}</p>}
-        {note.customer.address && <p className="mt-1">{note.customer.address}</p>}
+        {note.customer.address && <p className="mt-1 capitalize">{note.customer.address}</p>}
       </section>
 
       <table className="mb-8 w-full border-collapse text-left text-sm">
@@ -161,7 +161,7 @@ export function PrintSaleNoteDocument({ note, business }: SaleNoteDocumentProps)
         <tbody className="divide-y">
           {note.items.map((item) => (
             <tr key={item.id}>
-              <td className="p-3">{item.description}</td>
+              <td className="p-3 capitalize">{item.description}</td>
               <td className="p-3 text-center">{item.quantity}</td>
               <td className="p-3 text-right tabular-nums">{formatCurrency(item.unitPrice)}</td>
               <td className="p-3 text-right font-medium tabular-nums">{formatCurrency(itemAmount(item))}</td>
@@ -192,7 +192,7 @@ export function PrintSaleNoteDocument({ note, business }: SaleNoteDocumentProps)
       {note.notes && (
         <section className="rounded-xl border bg-muted/20 p-5 text-sm">
           <h2 className="font-semibold text-muted-foreground">Notas</h2>
-          <p className="mt-2 leading-relaxed">{note.notes}</p>
+          <p className="mt-2 leading-relaxed first-letter:uppercase">{note.notes}</p>
         </section>
       )}
 
