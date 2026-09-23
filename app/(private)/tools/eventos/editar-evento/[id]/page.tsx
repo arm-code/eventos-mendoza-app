@@ -1,37 +1,45 @@
+// app/tools/eventos/editar-evento/[id]/page.tsx
 'use client'
 
 import { useState, ChangeEvent, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2, Save, ArrowLeft } from 'lucide-react'
+import { Loader2, Save, ArrowLeft, ArrowRight } from 'lucide-react'
 
 import { financeApi } from '@/lib/api/finance'
-import { defaultBusinessConfig } from '@/lib/config'
-import type { BusinessEvent, UpdateBusinessEventDto, EventStatus, BusinessConfig } from '@/types/finance'
+import type { UpdateBusinessEventDto, EventStatus } from '@/types/finance'
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { PageHeader } from '@/components/admin/page-header'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
+import { cn } from '@/lib/utils'
 
 export default function EditarEventoPage({ params }: { params: Promise<{ id: string }> }) {
     const { id: eventId } = use(params)
     const router = useRouter()
     const queryClient = useQueryClient()
 
-    // Form State
+    const [step, setStep] = useState<1 | 2 | 3>(1)
+
+    // Step 1: General Info
     const [formName, setFormName] = useState('')
     const [formClientName, setFormClientName] = useState('')
     const [formClientPhone, setFormClientPhone] = useState('')
     const [formAddress, setFormAddress] = useState('')
+
+    // Step 2: Fechas, Finanzas y Contrato
     const [formDate, setFormDate] = useState(new Date().toISOString().split('T')[0])
     const [formCost, setFormCost] = useState('')
-    const [formStatus, setFormStatus] = useState<EventStatus>('pending')
     const [formNoteId, setFormNoteId] = useState('none')
     const [formGuarantee, setFormGuarantee] = useState('INE / Credencial de Elector')
+
+    // Step 3: Detalles finales
+    const [formStatus, setFormStatus] = useState<EventStatus>('pending')
     const [formNotes, setFormNotes] = useState('')
 
     // Fetch existing event
@@ -68,13 +76,6 @@ export default function EditarEventoPage({ params }: { params: Promise<{ id: str
     })
     const availableNotes = availableNotesData || []
 
-    // Business Config
-    const { data: apiConfig } = useQuery({
-        queryKey: ['businessConfig'],
-        queryFn: () => financeApi.getConfig(),
-    })
-    const businessConfig: BusinessConfig = apiConfig || defaultBusinessConfig
-
     // Update Mutation
     const updateMutation = useMutation({
         mutationFn: (dto: UpdateBusinessEventDto) => financeApi.updateBusinessEvent(eventId, dto),
@@ -88,11 +89,27 @@ export default function EditarEventoPage({ params }: { params: Promise<{ id: str
         },
     })
 
-    function handleFormSubmit() {
-        if (!formName.trim() || !formClientName.trim()) {
-            toast.error('Nombre del evento y del cliente son requeridos')
+    function handleNextStep1() {
+        if (!formName.trim()) {
+            toast.error('Falta el nombre del evento')
             return
         }
+        if (!formClientName.trim()) {
+            toast.error('Falta el nombre del cliente')
+            return
+        }
+        setStep(2)
+    }
+
+    function handleNextStep2() {
+        if (!formDate) {
+            toast.error('Falta la fecha del evento')
+            return
+        }
+        setStep(3)
+    }
+
+    function handleSave() {
         updateMutation.mutate({
             name: formName.trim(),
             cost: Number(formCost) || 0,
@@ -107,188 +124,266 @@ export default function EditarEventoPage({ params }: { params: Promise<{ id: str
         })
     }
 
-    return (
-        <div className="space-y-4 sm:space-y-6 pb-24 sm:pb-0">
-            <PageHeader
-                title="Editar Evento"
-                description="Modifica los detalles del evento."
-                action={
-                    <Button
-                        variant="outline"
-                        onClick={() => router.push('/tools/eventos')}
-                        className="w-full sm:w-auto h-11 border-violet-200 text-violet-700 hover:bg-violet-50 touch-manipulation gap-2 rounded-xl active:scale-[0.97] transition-all"
-                    >
-                        <ArrowLeft className="w-4 h-4" />
-                        Volver
+    const renderWizardFooter = (primaryAction: () => void, primaryLabel: string, showBack = true) => (
+        <div className="flex flex-col-reverse gap-3 border-t bg-muted/20 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+            <Button
+                variant="ghost"
+                onClick={() => router.push('/tools/eventos')}
+                className="text-muted-foreground hover:text-destructive h-11"
+            >
+                Cancelar y salir
+            </Button>
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center">
+                {showBack && (
+                    <Button variant="outline" onClick={() => setStep((s) => (s - 1) as 1 | 2 | 3)} className="h-11 w-full sm:w-auto px-4">
+                        <ArrowLeft className="mr-2 size-4" aria-hidden />
+                        Atrás
                     </Button>
-                }
-            />
+                )}
+                <Button
+                    onClick={primaryAction}
+                    disabled={updateMutation.isPending}
+                    className="h-11 w-full sm:w-auto px-8"
+                >
+                    {updateMutation.isPending ? (
+                        <Loader2 className="mr-2 size-4 animate-spin" aria-hidden />
+                    ) : step === 3 ? (
+                        <Save className="mr-2 size-4" aria-hidden />
+                    ) : null}
+                    {primaryLabel}
+                    {step !== 3 && <ArrowRight className="ml-2 size-4" aria-hidden />}
+                </Button>
+            </div>
+        </div>
+    )
 
-            <div className="max-w-4xl mx-auto">
-                <Card className="border-violet-100 bg-white shadow-sm p-4 sm:p-6 rounded-2xl">
-                    <div className="space-y-5">
-                        {/* Nombre del evento */}
-                        <div className="space-y-1.5">
-                            <Label className="text-sm font-semibold text-violet-900">
-                                Nombre del Evento / Servicio <span className="text-red-500">*</span>
-                            </Label>
-                            <Input
-                                value={formName}
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormName(e.target.value)}
-                                placeholder="Ej. Renta Mobiliario Fiesta Cumpleaños"
-                                className="h-12 border-violet-100 focus:border-violet-500 text-base rounded-xl"
-                            />
-                        </div>
+    return (
+        <div className="space-y-6 pb-28 sm:pb-8">
+            <PageHeader title="Editar evento" />
 
-                        {/* Cliente + Teléfono */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <Label className="text-sm font-semibold text-violet-900">
-                                    Nombre del Cliente <span className="text-red-500">*</span>
+            <div aria-hidden="true" className="flex items-center gap-2 px-1">
+                <div className={cn("h-1.5 flex-1 rounded-full transition-colors", step >= 1 ? "bg-primary" : "bg-muted")} />
+                <div className={cn("h-1.5 flex-1 rounded-full transition-colors", step >= 2 ? "bg-primary" : "bg-muted")} />
+                <div className={cn("h-1.5 flex-1 rounded-full transition-colors", step >= 3 ? "bg-primary" : "bg-muted")} />
+            </div>
+
+            {/* ─── PASO 1 ──────────────────────────────────────────────── */}
+            {step === 1 && (
+                <section aria-labelledby="step-1-title" className="animate-in fade-in slide-in-from-right-4 duration-300">
+                    <div className="mb-4">
+                        <h2 id="step-1-title" className="text-lg font-semibold">Datos generales</h2>
+                        <p className="text-sm text-muted-foreground">Paso 1 de 3: Registra el evento y el cliente</p>
+                    </div>
+                    <Card className="gap-0 py-0">
+                        <div className="space-y-5 p-4 sm:p-5">
+                            <div className="space-y-2">
+                                <Label htmlFor="ename">
+                                    Nombre del Evento / Servicio <span className="text-destructive">*</span>
                                 </Label>
                                 <Input
-                                    value={formClientName}
-                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setFormClientName(e.target.value)}
-                                    placeholder="Nombre completo"
-                                    className="h-12 border-violet-100 focus:border-violet-500 text-base rounded-xl"
+                                    id="ename"
+                                    value={formName}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setFormName(e.target.value)}
+                                    placeholder="Ej. Renta Mobiliario Boda"
+                                    className="h-11 text-base capitalize"
+                                    autoFocus
                                 />
                             </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-sm font-semibold text-violet-900">Teléfono</Label>
+
+                            <div className="grid gap-5 sm:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="cname">
+                                        Nombre del Cliente <span className="text-destructive">*</span>
+                                    </Label>
+                                    <Input
+                                        id="cname"
+                                        value={formClientName}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setFormClientName(e.target.value)}
+                                        placeholder="Nombre completo"
+                                        className="h-11 text-base capitalize"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="cphone">Teléfono (opcional)</Label>
+                                    <Input
+                                        id="cphone"
+                                        inputMode="tel"
+                                        value={formClientPhone}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setFormClientPhone(e.target.value)}
+                                        placeholder="656 123 4567"
+                                        className="h-11 text-base"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="caddr">Dirección del Evento (opcional)</Label>
                                 <Input
-                                    inputMode="tel"
-                                    value={formClientPhone}
-                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setFormClientPhone(e.target.value)}
-                                    placeholder="656 123 4567"
-                                    className="h-12 border-violet-100 focus:border-violet-500 text-base rounded-xl"
+                                    id="caddr"
+                                    value={formAddress}
+                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setFormAddress(e.target.value)}
+                                    placeholder="Lugar de entrega..."
+                                    className="h-11 text-base capitalize"
                                 />
                             </div>
                         </div>
+                        {renderWizardFooter(handleNextStep1, 'Siguiente', false)}
+                    </Card>
+                </section>
+            )}
 
-                        {/* Dirección */}
-                        <div className="space-y-1.5">
-                            <Label className="text-sm font-semibold text-violet-900">Dirección del Evento</Label>
-                            <Input
-                                value={formAddress}
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormAddress(e.target.value)}
-                                placeholder="Calle, número, colonia, referencias..."
-                                className="h-12 border-violet-100 focus:border-violet-500 text-base rounded-xl"
-                            />
-                        </div>
-
-                        {/* Fecha + Costo */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <Label className="text-sm font-semibold text-violet-900">Fecha del Evento</Label>
-                                <Input
-                                    type="date"
-                                    value={formDate}
-                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setFormDate(e.target.value)}
-                                    className="h-12 border-violet-100 focus:border-violet-500 text-base rounded-xl"
-                                />
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-sm font-semibold text-violet-900">Costo Total ($)</Label>
-                                <Input
-                                    type="number"
-                                    inputMode="decimal"
-                                    min="0"
-                                    step="0.01"
-                                    value={formCost}
-                                    onChange={(e: ChangeEvent<HTMLInputElement>) => setFormCost(e.target.value)}
-                                    placeholder="0.00"
-                                    className="h-12 border-violet-100 focus:border-violet-500 text-base font-semibold rounded-xl"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Estado + Nota vinculada */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <Label className="text-sm font-semibold text-violet-900">Estado</Label>
-                                <Select value={formStatus} onValueChange={(val) => setFormStatus(val as EventStatus)}>
-                                    <SelectTrigger className="h-12 border-violet-100 bg-white text-base rounded-xl">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="pending">Pendiente</SelectItem>
-                                        <SelectItem value="delivered">Entregado</SelectItem>
-                                        <SelectItem value="collected">Recogido (Finalizado)</SelectItem>
-                                        <SelectItem value="cancelled">Cancelado</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-sm font-semibold text-violet-900">Vincular Nota (Opcional)</Label>
-                                <Select value={formNoteId} onValueChange={setFormNoteId}>
-                                    <SelectTrigger className="h-12 border-violet-100 bg-white text-base rounded-xl">
-                                        <SelectValue placeholder="Sin nota vinculada" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="none">Sin nota</SelectItem>
-                                        {availableNotes.map((note: any) => (
-                                            <SelectItem key={note.id} value={note.id}>
-                                                {note.folio} — {note.customerName || note.customer?.name} (${note.total})
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        {/* Garantía */}
-                        <div className="space-y-1.5">
-                            <Label className="text-sm font-semibold text-violet-900">Documento de Garantía</Label>
-                            <Select value={formGuarantee} onValueChange={setFormGuarantee}>
-                                <SelectTrigger className="h-12 border-violet-100 bg-white text-base rounded-xl">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="INE / Credencial de Elector">INE / Credencial de Elector</SelectItem>
-                                    <SelectItem value="Licencia de Conducir">Licencia de Conducir</SelectItem>
-                                    <SelectItem value="Depósito de Garantía en Efectivo">Depósito de Garantía en Efectivo</SelectItem>
-                                    <SelectItem value="Pasaporte">Pasaporte</SelectItem>
-                                    <SelectItem value="Ninguno">Ninguno</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* Notas */}
-                        <div className="space-y-1.5">
-                            <Label className="text-sm font-semibold text-violet-900">Notas / Términos de entrega</Label>
-                            <Input
-                                value={formNotes}
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => setFormNotes(e.target.value)}
-                                placeholder="Detalles sobre horario de entrega o recolección..."
-                                className="h-12 border-violet-100 focus:border-violet-500 text-base rounded-xl"
-                            />
-                        </div>
-
-                        {/* Botones */}
-                        <div className="pt-4 flex flex-col-reverse sm:flex-row justify-end gap-3 border-t border-violet-50 mt-6 pt-6">
-                            <Button
-                                variant="outline"
-                                onClick={() => router.push('/tools/eventos')}
-                                className="h-12 border-violet-100 text-base font-semibold active:scale-[0.97] transition-all rounded-xl"
-                            >
-                                Cancelar
-                            </Button>
-                            <Button
-                                onClick={handleFormSubmit}
-                                disabled={updateMutation.isPending}
-                                className="h-12 bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white font-bold px-8 text-base active:scale-[0.97] transition-all rounded-xl shadow-lg shadow-violet-600/20"
-                            >
-                                {updateMutation.isPending ? (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : (
-                                    <Save className="mr-2 h-4 w-4" />
-                                )}
-                                Guardar Cambios
-                            </Button>
-                        </div>
+            {/* ─── PASO 2 ────────────────────────────────────────────── */}
+            {step === 2 && (
+                <section aria-labelledby="step-2-title" className="animate-in fade-in slide-in-from-right-4 duration-300">
+                    <div className="mb-4">
+                        <h2 id="step-2-title" className="text-lg font-semibold">Finanzas y Contrato</h2>
+                        <p className="text-sm text-muted-foreground">Paso 2 de 3: Define la fecha, costos y garantías</p>
                     </div>
-                </Card>
-            </div>
+
+                    <Card className="gap-0 py-0">
+                        <div className="space-y-5 p-4 sm:p-5">
+                            <div className="grid gap-5 sm:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label htmlFor="edate">
+                                        Fecha del Evento <span className="text-destructive">*</span>
+                                    </Label>
+                                    <Input
+                                        id="edate"
+                                        type="date"
+                                        value={formDate}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setFormDate(e.target.value)}
+                                        className="h-11 text-base"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="ecost">Costo Total ($)</Label>
+                                    <Input
+                                        id="ecost"
+                                        type="number"
+                                        inputMode="decimal"
+                                        min="0"
+                                        step="0.01"
+                                        value={formCost}
+                                        onChange={(e: ChangeEvent<HTMLInputElement>) => setFormCost(e.target.value)}
+                                        placeholder="0.00"
+                                        className="h-11 text-base font-semibold tabular-nums"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="grid gap-5 sm:grid-cols-2">
+                                <div className="space-y-2">
+                                    <Label>Documento de Garantía</Label>
+                                    <Select value={formGuarantee} onValueChange={setFormGuarantee}>
+                                        <SelectTrigger className="h-11 text-base bg-background">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="INE / Credencial de Elector">INE / Credencial de Elector</SelectItem>
+                                            <SelectItem value="Licencia de Conducir">Licencia de Conducir</SelectItem>
+                                            <SelectItem value="Depósito de Garantía en Efectivo">Depósito de Garantía en Efectivo</SelectItem>
+                                            <SelectItem value="Pasaporte">Pasaporte</SelectItem>
+                                            <SelectItem value="Ninguno">Ninguno</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Vincular Nota de Venta (Opcional)</Label>
+                                    <Select value={formNoteId} onValueChange={setFormNoteId}>
+                                        <SelectTrigger className="h-11 text-base bg-background">
+                                            <SelectValue placeholder="Sin nota vinculada" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="none">Sin nota</SelectItem>
+                                            {availableNotes.map((note: any) => (
+                                                <SelectItem key={note.id} value={note.id}>
+                                                    {note.folio} — {note.customerName || note.customer?.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+                        </div>
+                        {renderWizardFooter(handleNextStep2, 'Siguiente')}
+                    </Card>
+                </section>
+            )}
+
+            {/* ─── PASO 3 ───────────────────────────────────────── */}
+            {step === 3 && (
+                <section aria-labelledby="step-3-title" className="animate-in fade-in slide-in-from-right-4 duration-300">
+                    <div className="mb-4">
+                        <h2 id="step-3-title" className="text-lg font-semibold">Detalles finales</h2>
+                        <p className="text-sm text-muted-foreground">Paso 3 de 3: Estado del evento y observaciones</p>
+                    </div>
+
+                    <Card className="gap-0 py-0">
+                        <div className="grid gap-6 p-4 sm:p-5 lg:grid-cols-2">
+                            <div className="space-y-6">
+                                <div className="space-y-3">
+                                    <Label className="text-sm font-semibold">Estado del Evento</Label>
+                                    <RadioGroup
+                                        value={formStatus}
+                                        onValueChange={(v) => setFormStatus(v as EventStatus)}
+                                        className="grid grid-cols-2 gap-3"
+                                    >
+                                        <div>
+                                            <RadioGroupItem value="pending" id="pending" className="peer sr-only" />
+                                            <Label
+                                                htmlFor="pending"
+                                                className="flex h-full cursor-pointer flex-col items-center justify-between rounded-xl border-2 border-muted bg-transparent p-4 hover:bg-muted/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 active:scale-[0.98] transition-all"
+                                            >
+                                                <span className="text-[14px] font-semibold">Pendiente</span>
+                                            </Label>
+                                        </div>
+                                        <div>
+                                            <RadioGroupItem value="delivered" id="delivered" className="peer sr-only" />
+                                            <Label
+                                                htmlFor="delivered"
+                                                className="flex h-full cursor-pointer flex-col items-center justify-between rounded-xl border-2 border-muted bg-transparent p-4 hover:bg-muted/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 active:scale-[0.98] transition-all"
+                                            >
+                                                <span className="text-[14px] font-semibold">Entregado</span>
+                                            </Label>
+                                        </div>
+                                        <div>
+                                            <RadioGroupItem value="collected" id="collected" className="peer sr-only" />
+                                            <Label
+                                                htmlFor="collected"
+                                                className="flex h-full cursor-pointer flex-col items-center justify-between rounded-xl border-2 border-muted bg-transparent p-4 hover:bg-muted/50 peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 active:scale-[0.98] transition-all"
+                                            >
+                                                <span className="text-[14px] font-semibold text-center">Recogido (Fin)</span>
+                                            </Label>
+                                        </div>
+                                        <div>
+                                            <RadioGroupItem value="cancelled" id="cancelled" className="peer sr-only" />
+                                            <Label
+                                                htmlFor="cancelled"
+                                                className="flex h-full cursor-pointer flex-col items-center justify-between rounded-xl border-2 border-muted bg-transparent p-4 hover:bg-muted/50 peer-data-[state=checked]:border-destructive peer-data-[state=checked]:bg-destructive/5 active:scale-[0.98] transition-all text-destructive"
+                                            >
+                                                <span className="text-[14px] font-semibold">Cancelado</span>
+                                            </Label>
+                                        </div>
+                                    </RadioGroup>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="obs">Notas / Términos de entrega</Label>
+                                    <textarea
+                                        id="obs"
+                                        value={formNotes}
+                                        onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setFormNotes(e.target.value)}
+                                        placeholder="Detalles sobre horario de entrega o recolección..."
+                                        className="flex min-h-[120px] w-full resize-none rounded-xl border border-input bg-background px-4 py-3 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 first-letter:uppercase"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {renderWizardFooter(handleSave, 'Guardar Cambios')}
+                    </Card>
+                </section>
+            )}
         </div>
     )
 }
