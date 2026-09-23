@@ -1,51 +1,38 @@
-// components/events/ListaEventos.tsx
 'use client'
 
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { toast } from 'sonner'
-import {
-    Calendar, MapPin, User, CheckCircle2, Clock, XCircle, Eye,
-} from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/card'
+import { CalendarX2, ChevronRight } from 'lucide-react'
+import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import type { BusinessEvent, EventStatus } from '@/types/finance'
-import { formatCurrency, formatDate } from '@/lib/format'
-import { financeApi } from '@/lib/api/finance'
-import { Button } from '@/components/ui/button'
+import { formatCurrency } from '@/lib/format'
+import { Button } from '../ui/button'
 
 /* ────────────────────────────────────────────────────────────────────────────
-   CONSTANTES
+   CONSTANTES Y FORMATO
    ─────────────────────────────────────────────────────────────────────────── */
-const STATUS_META: Record<EventStatus, {
-    label: string
-    shortLabel: string
-    bg: string
-    text: string
-    border: string
-    icon: typeof Clock
-    dot: string
-}> = {
-    pending: {
-        label: 'Pendiente', shortLabel: 'Pend.',
-        bg: 'bg-amber-500/10', text: 'text-amber-700', border: 'border-amber-500/20',
-        icon: Clock, dot: 'bg-amber-500',
-    },
-    delivered: {
-        label: 'Entregado', shortLabel: 'Entr.',
-        bg: 'bg-primary/10', text: 'text-primary', border: 'border-primary/20',
-        icon: CheckCircle2, dot: 'bg-primary',
-    },
-    collected: {
-        label: 'Recogido', shortLabel: 'Rec.',
-        bg: 'bg-success/10', text: 'text-success', border: 'border-success/20',
-        icon: CheckCircle2, dot: 'bg-success',
-    },
-    cancelled: {
-        label: 'Cancelado', shortLabel: 'Canc.',
-        bg: 'bg-destructive/10', text: 'text-destructive', border: 'border-destructive/20',
-        icon: XCircle, dot: 'bg-destructive',
-    },
+const STATUS_LABEL: Record<EventStatus, string> = {
+    pending: 'Pendiente',
+    delivered: 'Entregado',
+    collected: 'Terminado',
+    cancelled: 'Cancelado',
+}
+
+const STATUS_COLOR: Record<EventStatus, string> = {
+    pending: 'text-primary',
+    delivered: 'text-primary',
+    collected: 'text-success',
+    cancelled: 'text-destructive',
+}
+
+const dayFmt = new Intl.DateTimeFormat('es-MX', { day: 'numeric' })
+const monthFmt = new Intl.DateTimeFormat('es-MX', { month: 'short' })
+
+function parseEventDate(value?: string | null): Date | null {
+    if (!value) return null
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+    const date = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(value)
+    return Number.isNaN(date.getTime()) ? null : date
 }
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -62,132 +49,96 @@ interface ListaEventosProps {
    COMPONENTE
    ─────────────────────────────────────────────────────────────────────────── */
 export function ListaEventos({ filteredEvents, isLoading, activeTab, onSelectEvent }: ListaEventosProps) {
-    const queryClient = useQueryClient()
-
-    /* ── Mutación de cambio rápido de estado ── */
-    const statusMutation = useMutation({
-        mutationFn: ({ id, status }: { id: string; status: EventStatus }) =>
-            financeApi.updateEventStatus(id, status),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['businessEvents'] })
-            toast.success('Estado actualizado')
-        },
-        onError: (err: unknown) => {
-            const error = err as { message?: string }
-            toast.error(error.message || 'Error al actualizar el estado')
-        },
-    })
-
-    /* ── Render ── */
-    return (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {isLoading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                    <Card key={i} className="gap-0 py-0 overflow-hidden" aria-busy="true">
-                        <div className="h-1 w-full bg-muted" />
-                        <CardContent className="p-4 space-y-3">
-                            <div className="flex justify-between">
-                                <Skeleton className="h-5 w-3/5" />
-                                <Skeleton className="h-5 w-20 rounded-md" />
-                            </div>
-                            <div className="space-y-2">
-                                <Skeleton className="h-4 w-4/5" />
+    if (isLoading) {
+        return (
+            <Card className="gap-0 overflow-hidden py-0" aria-busy="true" aria-label="Cargando eventos">
+                <ul className="divide-y">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                        <li key={i} className="flex items-center gap-3 px-4 py-3">
+                            <Skeleton className="size-12 shrink-0 rounded-lg" />
+                            <div className="flex-1 space-y-2">
                                 <Skeleton className="h-4 w-3/5" />
-                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-3.5 w-2/5" />
                             </div>
-                            <div className="flex justify-between pt-2 border-t">
-                                <Skeleton className="h-6 w-24" />
-                                <Skeleton className="h-9 w-28 rounded-lg" />
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))
-            ) : filteredEvents.length === 0 ? (
-                <Card className="col-span-full flex flex-col items-center gap-3 p-8 text-center">
-                    <Calendar className="size-12 text-muted-foreground/60" aria-hidden />
-                    <p className="font-medium text-foreground">
-                        No hay eventos {activeTab !== 'all' ? 'en esta categoría' : 'guardados'}.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                        Presiona el botón + para agendar el primer servicio.
-                    </p>
-                </Card>
-            ) : (
-                filteredEvents.map((evt) => {
-                    const meta = STATUS_META[evt.status || 'pending']
-                    const StatusIcon = meta.icon
+                            <Skeleton className="h-4 w-16" />
+                        </li>
+                    ))}
+                </ul>
+            </Card>
+        )
+    }
+
+    if (filteredEvents.length === 0) {
+        return (
+            <Card className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+                <CalendarX2 className="size-8 text-muted-foreground/60" aria-hidden />
+                <p className="font-medium text-foreground">
+                    No hay eventos {activeTab !== 'all' ? 'en esta categoría' : 'guardados'}.
+                </p>
+            </Card>
+        )
+    }
+
+    return (
+        <Card className="gap-0 overflow-hidden py-0">
+            <ul className="divide-y">
+                {filteredEvents.map((evt) => {
+                    const date = parseEventDate(evt.date)
+                    const status = evt.status || 'pending'
 
                     return (
-                        <div key={evt.id} className="min-w-0">
-                            <Card
-                                className={cn(
-                                    'gap-0 py-0 overflow-hidden cursor-pointer transition-colors',
-                                    'hover:bg-accent/40 active:bg-accent',
-                                    'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
-                                )}
+                        <li key={evt.id}>
+                            <Button
+                                variant="ghost"
                                 onClick={() => onSelectEvent(evt)}
+                                className={cn(
+                                    'flex w-full h-auto min-h-16 items-center justify-start gap-3 px-4 py-3 text-left font-normal rounded-none',
+                                    'transition-colors hover:bg-accent/60 active:bg-accent',
+                                    'outline-none focus-visible:bg-accent'
+                                )}
                             >
-                                <CardContent className="p-0">
-                                    {/* ── Color strip según status ── */}
-                                    <div className={cn('h-1 w-full', meta.dot)} aria-hidden />
-
-                                    <div className="p-4 space-y-3">
-                                        {/* Header: Folio + Status */}
-                                        <div className="flex items-start justify-between gap-2">
-                                            <div className="min-w-0 flex-1">
-                                                <h3 className="font-semibold text-foreground text-[15px] leading-tight truncate">
-                                                    {evt.name}
-                                                </h3>
-                                            </div>
-                                            <div className={cn('shrink-0 flex items-center gap-1 px-2 py-1 rounded-md border text-xs font-semibold', meta.bg, meta.text, meta.border)}>
-                                                <StatusIcon className="size-3" aria-hidden />
-                                                <span>{meta.label}</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Info minimalista: Cliente + Fecha + Dirección */}
-                                        <div className="space-y-1.5 text-sm text-muted-foreground">
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <User className="size-3.5 text-muted-foreground shrink-0" aria-hidden />
-                                                <span className="font-medium text-foreground truncate">{evt.clientName}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <Calendar className="size-3.5 text-muted-foreground shrink-0" aria-hidden />
-                                                <span>{evt.date ? formatDate(evt.date) : 'Por definir'}</span>
-                                            </div>
-                                            <div className="flex items-start gap-2 min-w-0">
-                                                <MapPin className="size-3.5 text-muted-foreground shrink-0 mt-0.5" aria-hidden />
-                                                <span className="truncate">{evt.eventAddress}</span>
-                                            </div>
-                                        </div>
-
-                                        {/* Footer: Costo + Acciones */}
-                                        <div className="flex items-center justify-between pt-2 border-t">
-                                            <span className="text-base font-semibold tabular-nums text-foreground">
-                                                {formatCurrency(evt.cost || 0)}
+                                {/* Fecha */}
+                                <div className="flex size-12 shrink-0 flex-col items-center justify-center rounded-lg bg-muted leading-none">
+                                    {date ? (
+                                        <>
+                                            <span className="text-lg font-semibold tabular-nums text-foreground">
+                                                {dayFmt.format(date)}
                                             </span>
+                                            <span className="mt-0.5 text-xs text-muted-foreground capitalize">
+                                                {monthFmt.format(date).replace('.', '')}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <span className="text-xs text-muted-foreground">—</span>
+                                    )}
+                                </div>
 
-                                            <div className="flex items-center gap-2">
-                                                <Button
-                                                    size="sm"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        onSelectEvent(evt)
-                                                    }}
-                                                    className="h-9 gap-1.5 px-3 text-xs"
-                                                >
-                                                    <Eye className="size-3.5" aria-hidden />
-                                                    <span>Detalles</span>
-                                                </Button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
+                                {/* Información principal */}
+                                <div className="min-w-0 flex-1">
+                                    <p className="truncate font-medium text-[15px] text-foreground">
+                                        {evt.name || 'Evento sin nombre'}
+                                    </p>
+                                    <p className="truncate text-sm text-muted-foreground">
+                                        {evt.clientName || 'Sin cliente'}
+                                    </p>
+                                </div>
+
+                                {/* Costo y Estado */}
+                                <div className="flex shrink-0 flex-col items-end gap-0.5">
+                                    <span className="font-medium tabular-nums text-[15px] text-foreground">
+                                        {formatCurrency(Number.isFinite(Number(evt.cost)) ? Number(evt.cost) : 0)}
+                                    </span>
+                                    <span className={cn('text-xs', STATUS_COLOR[status])}>
+                                        {STATUS_LABEL[status]}
+                                    </span>
+                                </div>
+
+                                <ChevronRight className="size-4 shrink-0 text-muted-foreground/60" aria-hidden />
+                            </Button>
+                        </li>
                     )
-                })
-            )}
-        </div>
+                })}
+            </ul>
+        </Card>
     )
 }

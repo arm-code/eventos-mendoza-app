@@ -14,7 +14,6 @@ import { Button } from '@/components/ui/button'
 import { MobileFab } from '@/components/ui/mobile-fab'
 import { SearchInput } from '@/components/ui/search-input'
 import type { EventStatus, BusinessEvent, BusinessConfig } from '@/types/finance'
-import { cn } from '@/lib/utils'
 
 export default function EventosPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('upcoming')
