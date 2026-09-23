@@ -167,7 +167,7 @@ export default function NotesHistoryPage() {
                   className="flex min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <p className="truncate font-medium">{note.customer.name}</p>
+                    <p className="truncate font-medium capitalize">{note.customer.name}</p>
                     <div className="mt-0.5 flex items-center gap-1.5 text-[13px] text-muted-foreground">
                       <span className="font-mono">{note.folio}</span>
                       <span aria-hidden>&bull;</span>
@@ -268,11 +268,11 @@ export default function NotesHistoryPage() {
 
       {/* Diálogo de eliminación */}
       <Dialog open={noteToDelete !== null} onOpenChange={(o) => !o && setNoteToDelete(null)}>
-        <DialogContent>
+        <DialogContent className="w-[calc(100%-2rem)] max-w-md rounded-xl sm:w-full">
           <DialogHeader>
             <DialogTitle>¿Eliminar la nota {noteToDelete?.folio}?</DialogTitle>
           </DialogHeader>
-          <p className="text-[15px] text-muted-foreground">
+          <p className="text-[15px] text-muted-foreground text-pretty">
             El registro se borrará permanentemente. Esta acción no se puede deshacer.
           </p>
           <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
