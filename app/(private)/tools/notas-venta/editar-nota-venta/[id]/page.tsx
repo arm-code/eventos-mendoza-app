@@ -3,7 +3,7 @@
 
 import { use, useMemo, useState, ChangeEvent, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Save, Trash2, ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
+import { Plus, Save, Trash2, ArrowLeft, ArrowRight, Loader2, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
@@ -458,14 +458,24 @@ export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: 
                   </RadioGroup>
                 </div>
 
-                <label className="flex cursor-pointer items-center gap-3 rounded-xl border bg-muted/30 p-4 hover:bg-muted/50 active:bg-muted/70 transition-colors">
+                <label
+                  className={cn(
+                    "flex cursor-pointer items-center justify-between rounded-xl border-2 p-4 transition-all hover:bg-muted/50 active:scale-[0.98]",
+                    applyIva
+                      ? "border-primary bg-primary/5"
+                      : "border-muted bg-transparent"
+                  )}
+                >
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[15px] font-semibold">Impuestos</span>
+                    <span className="text-xs font-normal text-muted-foreground">Incluir IVA (16%) al total</span>
+                  </div>
                   <input
                     type="checkbox"
                     checked={applyIva}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => setApplyIva(e.target.checked)}
                     className="size-5 rounded border-primary text-primary focus:ring-primary"
                   />
-                  <span className="text-[15px] font-medium">Incluir IVA (16%) al total</span>
                 </label>
 
                 <div className="space-y-2">
@@ -510,9 +520,28 @@ export default function EditarNotaVentaPage({ params }: { params: Promise<{ id: 
       {/* Visor Post-Guardado */}
       <AppBottomSheet
         open={savedNote !== null}
-        onOpenChange={(o) => !o && setSavedNote(null)}
+        onOpenChange={(o) => {
+          if (!o) {
+            router.push('/tools/notas-venta')
+          }
+        }}
         title={savedNote ? `Nota ${savedNote.folio}` : ''}
         mobileHeight="h-[92vh] max-h-[92dvh]"
+        headerAction={
+          savedNote ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                setSavedNote(null)
+              }}
+              className="size-11 rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              aria-label="Seguir editando"
+            >
+              <Pencil className="size-5" aria-hidden />
+            </Button>
+          ) : null
+        }
       >
         {savedNote && (
           <DocumentActions
