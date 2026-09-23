@@ -27,7 +27,7 @@ import { NoteCardPreview } from '@/components/documents/note-card-preview'
 import { DocumentActions } from '@/components/documents/document-actions'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { MobileFab } from '@/components/ui/mobile-fab'
 import { SearchInput } from '@/components/ui/search-input'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -220,19 +220,10 @@ export default function NotesHistoryPage() {
       </section>
 
       {/* Botón flotante */}
-      <Link
+      <MobileFab
         href="/tools/notas-venta/crear-nota-venta"
         aria-label="Nueva nota de venta"
-        className={cn(
-          'fixed right-4 z-40 flex size-14 items-center justify-center rounded-full sm:hidden',
-          'bottom-[calc(5rem+env(safe-area-inset-bottom))]',
-          'bg-primary text-primary-foreground shadow-lg shadow-primary/25',
-          'transition-transform active:scale-95 motion-reduce:transition-none',
-          'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
-        )}
-      >
-        <Plus className="size-6" strokeWidth={2.5} aria-hidden />
-      </Link>
+      />
 
       {/* Visor y exportación de nota */}
       <AppBottomSheet

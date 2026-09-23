@@ -11,6 +11,7 @@ import { EventDetailSheet } from '@/components/events/EventDetailSheet'
 import { ListaEventos } from '@/components/events/ListaEventos'
 import { EventTabs, type TabKey } from '@/components/events/EventTabs'
 import { Button } from '@/components/ui/button'
+import { MobileFab } from '@/components/ui/mobile-fab'
 import { SearchInput } from '@/components/ui/search-input'
 import type { EventStatus, BusinessEvent, BusinessConfig } from '@/types/finance'
 import { cn } from '@/lib/utils'
@@ -130,19 +131,10 @@ export default function EventosPage() {
         />
       </section>
 
-      <Link
+      <MobileFab
         href="/tools/eventos/crear-evento"
         aria-label="Nuevo evento"
-        className={cn(
-          'fixed right-4 z-40 flex size-14 items-center justify-center rounded-full sm:hidden',
-          'bottom-[calc(5rem+env(safe-area-inset-bottom))]',
-          'bg-primary text-primary-foreground shadow-lg shadow-primary/25',
-          'transition-transform active:scale-95 motion-reduce:transition-none',
-          'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
-        )}
-      >
-        <Plus className="size-6" strokeWidth={2.5} aria-hidden />
-      </Link>
+      />
 
       <EventDetailSheet
         event={detailEvent}

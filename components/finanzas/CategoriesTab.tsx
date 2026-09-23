@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, Tags, Loader2, Hash } from "lucide-react";
 import { useToast } from "@/hooks/useToast";
 import { AppBottomSheet } from "@/components/ui/app-bottom-sheet";
-import { FabButton } from "@/components/ui/fab-button";
+import { MobileFab } from "@/components/ui/mobile-fab";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Input } from "@/components/ui/input";
@@ -129,7 +129,7 @@ export default function CategoriesTab() {
       </Card>
 
       {/* FAB móvil */}
-      <FabButton
+      <MobileFab
         icon={<PlusCircle className="h-6 w-6" />}
         title="Crear nueva categoría"
         onClick={() => setIsOpen(true)}

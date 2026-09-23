@@ -12,7 +12,7 @@ import {
 import { useToast } from "@/hooks/useToast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AppBottomSheet } from "@/components/ui/app-bottom-sheet";
-import { FabButton } from "@/components/ui/fab-button";
+import { MobileFab } from "@/components/ui/mobile-fab";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useForm, Controller } from "react-hook-form";
 import {
@@ -262,7 +262,7 @@ export default function TransactionsTab() {
       </Card>
 
       {/* FAB móvil */}
-      <FabButton
+      <MobileFab
         icon={<PlusCircle className="h-6 w-6" />}
         title="Registrar nuevo movimiento"
         onClick={() => setIsOpen(true)}
