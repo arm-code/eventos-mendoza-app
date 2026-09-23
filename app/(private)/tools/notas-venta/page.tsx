@@ -240,26 +240,28 @@ export default function NotesHistoryPage() {
         onOpenChange={(o) => !o && setSelected(null)}
         title={selected ? `Nota ${selected.folio}` : ''}
         mobileHeight="h-[92vh] max-h-[92dvh]"
+        headerAction={
+          selected ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => {
+                const id = selected.id
+                setSelected(null)
+                router.push(`/tools/notas-venta/editar-nota-venta/${id}`)
+              }}
+              className="size-11 rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+              aria-label="Editar nota"
+            >
+              <Pencil className="size-5" aria-hidden />
+            </Button>
+          ) : null
+        }
       >
         {selected && (
           <DocumentActions
             filename={`nota-${selected.folio}`}
-            title="Exportar documento"
             exportNode={<PrintSaleNoteDocument note={selected} business={businessConfig} />}
-            extraActions={
-              <Button
-                variant="outline"
-                className="h-11 px-4 sm:px-5"
-                onClick={() => {
-                  const id = selected.id
-                  setSelected(null)
-                  router.push(`/tools/notas-venta/editar-nota-venta/${id}`)
-                }}
-              >
-                <Pencil className="mr-2 size-4" aria-hidden />
-                Editar nota
-              </Button>
-            }
           >
             <NoteCardPreview note={selected} business={businessConfig} />
           </DocumentActions>

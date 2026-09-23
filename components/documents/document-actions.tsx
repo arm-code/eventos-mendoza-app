@@ -18,11 +18,10 @@ interface DocumentActionsProps {
   filename: string
   children?: React.ReactNode
   exportNode: React.ReactNode
-  extraActions?: React.ReactNode
   title?: string
 }
 
-export function DocumentActions({ filename, children, exportNode, extraActions, title }: DocumentActionsProps) {
+export function DocumentActions({ filename, children, exportNode, title }: DocumentActionsProps) {
   const exportRef = useRef<HTMLDivElement>(null)
   const [exporting, setExporting] = useState<{ format: 'png' | 'pdf', action: 'share' | 'download' } | null>(null)
   const [showConfirm, setShowConfirm] = useState<'share' | 'download' | null>(null)
@@ -60,7 +59,6 @@ export function DocumentActions({ filename, children, exportNode, extraActions, 
 
   return (
     <div className={cn("relative", children ? "flex flex-col gap-4 pb-28 sm:pb-0" : "")}>
-      {/* ── Nodo de exportación oculto ── */}
       <div
         aria-hidden="true"
         style={{
@@ -79,56 +77,50 @@ export function DocumentActions({ filename, children, exportNode, extraActions, 
         </div>
       </div>
 
-      {/* ── Vista previa ── */}
       {children && (
-        <div className="overflow-hidden rounded-xl border bg-muted/30 p-2 sm:p-5">
+        <div className="pt-2">
           {children}
         </div>
       )}
 
-      {/* ── Barra de acciones flotante (Móvil) / Relativa (Desktop) ── */}
+      {/* ── Barra de acciones inferior ── */}
       <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-xl sm:relative sm:bottom-auto sm:left-auto sm:right-auto sm:rounded-xl sm:border sm:p-5 sm:shadow-none">
         {title && (
           <div className="mb-3 text-center">
-            <span className="text-xs font-semibold text-muted-foreground">
-              {title}
-            </span>
+            <span className="text-xs font-semibold text-muted-foreground">{title}</span>
           </div>
         )}
 
-        <div className="mx-auto flex max-w-lg items-center justify-center gap-3">
-          {extraActions}
-
+        <div className="mx-auto flex w-full max-w-lg gap-3">
           <Button
             variant="outline"
-            className="h-11 flex-1 sm:flex-none"
+            className="h-12 flex-1 text-[15px]"
             onClick={() => setShowConfirm('download')}
             disabled={exporting !== null}
           >
             {exporting?.action === 'download' ? (
-              <Loader2 className="mr-2 animate-spin" aria-hidden />
+              <Loader2 className="mr-2 size-5 animate-spin" aria-hidden />
             ) : (
-              <Download className="mr-2" aria-hidden />
+              <Download className="mr-2 size-5" aria-hidden />
             )}
             Descargar
           </Button>
 
           <Button
-            className="h-11 flex-1 sm:flex-none"
+            className="h-12 flex-1 text-[15px]"
             onClick={() => setShowConfirm('share')}
             disabled={exporting !== null}
           >
             {exporting?.action === 'share' ? (
-              <Loader2 className="mr-2 animate-spin" aria-hidden />
+              <Loader2 className="mr-2 size-5 animate-spin" aria-hidden />
             ) : (
-              <Share2 className="mr-2" aria-hidden />
+              <Share2 className="mr-2 size-5" aria-hidden />
             )}
             Compartir
           </Button>
         </div>
       </div>
 
-      {/* ── Pantalla de carga superpuesta ── */}
       {exporting && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-3 rounded-xl border bg-card p-6 shadow-lg">
@@ -140,29 +132,21 @@ export function DocumentActions({ filename, children, exportNode, extraActions, 
         </div>
       )}
 
-      {/* ── Diálogo de confirmación de formato ── */}
       <Dialog open={showConfirm !== null} onOpenChange={(open) => !open && setShowConfirm(null)}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="w-[calc(100%-2rem)] max-w-sm rounded-xl sm:w-full">
           <DialogHeader>
             <DialogTitle>
               ¿Cómo quieres {showConfirm === 'share' ? 'compartir' : 'descargar'}?
             </DialogTitle>
           </DialogHeader>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-            <Button
-              variant="outline"
-              className="h-11 flex-1"
-              onClick={() => handleExport('png', showConfirm!)}
-            >
-              <ImageIcon className="mr-2" aria-hidden />
+            <Button variant="outline" className="h-11 flex-1" onClick={() => handleExport('png', showConfirm!)}>
+              <ImageIcon className="mr-2 size-4" aria-hidden />
               Imagen
             </Button>
-            <Button
-              className="h-11 flex-1"
-              onClick={() => handleExport('pdf', showConfirm!)}
-            >
-              <FileText className="mr-2" aria-hidden />
-              Documento (PDF)
+            <Button className="h-11 flex-1" onClick={() => handleExport('pdf', showConfirm!)}>
+              <FileText className="mr-2 size-4" aria-hidden />
+              Documento
             </Button>
           </div>
         </DialogContent>
