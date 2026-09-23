@@ -1,18 +1,18 @@
+// components/events/ListaEventos.tsx
 'use client'
 
-import { AnimatePresence, motion } from 'framer-motion'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
-    Calendar, MapPin, User, CheckCircle2, Clock, XCircle, Loader2, Eye,
+    Calendar, MapPin, User, CheckCircle2, Clock, XCircle, Eye,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import type { BusinessEvent, EventStatus } from '@/types/finance'
 import { formatCurrency, formatDate } from '@/lib/format'
 import { financeApi } from '@/lib/api/finance'
-import { Loader } from '../Loaders/Loader.component'
-import { Button } from '../ui/button'
+import { Button } from '@/components/ui/button'
 
 /* ────────────────────────────────────────────────────────────────────────────
    CONSTANTES
@@ -28,23 +28,23 @@ const STATUS_META: Record<EventStatus, {
 }> = {
     pending: {
         label: 'Pendiente', shortLabel: 'Pend.',
-        bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200',
+        bg: 'bg-amber-500/10', text: 'text-amber-700', border: 'border-amber-500/20',
         icon: Clock, dot: 'bg-amber-500',
     },
     delivered: {
         label: 'Entregado', shortLabel: 'Entr.',
-        bg: 'bg-blue-50', text: 'text-blue-800', border: 'border-blue-200',
-        icon: CheckCircle2, dot: 'bg-blue-500',
+        bg: 'bg-primary/10', text: 'text-primary', border: 'border-primary/20',
+        icon: CheckCircle2, dot: 'bg-primary',
     },
     collected: {
         label: 'Recogido', shortLabel: 'Rec.',
-        bg: 'bg-emerald-50', text: 'text-emerald-800', border: 'border-emerald-200',
-        icon: CheckCircle2, dot: 'bg-emerald-500',
+        bg: 'bg-success/10', text: 'text-success', border: 'border-success/20',
+        icon: CheckCircle2, dot: 'bg-success',
     },
     cancelled: {
         label: 'Cancelado', shortLabel: 'Canc.',
-        bg: 'bg-red-50', text: 'text-red-800', border: 'border-red-200',
-        icon: XCircle, dot: 'bg-red-500',
+        bg: 'bg-destructive/10', text: 'text-destructive', border: 'border-destructive/20',
+        icon: XCircle, dot: 'bg-destructive',
     },
 }
 
@@ -72,135 +72,121 @@ export function ListaEventos({ filteredEvents, isLoading, activeTab, onSelectEve
             queryClient.invalidateQueries({ queryKey: ['businessEvents'] })
             toast.success('Estado actualizado')
         },
-        onError: (err: any) => {
-            toast.error(err.message || 'Error al actualizar el estado')
+        onError: (err: unknown) => {
+            const error = err as { message?: string }
+            toast.error(error.message || 'Error al actualizar el estado')
         },
     })
-
-    function quickAdvanceStatus(evt: BusinessEvent, e: React.MouseEvent) {
-        e.stopPropagation()
-        const flow: EventStatus[] = ['pending', 'delivered', 'collected']
-        const idx = flow.indexOf(evt.status || 'pending')
-        if (idx >= 0 && idx < flow.length - 1) {
-            statusMutation.mutate({ id: evt.id, status: flow[idx + 1] })
-        }
-    }
 
     /* ── Render ── */
     return (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <AnimatePresence mode="popLayout">
-                {filteredEvents.map((evt) => {
+            {isLoading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                    <Card key={i} className="gap-0 py-0 overflow-hidden" aria-busy="true">
+                        <div className="h-1 w-full bg-muted" />
+                        <CardContent className="p-4 space-y-3">
+                            <div className="flex justify-between">
+                                <Skeleton className="h-5 w-3/5" />
+                                <Skeleton className="h-5 w-20 rounded-md" />
+                            </div>
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-4/5" />
+                                <Skeleton className="h-4 w-3/5" />
+                                <Skeleton className="h-4 w-full" />
+                            </div>
+                            <div className="flex justify-between pt-2 border-t">
+                                <Skeleton className="h-6 w-24" />
+                                <Skeleton className="h-9 w-28 rounded-lg" />
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))
+            ) : filteredEvents.length === 0 ? (
+                <Card className="col-span-full flex flex-col items-center gap-3 p-8 text-center">
+                    <Calendar className="size-12 text-muted-foreground/60" aria-hidden />
+                    <p className="font-medium text-foreground">
+                        No hay eventos {activeTab !== 'all' ? 'en esta categoría' : 'guardados'}.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                        Presiona el botón + para agendar el primer servicio.
+                    </p>
+                </Card>
+            ) : (
+                filteredEvents.map((evt) => {
                     const meta = STATUS_META[evt.status || 'pending']
                     const StatusIcon = meta.icon
-                    const canAdvance = evt.status === 'pending' || evt.status === 'delivered'
 
                     return (
-                        <motion.div
-                            key={evt.id}
-                            layout
-                            className="min-w-0"
-                            initial={{ opacity: 0, y: 12 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.96 }}
-                            transition={{ duration: 0.2 }}
-                        >
+                        <div key={evt.id} className="min-w-0">
                             <Card
-                                className="border-violet-100/70 bg-white shadow-sm hover:shadow-md hover:border-violet-200 transition-all duration-200 overflow-hidden cursor-pointer active:scale-[0.99]"
+                                className={cn(
+                                    'gap-0 py-0 overflow-hidden cursor-pointer transition-colors',
+                                    'hover:bg-accent/40 active:bg-accent',
+                                    'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
+                                )}
                                 onClick={() => onSelectEvent(evt)}
                             >
                                 <CardContent className="p-0">
                                     {/* ── Color strip según status ── */}
-                                    <div className={cn('h-1 w-full', meta.dot)} />
+                                    <div className={cn('h-1 w-full', meta.dot)} aria-hidden />
 
                                     <div className="p-4 space-y-3">
                                         {/* Header: Folio + Status */}
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="min-w-0 flex-1">
-                                                <h3 className="font-bold text-violet-950 text-[15px] leading-tight truncate mt-0.5 capitalize">
+                                                <h3 className="font-semibold text-foreground text-[15px] leading-tight truncate">
                                                     {evt.name}
                                                 </h3>
                                             </div>
-                                            <div className={cn('shrink-0 flex items-center gap-1 px-2 py-1 rounded-md border', meta.bg, meta.text, meta.border)}>
-                                                <StatusIcon className="w-3 h-3" />
-                                                <span className="text-[10px] font-bold  sm:inline">{meta.label}</span>
+                                            <div className={cn('shrink-0 flex items-center gap-1 px-2 py-1 rounded-md border text-xs font-semibold', meta.bg, meta.text, meta.border)}>
+                                                <StatusIcon className="size-3" aria-hidden />
+                                                <span>{meta.label}</span>
                                             </div>
                                         </div>
 
                                         {/* Info minimalista: Cliente + Fecha + Dirección */}
-                                        <div className="space-y-1.5">
-                                            <div className="flex items-center gap-2 text-[13px] text-violet-900 min-w-0">
-                                                <User className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                                                <span className="font-semibold truncate capitalize block">{evt.clientName}</span>
+                                        <div className="space-y-1.5 text-sm text-muted-foreground">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <User className="size-3.5 text-muted-foreground shrink-0" aria-hidden />
+                                                <span className="font-medium text-foreground truncate">{evt.clientName}</span>
                                             </div>
-                                            <div className="flex items-center gap-2 text-[12px] text-violet-600 min-w-0">
-                                                <Calendar className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                                                <span className='capitalize'>{evt.date ? formatDate(evt.date) : 'Por definir'}</span>
+                                            <div className="flex items-center gap-2 min-w-0">
+                                                <Calendar className="size-3.5 text-muted-foreground shrink-0" aria-hidden />
+                                                <span>{evt.date ? formatDate(evt.date) : 'Por definir'}</span>
                                             </div>
-                                            <div className="flex items-start gap-2 text-[12px] text-violet-500 min-w-0">
-                                                <MapPin className="w-3.5 h-3.5 text-violet-400 shrink-0 mt-0.5" />
-                                                <span className="line-clamp-1 capitalize break-words">{evt.eventAddress}</span>
+                                            <div className="flex items-start gap-2 min-w-0">
+                                                <MapPin className="size-3.5 text-muted-foreground shrink-0 mt-0.5" aria-hidden />
+                                                <span className="truncate">{evt.eventAddress}</span>
                                             </div>
                                         </div>
 
                                         {/* Footer: Costo + Acciones */}
-                                        <div className="flex items-center justify-between pt-2 border-t border-violet-50">
-                                            <span className="text-lg font-bold text-violet-950">
+                                        <div className="flex items-center justify-between pt-2 border-t">
+                                            <span className="text-base font-semibold tabular-nums text-foreground">
                                                 {formatCurrency(evt.cost || 0)}
                                             </span>
 
                                             <div className="flex items-center gap-2">
-
-                                                {/* Botón Ver Detalles */}
                                                 <Button
+                                                    size="sm"
                                                     onClick={(e) => {
                                                         e.stopPropagation()
                                                         onSelectEvent(evt)
                                                     }}
-                                                    className={cn(
-                                                        'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold',
-                                                        'bg-violet-600 text-white hover:bg-violet-700 active:bg-violet-800',
-                                                        'active:scale-90 transition-all shadow-sm'
-                                                    )}
+                                                    className="h-9 gap-1.5 px-3 text-xs"
                                                 >
-                                                    <Eye className="w-3.5 h-3.5" />
-                                                    <span className="hidden sm:inline">Ver Detalles</span>
-                                                    <span className="sm:hidden">Detalles</span>
+                                                    <Eye className="size-3.5" aria-hidden />
+                                                    <span>Detalles</span>
                                                 </Button>
                                             </div>
                                         </div>
                                     </div>
                                 </CardContent>
                             </Card>
-                        </motion.div>
-                    )
-                })}
-            </AnimatePresence>
-
-            {/* ── Estado vacío ── */}
-            {filteredEvents.length === 0 && (
-                <Card className="col-span-full border-violet-100 bg-white p-8 text-center">
-                    {isLoading ? (
-                        <div className="flex items-center justify-center gap-2 text-violet-600 font-semibold py-4">
-                            <Loader />
-                            <span>Cargando eventos...</span>
                         </div>
-                    ) : (
-                        <motion.div
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="space-y-3"
-                        >
-                            <Calendar className="w-12 h-12 text-violet-300 mx-auto opacity-60" />
-                            <p className="text-violet-900 font-bold text-base">
-                                No hay eventos {activeTab !== 'all' ? 'en esta categoría' : 'guardados'}.
-                            </p>
-                            <p className="text-sm text-violet-500">
-                                Presiona el botón + para agendar el primer servicio.
-                            </p>
-                        </motion.div>
-                    )}
-                </Card>
+                    )
+                })
             )}
         </div>
     )

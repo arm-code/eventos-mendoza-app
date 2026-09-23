@@ -1,6 +1,7 @@
+// app/tools/eventos/page.tsx
 'use client'
 
-import { useState, useMemo, useEffect, ChangeEvent } from 'react'
+import { useState, useMemo, ChangeEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Search, Clock, CheckCircle2, XCircle, X, Filter } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -13,7 +14,6 @@ import { ListaEventos } from '@/components/events/ListaEventos'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { EventStatus, BusinessEvent, BusinessConfig } from '@/types/finance'
-import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 /* ────────────────────────────────────────────────────────────────────────────
@@ -25,8 +25,6 @@ const TABS = [
   { key: 'cancelled' as const, label: 'Cancelados', short: 'Canc.', icon: XCircle },
   { key: 'all' as const, label: 'Todos', short: 'Todos', icon: Filter },
 ] as const
-
-
 
 /* ────────────────────────────────────────────────────────────────────────────
    COMPONENTE: EventosPage (Listado)
@@ -95,10 +93,10 @@ export default function EventosPage() {
   }, [eventsList, activeTab, searchQuery])
 
   return (
-    <div className="space-y-4 pb-6 sm:pb-12">
+    <div className="space-y-6 pb-28 sm:pb-8">
       {/* ═══════════════════════════════════════════════════════════════════
-         HEADER (sin botón de acción — el FAB lo reemplaza en móvil)
-         ═══════════════════════════════════════════════════════════════════ */}
+          HEADER
+          ═══════════════════════════════════════════════════════════════════ */}
       <PageHeader
         title="Gestión de Eventos"
         description="Agenda, contratos y control de entregas."
@@ -106,9 +104,9 @@ export default function EventosPage() {
           !isMobile ? (
             <Button
               onClick={() => router.push('/tools/eventos/crear-evento')}
-              className="bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white font-bold h-11 gap-2 shadow-sm shadow-violet-200 active:scale-[0.97] transition-all rounded-xl"
+              className="h-11 font-semibold gap-2"
             >
-              <Plus className="h-5 w-5" />
+              <Plus className="size-5" aria-hidden />
               Nuevo Evento
             </Button>
           ) : undefined
@@ -116,26 +114,28 @@ export default function EventosPage() {
       />
 
       {/* ═══════════════════════════════════════════════════════════════════
-         BÚSQUEDA + TABS
-         ═══════════════════════════════════════════════════════════════════ */}
+          BÚSQUEDA + TABS
+          ═══════════════════════════════════════════════════════════════════ */}
       <div className="space-y-3">
         {/* Buscador */}
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-violet-400" />
+        <div className="relative max-w-md">
+          <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
           <Input
             value={searchQuery}
             onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
             placeholder="Buscar evento, cliente o dirección..."
-            className="h-12 pl-10 pr-10 border-violet-100 bg-white focus:border-violet-500 shadow-sm text-base rounded-xl"
+            className="h-12 pl-10 pr-10 text-base"
           />
           {searchQuery && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full hover:bg-violet-50 active:bg-violet-100 transition-colors"
+              className="absolute right-1 top-1/2 size-10 -translate-y-1/2 rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               aria-label="Limpiar búsqueda"
             >
-              <X className="h-4 w-4 text-violet-400" />
-            </button>
+              <X className="size-4" aria-hidden />
+            </Button>
           )}
         </div>
 
@@ -156,22 +156,21 @@ export default function EventosPage() {
               return (
                 <Button
                   key={tab.key}
+                  variant={isActive ? 'default' : 'outline'}
                   onClick={() => setActiveTab(tab.key)}
                   className={cn(
-                    'snap-start flex items-center gap-1.5 shrink-0 rounded-full px-4 py-2.5 text-sm font-semibold transition-all duration-150',
-                    'active:scale-95 min-h-[44px]',
-                    isActive
-                      ? 'bg-violet-600 text-white shadow-sm'
-                      : 'bg-white text-violet-700 border border-violet-100 hover:bg-violet-50 active:bg-violet-100'
+                    'snap-start flex items-center gap-1.5 shrink-0 rounded-full px-4 text-sm font-medium transition-all duration-150',
+                    'min-h-[44px] active:scale-95',
+                    isActive ? 'shadow-sm' : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
-                  <tab.icon className="w-3.5 h-3.5" />
+                  <tab.icon className="size-3.5" aria-hidden />
                   <span className="hidden sm:inline">{tab.label}</span>
                   <span className="sm:hidden">{tab.short}</span>
                   <span
                     className={cn(
                       'ml-1 text-[11px] px-1.5 py-0.5 rounded-full font-bold',
-                      isActive ? 'bg-white/20 text-white' : 'bg-violet-100 text-violet-700'
+                      isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'
                     )}
                   >
                     {count}
@@ -180,13 +179,13 @@ export default function EventosPage() {
               )
             })}
           </div>
-          <div className="sm:hidden absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-white to-transparent pointer-events-none" />
+          <div className="sm:hidden absolute right-0 top-0 bottom-1 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
         </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
-         LISTA DE EVENTOS — CARDS MINIMALISTAS
-         ═══════════════════════════════════════════════════════════════════ */}
+          LISTA DE EVENTOS
+          ═══════════════════════════════════════════════════════════════════ */}
       <ListaEventos
         filteredEvents={filteredEvents}
         isLoading={isLoading}
@@ -195,33 +194,27 @@ export default function EventosPage() {
       />
 
       {/* ═══════════════════════════════════════════════════════════════════
-         FAB (Floating Action Button) — Móvil únicamente
-         Posicionado por encima del bottom nav (bottom-20 = 5rem = 80px)
-         El bottom nav tiene 56px + safe-area, así que 80px da margen cómodo.
-         ═══════════════════════════════════════════════════════════════════ */}
+          FAB (Floating Action Button) — Móvil únicamente
+          ═══════════════════════════════════════════════════════════════════ */}
       {isMobile && (
-        <motion.button
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          whileTap={{ scale: 0.9 }}
+        <button
           onClick={() => router.push('/tools/eventos/crear-evento')}
           className={cn(
-            'fixed right-4 z-40 flex items-center justify-center',
-            'h-14 w-14 rounded-full bg-violet-600 text-white',
-            'shadow-xl shadow-violet-600/30',
-            'hover:bg-violet-700 active:bg-violet-800',
-            'transition-colors duration-150',
-            'bottom-20' /* 80px — justo por encima del bottom nav (56px) */
+            'fixed right-4 z-40 flex size-14 items-center justify-center rounded-full',
+            'bottom-[calc(5rem+env(safe-area-inset-bottom))]',
+            'bg-primary text-primary-foreground shadow-lg shadow-primary/25',
+            'transition-transform active:scale-95',
+            'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
           )}
           aria-label="Nuevo Evento"
         >
-          <Plus className="h-6 w-6" strokeWidth={2.5} />
-        </motion.button>
+          <Plus className="size-6" strokeWidth={2.5} aria-hidden />
+        </button>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════
-         SHEET / DIALOG DE DETALLES
-         ═══════════════════════════════════════════════════════════════════ */}
+          SHEET / DIALOG DE DETALLES
+          ═══════════════════════════════════════════════════════════════════ */}
       <EventDetailSheet
         event={detailEvent}
         open={detailEvent !== null}

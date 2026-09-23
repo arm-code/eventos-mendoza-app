@@ -58,7 +58,7 @@ export function DocumentActions({ filename, children, exportNode, title }: Docum
   }, [filename])
 
   return (
-    <div className={cn("relative", children ? "flex flex-col gap-4 pb-28 sm:pb-0" : "")}>
+    <div className={cn("relative pb-28 sm:pb-0", children ? "flex flex-col gap-4" : "")}>
       <div
         aria-hidden="true"
         style={{
