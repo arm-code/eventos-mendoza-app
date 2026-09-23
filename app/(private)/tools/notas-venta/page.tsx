@@ -23,12 +23,7 @@ import { ListaNotas } from '@/components/documents/ListaNotas'
 import { Button } from '@/components/ui/button'
 import { MobileFab } from '@/components/ui/mobile-fab'
 import { SearchInput } from '@/components/ui/search-input'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { AppBottomSheet } from '@/components/ui/app-bottom-sheet'
 
 /* ─── Página ────────────────────────────────────────────────────────────── */
@@ -193,34 +188,16 @@ export default function NotesHistoryPage() {
       </AppBottomSheet>
 
       {/* Diálogo de eliminación */}
-      <Dialog open={noteToDelete !== null} onOpenChange={(o) => !o && setNoteToDelete(null)}>
-        <DialogContent className="w-[calc(100%-2rem)] max-w-md rounded-xl sm:w-full">
-          <DialogHeader>
-            <DialogTitle>¿Eliminar la nota {noteToDelete?.folio}?</DialogTitle>
-          </DialogHeader>
-          <p className="text-[15px] text-muted-foreground text-pretty">
-            El registro se borrará permanentemente. Esta acción no se puede deshacer.
-          </p>
-          <div className="mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button
-              variant="outline"
-              className="h-11 sm:h-10"
-              onClick={() => setNoteToDelete(null)}
-              disabled={deleteMutation.isPending}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              className="h-11 sm:h-10"
-              onClick={() => noteToDelete && deleteMutation.mutate(noteToDelete.id)}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? 'Eliminando...' : 'Eliminar nota'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ConfirmDialog
+        open={noteToDelete !== null}
+        onOpenChange={(o) => !o && setNoteToDelete(null)}
+        title={`¿Eliminar la nota ${noteToDelete?.folio}?`}
+        description="El registro se borrará permanentemente. Esta acción no se puede deshacer."
+        confirmText={deleteMutation.isPending ? 'Eliminando...' : 'Eliminar nota'}
+        onConfirm={() => noteToDelete && deleteMutation.mutate(noteToDelete.id)}
+        isPending={deleteMutation.isPending}
+        variant="destructive"
+      />
     </div>
   )
 }
