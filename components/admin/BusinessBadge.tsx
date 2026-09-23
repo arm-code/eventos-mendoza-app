@@ -1,48 +1,83 @@
-'use client';
+// components/business/business-badge.tsx
+'use client'
 
-import React from 'react';
-import Image from 'next/image';
-import { Building2 } from 'lucide-react';
-import { useBusiness } from '@/lib/business';
+import React from 'react'
+import Image from 'next/image'
+import { Building2 } from 'lucide-react'
+import { useBusiness } from '@/lib/business'
+import { Skeleton } from '@/components/ui/skeleton'
 
-export function BusinessBadge({ compact = false }: { compact?: boolean }) {
-  const { business, loading } = useBusiness();
+interface BusinessBadgeProps {
+  compact?: boolean
+}
 
-  const businessName = business?.name || 'Eventos Mendoza';
-  const logoUrl = business?.logoUrl || '/images/eventos-mendoza.png';
+export function BusinessBadge({ compact = false }: BusinessBadgeProps) {
+  const { business, loading } = useBusiness()
+
+  const businessName = business?.name || 'Eventos Mendoza'
+  const logoUrl = business?.logoUrl || '/images/eventos-mendoza.png'
 
   if (compact) {
     return (
-      <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl border border-violet-100 bg-violet-50/50">
-        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white border border-violet-200 overflow-hidden shrink-0 shadow-sm">
+      <div className="flex items-center gap-2 rounded-lg border bg-muted/30 px-2.5 py-1.5">
+        <div className="flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-md border bg-background">
           {logoUrl ? (
-            <Image src={logoUrl} alt={businessName} width={22} height={22} className="object-contain" />
+            <Image
+              src={logoUrl}
+              alt={businessName}
+              width={22}
+              height={22}
+              className="object-contain"
+            />
           ) : (
-            <Building2 className="w-3.5 h-3.5 text-violet-600" />
+            <Building2 className="size-3.5 text-muted-foreground" aria-hidden />
           )}
-        </span>
-        <span className="text-xs font-bold text-violet-950 truncate max-w-[130px]">
-          {loading ? 'Cargando...' : businessName}
-        </span>
+        </div>
+        {loading ? (
+          <Skeleton className="h-4 w-24" />
+        ) : (
+          <span className="max-w-[130px] truncate text-sm font-medium text-foreground">
+            {businessName}
+          </span>
+        )}
       </div>
-    );
+    )
   }
 
   return (
-    <div className="flex items-center gap-3 px-3 py-3 rounded-xl border border-violet-100 bg-white shadow-sm">
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-violet-200 overflow-hidden shrink-0 shadow-sm">
+    <div className="flex items-center gap-3 rounded-xl border bg-card p-3">
+      <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted/30">
         {logoUrl ? (
-          <Image src={logoUrl} alt={businessName} width={30} height={30} className="object-contain" />
+          <Image
+            src={logoUrl}
+            alt={businessName}
+            width={32}
+            height={32}
+            className="object-contain"
+          />
         ) : (
-          <span className="font-bold text-violet-700 text-sm">{businessName.charAt(0).toUpperCase()}</span>
+          <span className="text-sm font-semibold text-primary">
+            {businessName.charAt(0).toUpperCase()}
+          </span>
         )}
-      </span>
-      <div className="leading-tight min-w-0">
-        <p className="text-sm font-bold text-violet-950 truncate">
-          {loading ? 'Cargando...' : businessName}
-        </p>
-        <p className="text-xs text-violet-600 font-medium truncate">Gestión de Renta</p>
+      </div>
+      <div className="min-w-0 flex-1 leading-tight">
+        {loading ? (
+          <div className="space-y-1.5">
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        ) : (
+          <>
+            <p className="truncate text-[15px] font-semibold text-foreground">
+              {businessName}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              Gestión de Renta
+            </p>
+          </>
+        )}
       </div>
     </div>
-  );
+  )
 }
