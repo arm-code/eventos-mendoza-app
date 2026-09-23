@@ -12,7 +12,7 @@ import { PageHeader } from '@/components/admin/page-header'
 import { EventDetailSheet } from '@/components/events/EventDetailSheet'
 import { ListaEventos } from '@/components/events/ListaEventos'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { SearchInput } from '@/components/ui/search-input'
 import type { EventStatus, BusinessEvent, BusinessConfig } from '@/types/finance'
 import { cn } from '@/lib/utils'
 
@@ -118,26 +118,12 @@ export default function EventosPage() {
           ═══════════════════════════════════════════════════════════════════ */}
       <div className="space-y-3">
         {/* Buscador */}
-        <div className="relative max-w-md">
-          <Search className="absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-          <Input
-            value={searchQuery}
-            onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
-            placeholder="Buscar evento, cliente o dirección..."
-            className="h-12 pl-10 pr-10 text-base"
-          />
-          {searchQuery && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setSearchQuery('')}
-              className="absolute right-1 top-1/2 size-10 -translate-y-1/2 rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-              aria-label="Limpiar búsqueda"
-            >
-              <X className="size-4" aria-hidden />
-            </Button>
-          )}
-        </div>
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Buscar evento, cliente o dirección..."
+          className="h-12 text-base"
+        />
 
         {/* Tabs con contador y scroll hint */}
         <div className="relative">
