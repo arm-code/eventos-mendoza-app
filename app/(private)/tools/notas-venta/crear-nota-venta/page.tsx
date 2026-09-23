@@ -273,7 +273,7 @@ export default function CreateNotePage() {
                   <AccordionTrigger className="border-b px-4 py-4 hover:bg-muted/30 hover:no-underline sm:px-5">
                     <div className="flex w-full min-w-0 flex-1 items-center justify-between pr-4">
                       <div className="flex min-w-0 flex-col items-start gap-1">
-                        <span className="truncate text-[15px] font-semibold text-foreground">
+                        <span className="truncate text-[15px] font-semibold text-foreground capitalize">
                           {item.description.trim() ? item.description : `Concepto ${index + 1}`}
                         </span>
                         <span className="text-xs font-normal text-muted-foreground">
@@ -399,14 +399,24 @@ export default function CreateNotePage() {
                   </RadioGroup>
                 </div>
 
-                <label className="flex cursor-pointer items-center gap-3 rounded-xl border bg-muted/30 p-4 hover:bg-muted/50 active:bg-muted/70 transition-colors">
+                <label
+                  className={cn(
+                    "flex cursor-pointer items-center justify-between rounded-xl border-2 p-4 transition-all hover:bg-muted/50 active:scale-[0.98]",
+                    applyIva
+                      ? "border-primary bg-primary/5"
+                      : "border-muted bg-transparent"
+                  )}
+                >
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[15px] font-semibold">Impuestos</span>
+                    <span className="text-xs font-normal text-muted-foreground">Incluir IVA (16%) al total</span>
+                  </div>
                   <input
                     type="checkbox"
                     checked={applyIva}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => setApplyIva(e.target.checked)}
                     className="size-5 rounded border-primary text-primary focus:ring-primary"
                   />
-                  <span className="text-[15px] font-medium">Incluir IVA (16%) al total</span>
                 </label>
 
                 <div className="space-y-2">
@@ -451,7 +461,11 @@ export default function CreateNotePage() {
       {/* Visor Post-Guardado */}
       <AppBottomSheet
         open={savedNote !== null}
-        onOpenChange={(o) => !o && setSavedNote(null)}
+        onOpenChange={(o) => {
+          if (!o) {
+            router.push('/tools/notas-venta')
+          }
+        }}
         title={savedNote ? `Nota ${savedNote.folio}` : ''}
         mobileHeight="h-[92vh] max-h-[92dvh]"
       >
