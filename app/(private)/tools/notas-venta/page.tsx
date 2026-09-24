@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { FilePlus2, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
 import { defaultBusinessConfig } from '@/lib/config'
 import { toSlug } from '@/lib/display'
@@ -23,6 +23,7 @@ import { SearchInput } from '@/components/ui/search-input'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { AppBottomSheet } from '@/components/ui/app-bottom-sheet'
 import { cn } from '@/lib/utils'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 
 export default function NotesHistoryPage() {
   const queryClient = useQueryClient()
@@ -30,9 +31,12 @@ export default function NotesHistoryPage() {
   const [selected, setSelected] = useState<Note | null>(null)
   const [noteToDelete, setNoteToDelete] = useState<Note | null>(null)
 
+  const debouncedQuery = useDebouncedValue(query.trim(), 300)
+
   const { data: rawNotes, isLoading, isError, refetch } = useQuery({
-    queryKey: ['salesNotes', query],
-    queryFn: () => financeApi.getSalesNotes({ search: query }),
+    queryKey: ['salesNotes', debouncedQuery],
+    queryFn: () => financeApi.getSalesNotes({ search: debouncedQuery }),
+    placeholderData: keepPreviousData, // mantiene la lista mientras llega la nueva
   })
 
   const { data: apiConfig } = useQuery({
