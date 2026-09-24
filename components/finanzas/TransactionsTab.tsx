@@ -1,29 +1,107 @@
-// @/components/finanzas/TransactionsTab.tsx
+// components/finanzas/TransactionsTab.tsx
 'use client'
 
-import { useState } from 'react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeftRight, RotateCw } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { Minus, Plus } from 'lucide-react'
 import { financeApi } from '@/lib/api/finance'
 import { formatCurrency } from '@/lib/format'
-import { parseDate, toNumber } from '@/lib/display'
+import { describeDate, parseDate, toLocalDateInput, toNumber } from '@/lib/display'
 import { cn } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { MobileFab } from '@/components/ui/mobile-fab'
+import { LABEL, TOUCH } from '@/components/ui/detail'
+import { EmptyState, InlineError, ListSkeleton } from '@/components/ui/states'
 import { PaginationControls } from '@/components/ui/pagination-controls'
 import { TransactionFormSheet } from '@/components/finanzas/TransactionFormSheet'
 
-const dateFmt = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
+const PAGE_SIZE = 10
 
-/* ─── Pestaña Principal ─────────────────────────────────────────────────── */
+type TxType = 'INPUT' | 'OUTPUT'
+
+interface Transaction {
+  id: string
+  type: TxType
+  amount: number
+  title: string
+  subtitle: string
+  date: string
+}
+
+interface PageMeta {
+  page: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+}
+
+/* ─── Normalización (datos de la API como no confiables) ───────────────── */
+
+/** Lee una propiedad de un valor desconocido sin romper si no es objeto. */
+const get = (obj: unknown, key: string): unknown =>
+  obj && typeof obj === 'object' ? (obj as Record<string, unknown>)[key] : undefined
+
+const str = (value: unknown) => (typeof value === 'string' ? value.trim() : '')
+
+function toTransactions(data: unknown): Transaction[] {
+  const items = (data as { items?: unknown })?.items
+  if (!Array.isArray(items)) return []
+
+  return items.flatMap<Transaction>((raw) => {
+    if (!raw || typeof raw !== 'object') return []
+    const category = str(get(get(raw, 'category'), 'name'))
+    const method = str(get(get(raw, 'paymentMethod'), 'name'))
+    const description = str(get(raw, 'description'))
+
+    return [
+      {
+        id: String(get(raw, 'id')),
+        type: get(raw, 'type') === 'INPUT' ? 'INPUT' : 'OUTPUT',
+        amount: toNumber(get(raw, 'amount')),
+        // Si hay nota, la nota es el título y la categoría pasa a la segunda línea
+        title: description || category || 'Movimiento',
+        subtitle: [description ? category : '', method].filter(Boolean).join(' · '),
+        date: str(get(raw, 'transactionDate')),
+      },
+    ]
+  })
+}
+
+function toMeta(data: unknown): PageMeta {
+  const m = (data as { meta?: Record<string, unknown> })?.meta ?? {}
+  return {
+    page: toNumber(m.page) || 1,
+    totalPages: toNumber(m.totalPages) || 1,
+    hasNextPage: Boolean(m.hasNextPage),
+    hasPreviousPage: Boolean(m.hasPreviousPage),
+  }
+}
+
+/** Agrupa por día conservando el orden que manda la API. */
+function groupByDay(list: Transaction[]) {
+  const groups: { key: string; label: string; items: Transaction[] }[] = []
+  for (const tx of list) {
+    const date = parseDate(tx.date, { dateOnly: true })
+    const key = date ? toLocalDateInput(date) : 'sin-fecha'
+    let group = groups.find((g) => g.key === key)
+    if (!group) {
+      const info = describeDate(tx.date, { dateOnly: true })
+      const label = info ? (Math.abs(info.days) <= 1 ? info.relative : info.label) : 'Sin fecha'
+      group = { key, label, items: [] }
+      groups.push(group)
+    }
+    group.items.push(tx)
+  }
+  return groups
+}
+
+/* ─── Componente ────────────────────────────────────────────────────────── */
 
 export default function TransactionsTab() {
-  const queryClient = useQueryClient()
-  const [isOpen, setIsOpen] = useState(false)
+  const [formType, setFormType] = useState<TxType | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const limit = 10
+  const listTopRef = useRef<HTMLHeadingElement>(null)
 
   const summaryQuery = useQuery({
     queryKey: ['transactionsSummary'],
@@ -31,122 +109,127 @@ export default function TransactionsTab() {
   })
 
   const listQuery = useQuery({
-    queryKey: ['transactions', currentPage, limit],
-    queryFn: () => financeApi.getTransactions(currentPage, limit),
+    queryKey: ['transactions', currentPage, PAGE_SIZE],
+    queryFn: () => financeApi.getTransactions(currentPage, PAGE_SIZE),
+    placeholderData: keepPreviousData, // la lista no parpadea al cambiar de página
   })
 
-  const transactions = Array.isArray(listQuery.data?.items) ? listQuery.data.items : []
-  const meta = listQuery.data?.meta || { page: 1, limit: 10, totalPages: 1, hasNextPage: false, hasPreviousPage: false }
+  const transactions = useMemo(() => toTransactions(listQuery.data), [listQuery.data])
+  const groups = useMemo(() => groupByDay(transactions), [transactions])
+  const meta = toMeta(listQuery.data)
 
-  const balance = toNumber(summaryQuery.data?.balance)
-  const inputs = toNumber(summaryQuery.data?.totalInputs)
-  const outputs = toNumber(summaryQuery.data?.totalOutputs)
+  const goToPage = (page: number) => {
+    setCurrentPage(page)
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    listTopRef.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' })
+  }
 
   return (
     <div className="space-y-8">
-      {/* Resumen */}
-      <section aria-label="Resumen de dinero">
+      {/* Resumen + acciones principales */}
+      <section aria-label="Resumen de dinero" className="space-y-3">
         {summaryQuery.isLoading ? (
           <SummarySkeleton />
         ) : summaryQuery.isError ? (
-          <InlineError message="No se pudo cargar el resumen." onRetry={() => summaryQuery.refetch()} />
+          <InlineError message="No se pudo cargar tu resumen." onRetry={() => summaryQuery.refetch()} />
         ) : (
-          <SummaryCard balance={balance} inputs={inputs} outputs={outputs} />
+          <SummaryCard
+            balance={toNumber(summaryQuery.data?.balance)}
+            inputs={toNumber(summaryQuery.data?.totalInputs)}
+            outputs={toNumber(summaryQuery.data?.totalOutputs)}
+          />
         )}
+
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" className={cn(TOUCH, 'text-base')} onClick={() => setFormType('INPUT')}>
+            <Plus className="text-success" aria-hidden />
+            Registrar entrada
+          </Button>
+          <Button variant="outline" className={cn(TOUCH, 'text-base')} onClick={() => setFormType('OUTPUT')}>
+            <Minus className="text-destructive" aria-hidden />
+            Registrar salida
+          </Button>
+        </div>
       </section>
 
       {/* Movimientos */}
-      <section aria-labelledby="transactions-title" className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 id="transactions-title" className="text-base font-semibold">
-            Movimientos
-          </h2>
-          <Button onClick={() => setIsOpen(true)} variant="outline" size="sm" className="hidden sm:inline-flex">
-            Registrar movimiento
-          </Button>
-        </div>
+      <section aria-labelledby="transactions-title" className="scroll-mt-4 space-y-4">
+        <h2 id="transactions-title" ref={listTopRef} className="scroll-mt-4 text-base font-semibold">
+          Últimos movimientos
+        </h2>
 
         {listQuery.isLoading ? (
-          <ListSkeleton />
+          <ListSkeleton label="Cargando movimientos" />
         ) : listQuery.isError ? (
-          <InlineError message="No se pudieron cargar los movimientos." onRetry={() => listQuery.refetch()} />
+          <InlineError message="No se pudieron cargar tus movimientos." onRetry={() => listQuery.refetch()} />
         ) : transactions.length === 0 ? (
-          <Card className="items-center gap-3 px-6 py-10 text-center">
-            <ArrowLeftRight className="size-8 text-muted-foreground/60" aria-hidden />
-            <p className="font-medium">No tienes movimientos</p>
-            <p className="text-sm text-muted-foreground">Registra tu primer ingreso o gasto.</p>
-            <Button onClick={() => setIsOpen(true)} className="mt-2" variant="outline">
-              Registrar movimiento
-            </Button>
-          </Card>
+          <EmptyState
+            title="Aún no hay movimientos"
+            description="Usa los botones de arriba para anotar lo que entra y sale de tu negocio."
+          />
         ) : (
-          <>
-            <Card className="gap-0 overflow-hidden py-0">
-              <ul className="divide-y">
-                {transactions.map((tx: any) => {
-                  const isInput = tx.type === 'INPUT'
-                  const date = parseDate(tx.transactionDate, { dateOnly: true })
-
-                  return (
-                    <li key={tx.id} className="flex min-h-16 items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/60">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-base font-medium">
-                          {tx.description || tx.category?.name || 'Movimiento'}
-                        </p>
-                        <p className="truncate text-[15px] text-muted-foreground">
-                          {date ? dateFmt.format(date) : 'Sin fecha'} · {tx.paymentMethod?.name || 'Otro'}
-                        </p>
-                      </div>
-                      <div
-                        className={cn(
-                          'shrink-0 text-base font-semibold tabular-nums',
-                          isInput ? 'text-success' : 'text-foreground'
-                        )}
-                      >
-                        {isInput ? '+' : '-'}{formatCurrency(toNumber(tx.amount))}
-                      </div>
-                    </li>
-                  )
-                })}
-              </ul>
-            </Card>
-
-            {(meta.hasNextPage || meta.hasPreviousPage) && (
-              <div className="pt-2">
-                <PaginationControls
-                  currentPage={meta.page}
-                  totalPages={meta.totalPages}
-                  onPageChange={setCurrentPage}
-                  hasNextPage={meta.hasNextPage}
-                  hasPreviousPage={meta.hasPreviousPage}
-                />
+          <div
+            className={cn('space-y-6 transition-opacity', listQuery.isPlaceholderData && 'opacity-60')}
+            aria-busy={listQuery.isPlaceholderData}
+          >
+            {groups.map((group) => (
+              <div key={group.key} className="space-y-2">
+                <h3 className={LABEL}>{group.label}</h3>
+                <Card className="gap-0 overflow-hidden py-0">
+                  <ul className="divide-y">
+                    {group.items.map((tx) => (
+                      <TransactionRow key={tx.id} tx={tx} />
+                    ))}
+                  </ul>
+                </Card>
               </div>
-            )}
-          </>
+            ))}
+
+            <PaginationControls
+              currentPage={meta.page}
+              totalPages={meta.totalPages}
+              onPageChange={goToPage}
+              hasNextPage={meta.hasNextPage}
+              hasPreviousPage={meta.hasPreviousPage}
+            />
+          </div>
         )}
       </section>
 
-      {/* FAB móvil */}
-      <MobileFab onClick={() => setIsOpen(true)} title="Registrar" aria-label="Registrar movimiento" />
-      {/* Formulario */}
-      <TransactionFormSheet open={isOpen} onOpenChange={setIsOpen} />
+      <TransactionFormSheet
+        open={formType !== null}
+        onOpenChange={(open) => !open && setFormType(null)}
+        defaultType={formType ?? 'INPUT'}
+      />
     </div>
   )
 }
 
 /* ─── Subcomponentes ────────────────────────────────────────────────────── */
 
+function TransactionRow({ tx }: { tx: Transaction }) {
+  const isInput = tx.type === 'INPUT'
+  return (
+    <li className="flex min-h-16 items-center gap-3 px-4 py-3">
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-base font-medium">{tx.title}</p>
+        {tx.subtitle && <p className="truncate text-[15px] text-muted-foreground">{tx.subtitle}</p>}
+      </div>
+      <p className={cn('shrink-0 text-base font-semibold tabular-nums', isInput && 'text-success')}>
+        <span className="sr-only">{isInput ? 'Entró' : 'Salió'} </span>
+        <span aria-hidden>{isInput ? '+' : '−'}</span>
+        {formatCurrency(tx.amount)}
+      </p>
+    </li>
+  )
+}
+
 function SummaryCard({ balance, inputs, outputs }: { balance: number; inputs: number; outputs: number }) {
   return (
     <Card className="gap-0 py-0">
       <div className="p-5">
-        <p className="text-sm text-muted-foreground">Balance</p>
-        <p
-          className={cn(
-            'mt-1 text-4xl font-semibold tracking-tight tabular-nums',
-            balance < 0 && 'text-destructive'
-          )}
-        >
+        <p className="text-sm text-muted-foreground">Te queda</p>
+        <p className={cn('mt-1 text-4xl font-semibold tracking-tight tabular-nums', balance < 0 && 'text-destructive')}>
           {formatCurrency(balance)}
         </p>
       </div>
@@ -170,18 +253,6 @@ function SummaryCard({ balance, inputs, outputs }: { balance: number; inputs: nu
   )
 }
 
-function InlineError({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <Card className="flex-row items-center justify-between gap-3 px-5 py-4">
-      <p className="text-sm text-muted-foreground">{message}</p>
-      <Button variant="outline" size="sm" onClick={onRetry}>
-        <RotateCw aria-hidden />
-        Reintentar
-      </Button>
-    </Card>
-  )
-}
-
 function SummarySkeleton() {
   return (
     <Card className="gap-0 py-0" aria-busy="true" aria-label="Cargando resumen">
@@ -198,24 +269,6 @@ function SummarySkeleton() {
           <Skeleton className="h-4 w-14" />
           <Skeleton className="h-6 w-24" />
         </div>
-      </div>
-    </Card>
-  )
-}
-
-function ListSkeleton() {
-  return (
-    <Card className="gap-0 py-0" aria-busy="true" aria-label="Cargando movimientos">
-      <div className="divide-y">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="flex items-center justify-between gap-4 px-4 py-3">
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-3/5" />
-              <Skeleton className="h-3.5 w-2/5" />
-            </div>
-            <Skeleton className="h-5 w-20" />
-          </div>
-        ))}
       </div>
     </Card>
   )

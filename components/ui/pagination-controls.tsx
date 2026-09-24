@@ -1,133 +1,61 @@
-import React from 'react';
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
+// components/ui/pagination-controls.tsx
+'use client'
+
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { TOUCH } from '@/components/ui/detail'
+import { cn } from '@/lib/utils'
 
 interface PaginationControlsProps {
-  currentPage: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-  hasNextPage?: boolean;
-  hasPreviousPage?: boolean;
+  currentPage: number
+  totalPages: number
+  onPageChange: (page: number) => void
+  hasNextPage?: boolean
+  hasPreviousPage?: boolean
 }
 
+/**
+ * Anterior · Página X de Y · Siguiente.
+ * Sin números de página: para listas cortas y usuarios no técnicos es más claro.
+ */
 export function PaginationControls({
   currentPage,
   totalPages,
   onPageChange,
   hasNextPage,
-  hasPreviousPage
+  hasPreviousPage,
 }: PaginationControlsProps) {
-  // Safe totalPages to prevent negative or zero
-  const safeTotalPages = Math.max(1, totalPages || 1);
-  
-  // Calculate which page numbers to show
-  const getPageNumbers = () => {
-    const pages = [];
-    
-    if (safeTotalPages <= 5) {
-      // Show all pages if 5 or less
-      for (let i = 1; i <= safeTotalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      // Always show first, last, and pages around current
-      pages.push(1);
-      
-      let start = Math.max(2, currentPage - 1);
-      let end = Math.min(safeTotalPages - 1, currentPage + 1);
-      
-      // Adjust if at the very beginning
-      if (currentPage <= 2) {
-        end = 4;
-      }
-      
-      // Adjust if at the very end
-      if (currentPage >= safeTotalPages - 1) {
-        start = safeTotalPages - 3;
-      }
-      
-      if (start > 2) {
-        pages.push('...');
-      }
-      
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-      
-      if (end < safeTotalPages - 1) {
-        pages.push('...');
-      }
-      
-      pages.push(safeTotalPages);
-    }
-    
-    return pages;
-  };
+  const total = Math.max(1, Math.floor(Number(totalPages)) || 1)
+  const page = Math.min(Math.max(1, Math.floor(Number(currentPage)) || 1), total)
 
-  const pages = getPageNumbers();
-  const canGoPrevious = hasPreviousPage !== undefined ? hasPreviousPage : currentPage > 1;
-  const canGoNext = hasNextPage !== undefined ? hasNextPage : currentPage < safeTotalPages;
+  if (total <= 1) return null
 
-  if (safeTotalPages <= 1) {
-    return null; // Don't show pagination if only 1 page
-  }
+  const canPrev = hasPreviousPage ?? page > 1
+  const canNext = hasNextPage ?? page < total
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4 w-full text-sm">
-      <div className="text-violet-500 font-medium">
-        Página {currentPage} de {safeTotalPages}
-      </div>
-      <div className="flex items-center space-x-2">
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={!canGoPrevious}
-          className="h-8 w-8 text-violet-700 border-violet-200 hover:bg-violet-50"
-        >
-          <span className="sr-only">Anterior</span>
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        
-        <div className="flex items-center space-x-1">
-          {pages.map((page, i) => {
-            if (page === '...') {
-              return (
-                <div key={`ellipsis-${i}`} className="h-8 w-8 flex items-center justify-center text-violet-400">
-                  <MoreHorizontal className="h-4 w-4" />
-                </div>
-              );
-            }
-            
-            return (
-              <Button
-                key={`page-${page}`}
-                variant={currentPage === page ? "default" : "outline"}
-                size="icon"
-                onClick={() => onPageChange(page as number)}
-                className={`h-8 w-8 ${
-                  currentPage === page 
-                    ? "bg-violet-600 hover:bg-violet-700 text-white shadow-sm" 
-                    : "text-violet-700 border-violet-200 hover:bg-violet-50"
-                }`}
-              >
-                {page}
-              </Button>
-            );
-          })}
-        </div>
-
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={!canGoNext}
-          className="h-8 w-8 text-violet-700 border-violet-200 hover:bg-violet-50"
-        >
-          <span className="sr-only">Siguiente</span>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-  );
+    <nav aria-label="Paginación" className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+      <Button
+        variant="outline"
+        className={cn(TOUCH, 'justify-self-start px-3')}
+        disabled={!canPrev}
+        onClick={() => onPageChange(page - 1)}
+      >
+        <ChevronLeft aria-hidden />
+        Anterior
+      </Button>
+      <p className="text-sm tabular-nums text-muted-foreground" aria-live="polite">
+        Página {page} de {total}
+      </p>
+      <Button
+        variant="outline"
+        className={cn(TOUCH, 'justify-self-end px-3')}
+        disabled={!canNext}
+        onClick={() => onPageChange(page + 1)}
+      >
+        Siguiente
+        <ChevronRight aria-hidden />
+      </Button>
+    </nav>
+  )
 }
