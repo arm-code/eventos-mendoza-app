@@ -1,9 +1,9 @@
 // components/finanzas/TransactionsTab.tsx
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { Minus, Plus } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
+import { Loader2, Minus, Plus } from 'lucide-react'
 import { financeApi } from '@/lib/api/finance'
 import { formatCurrency } from '@/lib/format'
 import { describeDate, parseDate, toLocalDateInput, toNumber } from '@/lib/display'
@@ -13,10 +13,9 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { LABEL, TOUCH } from '@/components/ui/detail'
 import { EmptyState, InlineError, ListSkeleton } from '@/components/ui/states'
-import { PaginationControls } from '@/components/ui/pagination-controls'
 import { TransactionFormSheet } from '@/components/finanzas/TransactionFormSheet'
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 20
 
 type TxType = 'INPUT' | 'OUTPUT'
 
@@ -29,13 +28,6 @@ interface Transaction {
   date: string
 }
 
-interface PageMeta {
-  page: number
-  totalPages: number
-  hasNextPage: boolean
-  hasPreviousPage: boolean
-}
-
 /* ─── Normalización (datos de la API como no confiables) ───────────────── */
 
 /** Lee una propiedad de un valor desconocido sin romper si no es objeto. */
@@ -44,8 +36,8 @@ const get = (obj: unknown, key: string): unknown =>
 
 const str = (value: unknown) => (typeof value === 'string' ? value.trim() : '')
 
-function toTransactions(data: unknown): Transaction[] {
-  const items = (data as { items?: unknown })?.items
+function toTransactions(page: unknown): Transaction[] {
+  const items = get(page, 'items')
   if (!Array.isArray(items)) return []
 
   return items.flatMap<Transaction>((raw) => {
@@ -68,14 +60,12 @@ function toTransactions(data: unknown): Transaction[] {
   })
 }
 
-function toMeta(data: unknown): PageMeta {
-  const m = (data as { meta?: Record<string, unknown> })?.meta ?? {}
-  return {
-    page: toNumber(m.page) || 1,
-    totalPages: toNumber(m.totalPages) || 1,
-    hasNextPage: Boolean(m.hasNextPage),
-    hasPreviousPage: Boolean(m.hasPreviousPage),
-  }
+/** Siguiente página según el `meta` de la API; undefined = ya no hay más. */
+function nextPageOf(page: unknown): number | undefined {
+  const meta = get(page, 'meta')
+  if (!get(meta, 'hasNextPage')) return undefined
+  const current = toNumber(get(meta, 'page')) || 1
+  return current + 1
 }
 
 /** Agrupa por día conservando el orden que manda la API. */
@@ -100,29 +90,33 @@ function groupByDay(list: Transaction[]) {
 
 export default function TransactionsTab() {
   const [formType, setFormType] = useState<TxType | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const listTopRef = useRef<HTMLHeadingElement>(null)
 
   const summaryQuery = useQuery({
     queryKey: ['transactionsSummary'],
     queryFn: () => financeApi.getSummary(),
   })
 
-  const listQuery = useQuery({
-    queryKey: ['transactions', currentPage, PAGE_SIZE],
-    queryFn: () => financeApi.getTransactions(currentPage, PAGE_SIZE),
-    placeholderData: keepPreviousData, // la lista no parpadea al cambiar de página
+  // La clave empieza con 'transactions': el formulario la invalida al guardar
+  const listQuery = useInfiniteQuery({
+    queryKey: ['transactions', 'infinite', PAGE_SIZE],
+    queryFn: ({ pageParam }) => financeApi.getTransactions(pageParam, PAGE_SIZE),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) => nextPageOf(lastPage),
   })
 
-  const transactions = useMemo(() => toTransactions(listQuery.data), [listQuery.data])
-  const groups = useMemo(() => groupByDay(transactions), [transactions])
-  const meta = toMeta(listQuery.data)
+  // Une las páginas y quita duplicados: si se registra un movimiento mientras
+  // se navega, la API recorre los resultados y uno puede repetirse
+  const transactions = useMemo(() => {
+    const seen = new Set<string>()
+    return (listQuery.data?.pages ?? []).flatMap(toTransactions).filter((tx) => {
+      if (seen.has(tx.id)) return false
+      seen.add(tx.id)
+      return true
+    })
+  }, [listQuery.data])
 
-  const goToPage = (page: number) => {
-    setCurrentPage(page)
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    listTopRef.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' })
-  }
+  const groups = useMemo(() => groupByDay(transactions), [transactions])
+  const loadedPages = listQuery.data?.pages.length ?? 0
 
   return (
     <div className="space-y-8">
@@ -153,14 +147,14 @@ export default function TransactionsTab() {
       </section>
 
       {/* Movimientos */}
-      <section aria-labelledby="transactions-title" className="scroll-mt-4 space-y-4">
-        <h2 id="transactions-title" ref={listTopRef} className="scroll-mt-4 text-base font-semibold">
+      <section aria-labelledby="transactions-title" className="space-y-4">
+        <h2 id="transactions-title" className="text-base font-semibold">
           Últimos movimientos
         </h2>
 
         {listQuery.isLoading ? (
           <ListSkeleton label="Cargando movimientos" />
-        ) : listQuery.isError ? (
+        ) : listQuery.isError && transactions.length === 0 ? (
           <InlineError message="No se pudieron cargar tus movimientos." onRetry={() => listQuery.refetch()} />
         ) : transactions.length === 0 ? (
           <EmptyState
@@ -168,10 +162,7 @@ export default function TransactionsTab() {
             description="Usa los botones de arriba para anotar lo que entra y sale de tu negocio."
           />
         ) : (
-          <div
-            className={cn('space-y-6 transition-opacity', listQuery.isPlaceholderData && 'opacity-60')}
-            aria-busy={listQuery.isPlaceholderData}
-          >
+          <div className="space-y-6">
             {groups.map((group) => (
               <div key={group.key} className="space-y-2">
                 <h3 className={LABEL}>{group.label}</h3>
@@ -185,12 +176,17 @@ export default function TransactionsTab() {
               </div>
             ))}
 
-            <PaginationControls
-              currentPage={meta.page}
-              totalPages={meta.totalPages}
-              onPageChange={goToPage}
-              hasNextPage={meta.hasNextPage}
-              hasPreviousPage={meta.hasPreviousPage}
+            {/* Anuncia a lectores de pantalla cuando llegan más movimientos */}
+            <p className="sr-only" aria-live="polite">
+              {transactions.length} movimientos mostrados
+            </p>
+
+            <LoadMore
+              hasNextPage={listQuery.hasNextPage}
+              isFetching={listQuery.isFetchingNextPage}
+              isError={listQuery.isFetchNextPageError}
+              showEnd={loadedPages > 1}
+              onLoadMore={() => listQuery.fetchNextPage()}
             />
           </div>
         )}
@@ -206,6 +202,49 @@ export default function TransactionsTab() {
 }
 
 /* ─── Subcomponentes ────────────────────────────────────────────────────── */
+
+function LoadMore({
+  hasNextPage,
+  isFetching,
+  isError,
+  showEnd,
+  onLoadMore,
+}: {
+  hasNextPage: boolean
+  isFetching: boolean
+  isError: boolean
+  showEnd: boolean
+  onLoadMore: () => void
+}) {
+  if (!hasNextPage) {
+    // Solo se avisa el final si el usuario ya cargó más; con una sola página no hace falta
+    return showEnd ? (
+      <p className="py-2 text-center text-sm text-muted-foreground">Ya viste todos tus movimientos</p>
+    ) : null
+  }
+
+  return (
+    <div className="space-y-2">
+      {isError && (
+        <p className="text-center text-sm text-muted-foreground">
+          No se pudieron cargar más. Revisa tu conexión.
+        </p>
+      )}
+      <Button variant="outline" className={cn(TOUCH, 'w-full')} onClick={onLoadMore} disabled={isFetching}>
+        {isFetching ? (
+          <>
+            <Loader2 className="animate-spin" aria-hidden />
+            Cargando…
+          </>
+        ) : isError ? (
+          'Reintentar'
+        ) : (
+          'Ver más movimientos'
+        )}
+      </Button>
+    </div>
+  )
+}
 
 function TransactionRow({ tx }: { tx: Transaction }) {
   const isInput = tx.type === 'INPUT'
