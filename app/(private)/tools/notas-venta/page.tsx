@@ -3,33 +3,28 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import {
-  FilePlus2,
-  Pencil,
-  Trash2,
-} from 'lucide-react'
+import { FilePlus2, Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { financeApi } from '@/lib/api/finance'
 import { defaultBusinessConfig } from '@/lib/config'
+import { toSlug } from '@/lib/display'
 import type { Note } from '@/lib/types'
-import type { SalesNote, BusinessConfig } from '@/types/finance'
+import type { BusinessConfig, SalesNote } from '@/types/finance'
 import { PageHeader } from '@/components/admin/page-header'
 import { PrintSaleNoteDocument } from '@/components/documents/sale-note-document'
 import { NoteCardPreview } from '@/components/documents/note-card-preview'
 import { DocumentActions } from '@/components/documents/document-actions'
 import { ListaNotas } from '@/components/documents/ListaNotas'
 import { Button } from '@/components/ui/button'
+import { TOUCH } from '@/components/ui/detail'
 import { MobileFab } from '@/components/ui/mobile-fab'
 import { SearchInput } from '@/components/ui/search-input'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { AppBottomSheet } from '@/components/ui/app-bottom-sheet'
-
-/* ─── Página ────────────────────────────────────────────────────────────── */
+import { cn } from '@/lib/utils'
 
 export default function NotesHistoryPage() {
-  const router = useRouter()
   const queryClient = useQueryClient()
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<Note | null>(null)
@@ -98,31 +93,27 @@ export default function NotesHistoryPage() {
     )
   }, [notesList, query])
 
+  const selectedKind = selected?.status === 'quote' ? 'Cotización' : 'Nota'
+
   return (
     <div className="space-y-8 pb-28 sm:pb-8">
       <PageHeader
         title="Tus notas"
-        description="Busca, exporta o administra tus notas y cotizaciones."
+        description="Busca, comparte o administra tus notas y cotizaciones."
         action={
-          <Button asChild className="hidden sm:flex">
+          <Button asChild className="hidden sm:inline-flex">
             <Link href="/tools/notas-venta/crear-nota-venta">
-              <FilePlus2 className="mr-2" aria-hidden />
+              <FilePlus2 aria-hidden />
               Crear nota
             </Link>
           </Button>
         }
       />
 
-      {/* Buscador */}
       <section aria-label="Buscar notas">
-        <SearchInput
-          value={query}
-          onChange={setQuery}
-          placeholder="Buscar por folio o cliente..."
-        />
+        <SearchInput value={query} onChange={setQuery} placeholder="Buscar por folio o cliente" />
       </section>
 
-      {/* Lista de notas */}
       <section aria-label="Lista de notas">
         <ListaNotas
           notes={filtered}
@@ -133,70 +124,72 @@ export default function NotesHistoryPage() {
         />
       </section>
 
-      <MobileFab
-        href="/tools/notas-venta/crear-nota-venta"
-        aria-label="Nueva nota de venta"
-        title="Nueva nota"
-      />
+      <MobileFab href="/tools/notas-venta/crear-nota-venta" aria-label="Nueva nota de venta" title="Nueva nota" />
 
-      {/* Visor y exportación de nota */}
+      {/* Detalle de la nota */}
       <AppBottomSheet
         open={selected !== null}
         onOpenChange={(o) => !o && setSelected(null)}
-        title={selected ? `Nota ${selected.folio}` : ''}
-        mobileHeight="h-[92vh] max-h-[92dvh]"
+        title={selected ? `${selectedKind} ${selected.folio}` : ''}
+        mobileHeight="h-[92dvh] max-h-[92dvh]"
         headerAction={
-          selected ? (
-            <div className="flex items-center gap-1">
+          selected && (
+            <Button
+              asChild
+              variant="ghost"
+              size="icon"
+              className="size-11 rounded-full text-muted-foreground hover:text-foreground"
+            >
+              <Link
+                href={`/tools/notas-venta/editar-nota-venta/${encodeURIComponent(selected.id)}`}
+                onClick={() => setSelected(null)}
+                aria-label={`Editar ${selectedKind.toLowerCase()}`}
+              >
+                <Pencil className="size-5" aria-hidden />
+              </Link>
+            </Button>
+          )
+        }
+        footer={
+          selected && (
+            <DocumentActions
+              placement="inline"
+              filename={`${selectedKind.toLowerCase()}-${toSlug(selected.folio, 'nota')}`}
+              exportNode={<PrintSaleNoteDocument note={selected} business={businessConfig} />}
+            />
+          )
+        }
+      >
+        {selected && (
+          <div className="space-y-8">
+            <NoteCardPreview note={selected} business={businessConfig} />
+
+            {/* Eliminar: al final y separado, igual que "Cancelar evento" */}
+            <div className="border-t pt-6">
               <Button
                 variant="ghost"
-                size="icon"
+                className={cn(TOUCH, 'w-full text-destructive hover:bg-destructive/10 hover:text-destructive')}
                 onClick={() => {
                   setNoteToDelete(selected)
                   setSelected(null)
                 }}
-                className="size-11 rounded-full text-destructive hover:bg-destructive/10 hover:text-destructive"
-                aria-label="Eliminar nota"
               >
-                <Trash2 className="size-5" aria-hidden />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  const id = selected.id
-                  setSelected(null)
-                  router.push(`/tools/notas-venta/editar-nota-venta/${id}`)
-                }}
-                className="size-11 rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                aria-label="Editar nota"
-              >
-                <Pencil className="size-5" aria-hidden />
+                <Trash2 aria-hidden />
+                Eliminar {selectedKind.toLowerCase()}
               </Button>
             </div>
-          ) : null
-        }
-      >
-        {selected && (
-          <DocumentActions
-            filename={`nota-${selected.folio}`}
-            exportNode={<PrintSaleNoteDocument note={selected} business={businessConfig} />}
-          >
-            <NoteCardPreview note={selected} business={businessConfig} />
-          </DocumentActions>
+          </div>
         )}
       </AppBottomSheet>
 
-      {/* Diálogo de eliminación */}
       <ConfirmDialog
         open={noteToDelete !== null}
         onOpenChange={(isOpen) => !isOpen && setNoteToDelete(null)}
-        title={`¿Eliminar la nota ${noteToDelete?.folio}?`}
+        title={`¿Eliminar la ${noteToDelete?.status === 'quote' ? 'cotización' : 'nota'} ${noteToDelete?.folio ?? ''}?`}
         description="Se borrará por completo y no podrás recuperarla."
-        confirmText="Eliminar nota"
+        confirmText="Sí, eliminar"
         onConfirm={() => noteToDelete && deleteMutation.mutate(noteToDelete.id)}
         isPending={deleteMutation.isPending}
-
       />
     </div>
   )

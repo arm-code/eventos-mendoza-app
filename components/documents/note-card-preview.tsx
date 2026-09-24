@@ -1,98 +1,108 @@
 // components/documents/note-card-preview.tsx
-'use client'
-
 import { computeNoteTotals, itemAmount } from '@/lib/calculations'
-import { formatCurrency, formatDate } from '@/lib/format'
+import { formatCurrency } from '@/lib/format'
+import { formatMxPhone, toMxPhone } from '@/lib/display'
 import type { BusinessConfig, Note } from '@/lib/types'
-import { User, Phone, MapPin } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
+import {
+  ContactButtons,
+  DetailAmountRow,
+  DetailDateRow,
+  DetailSection,
+  DetailSummary,
+} from '@/components/ui/detail'
 
 interface NoteCardPreviewProps {
   note: Note
-  business: BusinessConfig
+  /** Se conserva por compatibilidad; la vista previa no lo usa. */
+  business?: BusinessConfig
 }
 
-export function NoteCardPreview({ note, business }: NoteCardPreviewProps) {
+/** Acepta 0.16 o 16 y devuelve "16". */
+function ivaPercent(rate: number): string {
+  const pct = rate > 1 ? rate : rate * 100
+  return Number.isFinite(pct) ? String(Math.round(pct * 100) / 100) : '16'
+}
+
+/**
+ * Vista de detalle de una nota o cotización. Solo presentación:
+ * las acciones (editar, eliminar, compartir) las pone quien la usa.
+ */
+export function NoteCardPreview({ note }: NoteCardPreviewProps) {
   const totals = computeNoteTotals(note.items, note.applyIva, note.ivaRate)
+  const phone = toMxPhone(note.customer.phone)
+  const kind = note.status === 'quote' ? 'cotización' : 'nota'
 
   return (
-    <div className="space-y-6 px-1">
-      <div className="flex items-start justify-between">
-        <Badge variant="secondary" className="font-medium text-muted-foreground">
-          {note.status === 'quote' ? 'Cotización' : 'Nota de venta'}
-        </Badge>
-        <div className="text-right">
-          <span className="block font-mono text-[15px] font-semibold">{note.folio}</span>
-          <span className="text-[13px] text-muted-foreground">{formatDate(note.createdAt)}</span>
+    <div className="space-y-8">
+      <DetailSummary>
+        <DetailDateRow value={note.createdAt} emptyText="Sin fecha" />
+        <DetailAmountRow amount={totals.total} />
+      </DetailSummary>
+
+      <DetailSection title="Cliente">
+        <div>
+          <p className="text-base font-medium">{note.customer.name}</p>
+          {note.customer.phone && (
+            <p className="text-[15px] tabular-nums text-muted-foreground">
+              {phone ? formatMxPhone(phone) : note.customer.phone}
+            </p>
+          )}
+          {note.customer.address && (
+            <p className="mt-1 text-[15px] leading-relaxed text-muted-foreground text-pretty">
+              {note.customer.address}
+            </p>
+          )}
         </div>
-      </div>
-
-      {/* Cliente */}
-      <section className="rounded-xl border bg-muted/10 p-4">
-        <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          <User className="size-4" aria-hidden />
-          Cliente
-        </h3>
-        <p className="font-medium capitalize">{note.customer.name}</p>
-        {note.customer.phone && (
-          <p className="mt-1.5 flex items-center gap-2 text-sm text-muted-foreground">
-            <Phone className="size-3.5 shrink-0" aria-hidden />
-            {note.customer.phone}
-          </p>
+        {phone && (
+          <ContactButtons phone={phone} message={`Hola, te escribo sobre tu ${kind} ${note.folio}.`} />
         )}
-        {note.customer.address && (
-          <p className="mt-1.5 flex items-start gap-2 text-sm text-muted-foreground">
-            <MapPin className="size-3.5 shrink-0" aria-hidden />
-            <span className='capitalize'>{note.customer.address}</span>
-          </p>
-        )}
-      </section>
+      </DetailSection>
 
-      {/* Conceptos */}
-      <section>
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          Conceptos
-        </h3>
-        <ul className="divide-y border-y">
-          {note.items.map((item) => (
-            <li key={item.id} className="flex items-start justify-between gap-4 py-3">
-              <div className="min-w-0 flex-1">
-                <p className="text-[15px] font-medium leading-snug capitalize">{item.description}</p>
-                <p className="mt-1 text-[13px] text-muted-foreground">
-                  {item.quantity} x {formatCurrency(item.unitPrice)}
-                </p>
-              </div>
-              <div className="shrink-0 font-medium tabular-nums">
-                {formatCurrency(itemAmount(item))}
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <DetailSection title="Conceptos">
+        {note.items.length === 0 ? (
+          <p className="text-[15px] text-muted-foreground">Esta {kind} no tiene conceptos.</p>
+        ) : (
+          <ul className="divide-y rounded-xl border">
+            {note.items.map((item) => (
+              <li key={item.id} className="flex items-start justify-between gap-4 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="text-base font-medium leading-snug text-pretty">
+                    {item.description || 'Sin descripción'}
+                  </p>
+                  <p className="mt-0.5 text-sm tabular-nums text-muted-foreground">
+                    {item.quantity} × {formatCurrency(item.unitPrice)}
+                  </p>
+                </div>
+                <p className="shrink-0 text-base font-medium tabular-nums">{formatCurrency(itemAmount(item))}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* Desglose solo si hay IVA; sin IVA el total del resumen ya lo dice todo */}
+        {note.applyIva && note.items.length > 0 && (
+          <dl className="space-y-1.5 px-4 text-[15px]">
+            <div className="flex justify-between text-muted-foreground">
+              <dt>Subtotal</dt>
+              <dd className="tabular-nums">{formatCurrency(totals.subtotal)}</dd>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
+              <dt>IVA ({ivaPercent(note.ivaRate)}%)</dt>
+              <dd className="tabular-nums">{formatCurrency(totals.iva)}</dd>
+            </div>
+            <div className="flex justify-between font-medium">
+              <dt>Total</dt>
+              <dd className="tabular-nums">{formatCurrency(totals.total)}</dd>
+            </div>
+          </dl>
+        )}
+      </DetailSection>
 
       {note.notes && (
-        <section className="rounded-xl border bg-muted/20 p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Observaciones</h3>
-          <p className="mt-2 text-[15px] leading-relaxed">{note.notes}</p>
-        </section>
+        <DetailSection title="Observaciones">
+          <p className="whitespace-pre-line text-base leading-relaxed text-pretty">{note.notes}</p>
+        </DetailSection>
       )}
-
-      <section className="space-y-2 pt-2 text-right">
-        <div className="flex justify-between text-[15px] text-muted-foreground">
-          <span>Subtotal</span>
-          <span className="font-medium tabular-nums">{formatCurrency(totals.subtotal)}</span>
-        </div>
-        {note.applyIva && (
-          <div className="flex justify-between text-[15px] text-muted-foreground">
-            <span>IVA (16%)</span>
-            <span className="font-medium tabular-nums">{formatCurrency(totals.iva)}</span>
-          </div>
-        )}
-        <div className="flex justify-between border-t pt-3 font-semibold text-primary">
-          <span className="text-lg">Total</span>
-          <span className="text-xl tabular-nums">{formatCurrency(totals.total)}</span>
-        </div>
-      </section>
     </div>
   )
 }

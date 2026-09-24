@@ -6,6 +6,7 @@ import { AlertCircle, Download, FileText, Image as ImageIcon, Loader2, Share2 } 
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { TOUCH } from '@/components/ui/detail'
 import { exportNodeToImage, exportNodeToPdf } from '@/lib/export-document'
 
 type ExportFormat = 'png' | 'pdf'
@@ -17,17 +18,21 @@ interface DocumentActionsProps {
   children?: React.ReactNode
   exportNode: React.ReactNode
   title?: string
+  /**
+   * fixed (por defecto): barra fija abajo en móvil; debe ser lo último de la pantalla.
+   * inline: solo los botones, para ponerlo en el `footer` de AppBottomSheet.
+   */
+  placement?: 'fixed' | 'inline'
 }
 
-const TOUCH = 'h-12 rounded-xl text-[15px]'
-
-/**
- * Barra para descargar o compartir un documento.
- * En móvil queda fija abajo; por eso DEBE ser el último elemento de la pantalla
- * o del sheet. El espaciador reserva exactamente su altura para que nada
- * quede escondido debajo.
- */
-export function DocumentActions({ filename, children, exportNode, title }: DocumentActionsProps) {
+/** Botones para descargar o compartir un documento como imagen o PDF. */
+export function DocumentActions({
+  filename,
+  children,
+  exportNode,
+  title,
+  placement = 'fixed',
+}: DocumentActionsProps) {
   const exportRef = useRef<HTMLDivElement>(null)
   const [exporting, setExporting] = useState<{ format: ExportFormat; action: ExportAction } | null>(null)
   const [pendingAction, setPendingAction] = useState<ExportAction | null>(null)
@@ -74,6 +79,22 @@ export function DocumentActions({ filename, children, exportNode, title }: Docum
 
   const busy = exporting !== null
 
+  const bar = (
+    <div className="mx-auto w-full max-w-lg">
+      {title && <p className="mb-2 text-center text-sm font-medium text-muted-foreground">{title}</p>}
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="outline" className={TOUCH} onClick={() => setPendingAction('download')} disabled={busy}>
+          {exporting?.action === 'download' ? <Loader2 className="animate-spin" aria-hidden /> : <Download aria-hidden />}
+          Descargar
+        </Button>
+        <Button className={TOUCH} onClick={() => setPendingAction('share')} disabled={busy}>
+          {exporting?.action === 'share' ? <Loader2 className="animate-spin" aria-hidden /> : <Share2 aria-hidden />}
+          Compartir
+        </Button>
+      </div>
+    </div>
+  )
+
   return (
     <>
       {/* Documento fuera de pantalla para exportar. Siempre en claro: es para imprimir/enviar. */}
@@ -96,29 +117,23 @@ export function DocumentActions({ filename, children, exportNode, title }: Docum
 
       {children}
 
-      {/* Reserva el alto de la barra fija en móvil */}
-      <div aria-hidden className="h-[calc(7rem+max(1rem,env(safe-area-inset-bottom)))] sm:hidden" />
-
-      <div
-        className={
-          'fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 pt-3 backdrop-blur-xl ' +
-          'pb-[max(1rem,env(safe-area-inset-bottom))] ' +
-          'sm:static sm:rounded-xl sm:border sm:bg-transparent sm:p-4 sm:backdrop-blur-none'
-        }
-      >
-        {title && <p className="mb-2 text-center text-sm font-medium text-muted-foreground">{title}</p>}
-
-        <div className="mx-auto grid w-full max-w-lg grid-cols-2 gap-2">
-          <Button variant="outline" className={TOUCH} onClick={() => setPendingAction('download')} disabled={busy}>
-            {exporting?.action === 'download' ? <Loader2 className="animate-spin" aria-hidden /> : <Download aria-hidden />}
-            Descargar
-          </Button>
-          <Button className={TOUCH} onClick={() => setPendingAction('share')} disabled={busy}>
-            {exporting?.action === 'share' ? <Loader2 className="animate-spin" aria-hidden /> : <Share2 aria-hidden />}
-            Compartir
-          </Button>
-        </div>
-      </div>
+      {placement === 'fixed' ? (
+        <>
+          {/* Reserva el alto de la barra fija en móvil */}
+          <div aria-hidden className="h-[calc(7rem+max(1rem,env(safe-area-inset-bottom)))] sm:hidden" />
+          <div
+            className={
+              'fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 px-4 pt-3 backdrop-blur-xl ' +
+              'pb-[max(1rem,env(safe-area-inset-bottom))] ' +
+              'sm:static sm:rounded-xl sm:border sm:bg-transparent sm:p-4 sm:backdrop-blur-none'
+            }
+          >
+            {bar}
+          </div>
+        </>
+      ) : (
+        bar
+      )}
 
       {exporting && (
         <div
