@@ -251,7 +251,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
   return (
     <li className="flex min-h-16 items-center gap-3 px-4 py-3">
       <div className="min-w-0 flex-1">
-        <p className="truncate text-base font-medium">{tx.title}</p>
+        <p className="truncate text-base font-medium capitalize">{tx.title}</p>
         {tx.subtitle && <p className="truncate text-[15px] text-muted-foreground">{tx.subtitle}</p>}
       </div>
       <p className={cn('shrink-0 text-base font-semibold tabular-nums', isInput && 'text-success')}>
