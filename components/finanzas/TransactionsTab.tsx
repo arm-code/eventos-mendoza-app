@@ -1,253 +1,198 @@
-'use client';
+// @/components/finanzas/TransactionsTab.tsx
+'use client'
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { financeApi } from '@/lib/api/finance';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import {
-  PlusCircle, ArrowUpRight, ArrowDownRight, Wallet,
-  CalendarDays, Loader2, Hash
-} from "lucide-react";
-import { useToast } from "@/hooks/useToast";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { AppBottomSheet } from "@/components/ui/app-bottom-sheet";
-import { MobileFab } from "@/components/ui/mobile-fab";
-import { useIsMobile } from "@/hooks/useIsMobile";
-import { useForm, Controller } from "react-hook-form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { yupResolver } from "@hookform/resolvers/yup";
-import * as yup from "yup";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { PaginationControls } from "@/components/ui/pagination-controls";
-import { Loader } from "@/components/Loaders/Loader.component";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useForm, Controller } from 'react-hook-form'
+import { yupResolver } from '@hookform/resolvers/yup'
+import * as yup from 'yup'
+import { ArrowLeftRight, CalendarX2, Loader2, RotateCw } from 'lucide-react'
+import { toast } from 'sonner'
+
+import { financeApi } from '@/lib/api/finance'
+import { formatCurrency } from '@/lib/format'
+import { parseDate, toNumber } from '@/lib/display'
+import { cn } from '@/lib/utils'
+
+import { Card } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
+import { AppBottomSheet } from '@/components/ui/app-bottom-sheet'
+import { MobileFab } from '@/components/ui/mobile-fab'
+import { PaginationControls } from '@/components/ui/pagination-controls'
+import { TOUCH, LABEL } from '@/components/ui/detail'
+
+/* ─── Esquema ───────────────────────────────────────────────────────────── */
 
 const transactionSchema = yup.object().shape({
-  transactionDate: yup.string().required("La fecha es obligatoria"),
-  type: yup.string().oneOf(['INPUT', 'OUTPUT']).required("El tipo es obligatorio"),
-  description: yup.string().max(255, "Máximo 255 caracteres").optional(),
-  amount: yup.number().typeError("Debe ser un número").positive("Debe ser mayor a 0").required("El monto es obligatorio"),
-  categoryId: yup.string().uuid("ID de categoría inválido").required("La categoría es obligatoria"),
-  paymentMethodId: yup.string().uuid("ID de método de pago inválido").required("El método de pago es obligatorio"),
-  businessEventId: yup.string().uuid("ID de evento inválido").optional().nullable().transform((v) => v === "" ? null : v),
-});
+  transactionDate: yup.string().required('La fecha es obligatoria'),
+  type: yup.string().oneOf(['INPUT', 'OUTPUT']).required('El tipo es obligatorio'),
+  description: yup.string().max(255, 'Máximo 255 caracteres').optional(),
+  amount: yup
+    .number()
+    .typeError('Debe ser un número')
+    .positive('Debe ser mayor a 0')
+    .required('El monto es obligatorio'),
+  categoryId: yup.string().uuid('Categoría inválida').required('La categoría es obligatoria'),
+  paymentMethodId: yup.string().uuid('Método de pago inválido').required('El método de pago es obligatorio'),
+  businessEventId: yup
+    .string()
+    .uuid('ID de evento inválido')
+    .optional()
+    .nullable()
+    .transform((v) => (v === '' || v === 'none' ? null : v)),
+})
 
-type TransactionFormData = yup.InferType<typeof transactionSchema>;
+type TransactionFormData = yup.InferType<typeof transactionSchema>
 
+const dateFmt = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
 
+/* ─── Pestaña Principal ─────────────────────────────────────────────────── */
 
 export default function TransactionsTab() {
-  const { showError, showSuccess } = useToast();
-  const queryClient = useQueryClient();
-  const [isOpen, setIsOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [limit] = useState(10);
+  const queryClient = useQueryClient()
+  const [isOpen, setIsOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const limit = 10
 
-
-  const { data: paginatedData, isLoading, error } = useQuery({
-    queryKey: ['transactions', currentPage, limit],
-    queryFn: () => financeApi.getTransactions(currentPage, limit),
-  });
-
-  const { data: summary, isLoading: isLoadingSummary } = useQuery({
+  const summaryQuery = useQuery({
     queryKey: ['transactionsSummary'],
     queryFn: () => financeApi.getSummary(),
-  });
+  })
 
-  const { data: categories = [] } = useQuery({
+  const listQuery = useQuery({
+    queryKey: ['transactions', currentPage, limit],
+    queryFn: () => financeApi.getTransactions(currentPage, limit),
+  })
+
+  // Precargar catálogos para el formulario
+  const categoriesQuery = useQuery({
     queryKey: ['transactionCategories'],
     queryFn: () => financeApi.getCategories(),
-  });
-
-  const { data: paymentMethods = [] } = useQuery({
+  })
+  const methodsQuery = useQuery({
     queryKey: ['paymentMethods'],
     queryFn: () => financeApi.getPaymentMethods(),
-  });
-
-  const { data: events = [] } = useQuery({
+  })
+  const eventsQuery = useQuery({
     queryKey: ['businessEvents'],
     queryFn: () => financeApi.getBusinessEvents(),
-  });
+  })
 
   const createMutation = useMutation({
-    mutationFn: (data: any) => financeApi.createTransaction(data),
+    mutationFn: (data: TransactionFormData) => financeApi.createTransaction(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-      queryClient.invalidateQueries({ queryKey: ['transactionsSummary'] });
-      showSuccess("Transacción registrada exitosamente");
-      setIsOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['transactionsSummary'] })
+      toast.success('Movimiento registrado')
+      setIsOpen(false)
       reset({
         transactionDate: new Date().toISOString().split('T')[0],
         type: 'INPUT',
-      });
+      })
     },
-    onError: (err: any) => {
-      showError(err.message || "Error al registrar la transacción");
-    }
-  });
+    onError: () => {
+      toast.error('No se pudo guardar', {
+        description: 'Revisa tu conexión e intenta de nuevo.',
+      })
+    },
+  })
 
-  const { register, control, handleSubmit, formState: { errors }, reset, watch } = useForm<TransactionFormData>({
+  const {
+    register,
+    control,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<TransactionFormData>({
     resolver: yupResolver(transactionSchema) as any,
     defaultValues: {
       transactionDate: new Date().toISOString().split('T')[0],
       type: 'INPUT',
-    }
-  });
+    },
+  })
 
-  const watchType = watch("type");
+  const transactions = Array.isArray(listQuery.data?.items) ? listQuery.data.items : []
+  const meta = listQuery.data?.meta || { page: 1, limit: 10, totalPages: 1, hasNextPage: false, hasPreviousPage: false }
 
-  const onSubmit = (data: TransactionFormData) => {
-    createMutation.mutate(data);
-  };
-
-  if (error) {
-    showError(error.message || "No se pudieron cargar las transacciones.");
-  }
-
-  const transactions = paginatedData?.items || [];
-  const meta = paginatedData?.meta || { page: 1, limit: 10, totalPages: 1, hasNextPage: false, hasPreviousPage: false };
-  const safeTransactions = Array.isArray(transactions) ? transactions : [];
-  const totalInputs = summary?.totalInputs || 0;
-  const totalOutputs = summary?.totalOutputs || 0;
-  const balance = summary?.balance || 0;
-  const safeCategories = Array.isArray(categories) ? categories : [];
-  const safeMethods = Array.isArray(paymentMethods) ? paymentMethods : [];
-  const safeEvents = Array.isArray(events) ? events : [];
+  const balance = toNumber(summaryQuery.data?.balance)
+  const inputs = toNumber(summaryQuery.data?.totalInputs)
+  const outputs = toNumber(summaryQuery.data?.totalOutputs)
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Tarjetas de resumen optimizadas para touch */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3">
-        <motion.div whileTap={{ scale: 0.98 }} className="touch-manipulation">
-          <Card className="border-violet-100 bg-gradient-to-br from-white to-violet-50/50 shadow-sm active:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 sm:pb-3">
-              <CardTitle className="text-xs sm:text-sm font-semibold text-violet-700">Balance Total</CardTitle>
-              <div className="p-1.5 rounded-lg bg-violet-100">
-                <Wallet className="h-4 w-4 text-violet-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-xl sm:text-2xl font-bold text-violet-950">${balance.toFixed(2)}</div>
-              <p className="text-[11px] sm:text-xs text-violet-500 mt-0.5">Disponible actual</p>
-            </CardContent>
-          </Card>
-        </motion.div>
+    <div className="space-y-8">
+      {/* Resumen */}
+      <section aria-label="Resumen de dinero">
+        {summaryQuery.isLoading ? (
+          <SummarySkeleton />
+        ) : summaryQuery.isError ? (
+          <InlineError message="No se pudo cargar el resumen." onRetry={() => summaryQuery.refetch()} />
+        ) : (
+          <SummaryCard balance={balance} inputs={inputs} outputs={outputs} />
+        )}
+      </section>
 
-        <motion.div whileTap={{ scale: 0.98 }} className="touch-manipulation">
-          <Card className="border-green-100 bg-gradient-to-br from-white to-green-50/30 shadow-sm active:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 sm:pb-3">
-              <CardTitle className="text-xs sm:text-sm font-semibold text-green-700">Ingresos</CardTitle>
-              <div className="p-1.5 rounded-lg bg-green-100">
-                <ArrowUpRight className="h-4 w-4 text-green-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-xl sm:text-2xl font-bold text-green-700">${totalInputs.toFixed(2)}</div>
-              <p className="text-[11px] sm:text-xs text-green-600/70 mt-0.5">Total histórico</p>
-            </CardContent>
-          </Card>
-        </motion.div>
+      {/* Movimientos */}
+      <section aria-labelledby="transactions-title" className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 id="transactions-title" className="text-base font-semibold">
+            Movimientos
+          </h2>
+          <Button onClick={() => setIsOpen(true)} variant="outline" size="sm" className="hidden sm:inline-flex">
+            Registrar movimiento
+          </Button>
+        </div>
 
-        <motion.div whileTap={{ scale: 0.98 }} className="touch-manipulation">
-          <Card className="border-red-100 bg-gradient-to-br from-white to-red-50/30 shadow-sm active:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 sm:pb-3">
-              <CardTitle className="text-xs sm:text-sm font-semibold text-red-700">Gastos</CardTitle>
-              <div className="p-1.5 rounded-lg bg-red-100">
-                <ArrowDownRight className="h-4 w-4 text-red-600" />
-              </div>
-            </CardHeader>
-            <CardContent className="pt-0">
-              <div className="text-xl sm:text-2xl font-bold text-red-700">${totalOutputs.toFixed(2)}</div>
-              <p className="text-[11px] sm:text-xs text-red-600/70 mt-0.5">Total histórico</p>
-            </CardContent>
+        {listQuery.isLoading ? (
+          <ListSkeleton />
+        ) : listQuery.isError ? (
+          <InlineError message="No se pudieron cargar los movimientos." onRetry={() => listQuery.refetch()} />
+        ) : transactions.length === 0 ? (
+          <Card className="items-center gap-3 px-6 py-10 text-center">
+            <ArrowLeftRight className="size-8 text-muted-foreground/60" aria-hidden />
+            <p className="font-medium">No tienes movimientos</p>
+            <p className="text-sm text-muted-foreground">Registra tu primer ingreso o gasto.</p>
+            <Button onClick={() => setIsOpen(true)} className="mt-2" variant="outline">
+              Registrar movimiento
+            </Button>
           </Card>
-        </motion.div>
-      </div>
+        ) : (
+          <>
+            <Card className="gap-0 overflow-hidden py-0">
+              <ul className="divide-y">
+                {transactions.map((tx: any) => {
+                  const isInput = tx.type === 'INPUT'
+                  const date = parseDate(tx.transactionDate, { dateOnly: true })
 
-      {/* Lista de transacciones */}
-      <Card className="border-violet-100 shadow-sm">
-        <CardHeader className="pb-3 sm:pb-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-base sm:text-lg">Movimientos Recientes</CardTitle>
-              <CardDescription className="text-xs sm:text-sm mt-0.5">
-                Últimas transacciones registradas
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-12 gap-3 text-violet-400">
-              <Loader />
-              <p className="text-sm">Cargando movimientos...</p>
-            </div>
-          ) : safeTransactions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-violet-400">
-              <div className="p-4 rounded-full bg-violet-50 mb-3">
-                <CalendarDays className="h-6 w-6 text-violet-300" />
-              </div>
-              <p className="text-sm font-medium">No hay movimientos</p>
-              <p className="text-xs mt-1">Registra tu primera transacción</p>
-            </div>
-          ) : (
-            <div className="space-y-1">
-              <AnimatePresence>
-                {safeTransactions.map((tx, index) => (
-                  <motion.div
-                    key={tx.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.03 }}
-                    whileTap={{ scale: 0.995, backgroundColor: "rgba(139, 92, 246, 0.04)" }}
-                    className="flex items-center justify-between p-3 sm:p-4 rounded-xl active:bg-violet-50/50 transition-colors touch-manipulation cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-                      <div className={cn(
-                        "flex-shrink-0 p-2.5 sm:p-3 rounded-xl",
-                        tx.type === 'INPUT' ? 'bg-green-100' : 'bg-red-100'
-                      )}>
-                        {tx.type === 'INPUT' ? (
-                          <ArrowUpRight className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-                        ) : (
-                          <ArrowDownRight className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm sm:text-base font-medium text-violet-950 truncate">
+                  return (
+                    <li key={tx.id} className="flex min-h-16 items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/60">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-base font-medium">
                           {tx.description || tx.category?.name || 'Movimiento'}
                         </p>
-                        <p className="text-xs sm:text-sm text-violet-500 mt-0.5 flex items-center gap-1.5">
-                          <span>{new Date(tx.transactionDate).toLocaleDateString('es-ES', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: '2-digit'
-                          })}</span>
-                          <span className="w-1 h-1 rounded-full bg-violet-300 flex-shrink-0" />
-                          <span className="truncate">{tx.paymentMethod?.name || 'Otro'}</span>
+                        <p className="truncate text-[15px] text-muted-foreground">
+                          {date ? dateFmt.format(date) : 'Sin fecha'} · {tx.paymentMethod?.name || 'Otro'}
                         </p>
                       </div>
-                    </div>
-                    <div className={cn(
-                      "text-sm sm:text-base font-bold flex-shrink-0 ml-2",
-                      tx.type === 'INPUT' ? 'text-green-600' : 'text-red-600'
-                    )}>
-                      {tx.type === 'INPUT' ? '+' : '-'}${Number(tx.amount).toFixed(2)}
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                      <div
+                        className={cn(
+                          'shrink-0 text-base font-semibold tabular-nums',
+                          isInput ? 'text-success' : 'text-foreground'
+                        )}
+                      >
+                        {isInput ? '+' : '-'}{formatCurrency(toNumber(tx.amount))}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            </Card>
 
-              <div className="pt-4 mt-2 border-t border-violet-100">
+            {(meta.hasNextPage || meta.hasPreviousPage) && (
+              <div className="pt-2">
                 <PaginationControls
                   currentPage={meta.page}
                   totalPages={meta.totalPages}
@@ -256,226 +201,254 @@ export default function TransactionsTab() {
                   hasPreviousPage={meta.hasPreviousPage}
                 />
               </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            )}
+          </>
+        )}
+      </section>
 
       {/* FAB móvil */}
-      <MobileFab
-        icon={<PlusCircle className="h-6 w-6" />}
-        title="Registrar nuevo movimiento"
-        onClick={() => setIsOpen(true)}
-      />
+      <MobileFab onClick={() => setIsOpen(true)} title="Registrar" aria-label="Registrar movimiento" />
 
-      {/* Botón desktop */}
-      <div className="hidden sm:flex justify-end">
-        <Button
-          onClick={() => setIsOpen(true)}
-          className="bg-violet-600 hover:bg-violet-700 text-white h-11 px-6 rounded-xl shadow-lg shadow-violet-600/20 active:scale-[0.98] transition-all touch-manipulation"
-        >
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Nuevo Movimiento
-        </Button>
-      </div>
-
-      {/* Conditional Rendering for Mobile/Desktop */}
+      {/* Formulario */}
       <AppBottomSheet
         open={isOpen}
         onOpenChange={setIsOpen}
-        title="Registrar Transacción"
-        description="Añade un nuevo ingreso o gasto"
+        title="Registrar movimiento"
+        footer={
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className={TOUCH}
+              onClick={() => setIsOpen(false)}
+              disabled={createMutation.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              form="tx-form"
+              className={TOUCH}
+              disabled={createMutation.isPending}
+            >
+              {createMutation.isPending && <Loader2 className="animate-spin" aria-hidden />}
+              Guardar
+            </Button>
+          </div>
+        }
       >
-        <TransactionForm
-          onSubmit={handleSubmit(onSubmit)}
-          register={register}
-          control={control}
-          errors={errors}
-          isPending={createMutation.isPending}
-          watchType={watchType}
-          categories={safeCategories}
-          paymentMethods={safeMethods}
-          events={safeEvents}
-          onCancel={() => setIsOpen(false)}
-        />
+        <form id="tx-form" onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className={LABEL}>Tipo</Label>
+              <Controller
+                control={control}
+                name="type"
+                render={({ field }) => (
+                  <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <SelectTrigger className={cn('h-12 rounded-xl text-base', errors.type && 'border-destructive')}>
+                      <SelectValue placeholder="Seleccionar..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="INPUT">Entró</SelectItem>
+                      <SelectItem value="OUTPUT">Salió</SelectItem>
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.type && <p className="text-xs text-destructive">{errors.type.message}</p>}
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="transactionDate" className={LABEL}>Fecha</Label>
+              <Input
+                id="transactionDate"
+                type="date"
+                className={cn('h-12 rounded-xl text-base', errors.transactionDate && 'border-destructive')}
+                {...register('transactionDate')}
+              />
+              {errors.transactionDate && <p className="text-xs text-destructive">{errors.transactionDate.message}</p>}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="amount" className={LABEL}>Monto ($)</Label>
+            <Input
+              id="amount"
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              placeholder="0.00"
+              className={cn('h-12 rounded-xl text-base tabular-nums', errors.amount && 'border-destructive')}
+              {...register('amount')}
+            />
+            {errors.amount && <p className="text-xs text-destructive">{errors.amount.message}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="description" className={LABEL}>Concepto (Opcional)</Label>
+            <Input
+              id="description"
+              placeholder="Ej. Pago de renta..."
+              className="h-12 rounded-xl text-base"
+              {...register('description')}
+            />
+            {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className={LABEL}>Categoría</Label>
+            <Controller
+              control={control}
+              name="categoryId"
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value || ''}>
+                  <SelectTrigger className={cn('h-12 rounded-xl text-base', errors.categoryId && 'border-destructive')}>
+                    <SelectValue placeholder="Seleccionar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(categoriesQuery.data || []).map((cat: any) => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.categoryId && <p className="text-xs text-destructive">{errors.categoryId.message}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className={LABEL}>Método de Pago</Label>
+            <Controller
+              control={control}
+              name="paymentMethodId"
+              render={({ field }) => (
+                <Select onValueChange={field.onChange} value={field.value || ''}>
+                  <SelectTrigger className={cn('h-12 rounded-xl text-base', errors.paymentMethodId && 'border-destructive')}>
+                    <SelectValue placeholder="Seleccionar..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(methodsQuery.data || []).map((pm: any) => (
+                      <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+            {errors.paymentMethodId && <p className="text-xs text-destructive">{errors.paymentMethodId.message}</p>}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className={LABEL}>Evento (Opcional)</Label>
+            <Controller
+              control={control}
+              name="businessEventId"
+              render={({ field }) => (
+                <Select onValueChange={(val) => field.onChange(val === 'none' ? '' : val)} value={field.value || 'none'}>
+                  <SelectTrigger className="h-12 rounded-xl text-base">
+                    <SelectValue placeholder="Ninguno" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Ninguno</SelectItem>
+                    {(eventsQuery.data || [])
+                      .filter((evt: any) => evt.status === 'pending' || evt.id === field.value)
+                      .map((evt: any) => (
+                        <SelectItem key={evt.id} value={evt.id}>{evt.name}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </div>
+        </form>
       </AppBottomSheet>
     </div>
-  );
+  )
 }
 
-// Sub-componente del formulario
-function TransactionForm({
-  onSubmit,
-  register,
-  control,
-  errors,
-  isPending,
-  watchType,
-  categories,
-  paymentMethods,
-  events,
-  onCancel
-}: {
-  onSubmit: () => void;
-  register: any;
-  control: any;
-  errors: any;
-  isPending: boolean;
-  watchType: string;
-  categories: any[];
-  paymentMethods: any[];
-  events: any[];
-  onCancel: () => void;
-}) {
+/* ─── Subcomponentes ────────────────────────────────────────────────────── */
+
+function SummaryCard({ balance, inputs, outputs }: { balance: number; inputs: number; outputs: number }) {
   return (
-    <form onSubmit={onSubmit} className="space-y-5">
-      <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        <div className="space-y-1.5">
-          <Label className="text-sm font-medium text-violet-900">Tipo</Label>
-          <Controller
-            control={control}
-            name="type"
-            render={({ field }) => (
-              <Select onValueChange={field.onChange} value={field.value || ""}>
-                <SelectTrigger className={cn("min-h-[48px] rounded-xl border-violet-200 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500", errors.type && "border-red-300 focus:border-red-500 focus:ring-red-500/20")}>
-                  <SelectValue placeholder="Seleccionar..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="INPUT">Ingreso</SelectItem>
-                  <SelectItem value="OUTPUT">Gasto</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-          />
-          {errors.type && <p className="text-xs text-red-500">{errors.type.message}</p>}
-        </div>
-
-        <div className="space-y-1.5">
-          <Label htmlFor="transactionDate" className="text-sm font-medium text-violet-900">Fecha</Label>
-          <Input
-            id="transactionDate"
-            type="date"
-            {...register("transactionDate")}
-            className="min-h-[48px] rounded-xl border-violet-200 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
-          />
-          {errors.transactionDate && <p className="text-xs text-red-500">{errors.transactionDate.message}</p>}
-        </div>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="amount" className="text-sm font-medium text-violet-900">Monto ($)</Label>
-        <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-violet-400 font-medium text-sm">$</span>
-          <Input
-            id="amount"
-            type="number"
-            step="0.01"
-            placeholder="0.00"
-            {...register("amount")}
-            className="min-h-[48px] rounded-xl border-violet-200 pl-8 text-lg font-semibold focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
-          />
-        </div>
-        {errors.amount && <p className="text-xs text-red-500">{errors.amount.message}</p>}
-      </div>
-
-      <div className="space-y-1.5">
-        <Label htmlFor="description" className="text-sm font-medium text-violet-900">Descripción (Opcional)</Label>
-        <Input
-          id="description"
-          placeholder="Ej. Pago de Renta..."
-          {...register("description")}
-          className="min-h-[48px] rounded-xl border-violet-200 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500"
-        />
-        {errors.description && <p className="text-xs text-red-500">{errors.description.message}</p>}
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-violet-900">Categoría</Label>
-        <Controller
-          control={control}
-          name="categoryId"
-          render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value || ""}>
-              <SelectTrigger className={cn("min-h-[48px] rounded-xl border-violet-200 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500", errors.categoryId && "border-red-300 focus:border-red-500 focus:ring-red-500/20")}>
-                <SelectValue placeholder="Seleccionar..." />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-        {errors.categoryId && <p className="text-xs text-red-500">{errors.categoryId.message}</p>}
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-violet-900">Método de Pago</Label>
-        <Controller
-          control={control}
-          name="paymentMethodId"
-          render={({ field }) => (
-            <Select onValueChange={field.onChange} value={field.value || ""}>
-              <SelectTrigger className={cn("min-h-[48px] rounded-xl border-violet-200 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500", errors.paymentMethodId && "border-red-300 focus:border-red-500 focus:ring-red-500/20")}>
-                <SelectValue placeholder="Seleccionar..." />
-              </SelectTrigger>
-              <SelectContent>
-                {paymentMethods.map((pm) => (
-                  <SelectItem key={pm.id} value={pm.id}>{pm.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-        {errors.paymentMethodId && <p className="text-xs text-red-500">{errors.paymentMethodId.message}</p>}
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-sm font-medium text-violet-900">Evento (Opcional)</Label>
-        <Controller
-          control={control}
-          name="businessEventId"
-          render={({ field }) => (
-            <Select onValueChange={(val) => field.onChange(val === "none" ? "" : val)} value={field.value || "none"}>
-              <SelectTrigger className={cn("min-h-[48px] rounded-xl border-violet-200 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500", errors.businessEventId && "border-red-300 focus:border-red-500 focus:ring-red-500/20")}>
-                <SelectValue placeholder="Ninguno" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Ninguno</SelectItem>
-                {events
-                  .filter((evt) => evt.status === 'pending' || evt.id === field.value)
-                  .map((evt) => (
-                    <SelectItem key={evt.id} value={evt.id}>{evt.name}</SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          )}
-        />
-        {errors.businessEventId && <p className="text-xs text-red-500">{errors.businessEventId.message}</p>}
-      </div>
-
-      <div className="flex gap-3 pt-2 sticky bottom-0 bg-white/80 backdrop-blur-sm pb-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onCancel}
-          className="flex-1 h-12 rounded-xl border-violet-200 text-violet-700 active:bg-violet-50 touch-manipulation"
-        >
-          Cancelar
-        </Button>
-        <Button
-          type="submit"
+    <Card className="gap-0 py-0">
+      <div className="p-5">
+        <p className="text-sm text-muted-foreground">Balance</p>
+        <p
           className={cn(
-            "flex-1 h-12 rounded-xl text-white font-semibold shadow-lg active:scale-[0.98] transition-all touch-manipulation",
-            watchType === 'OUTPUT' ? 'bg-red-600 hover:bg-red-700 shadow-red-600/20' : 'bg-green-600 hover:bg-green-700 shadow-green-600/20'
+            'mt-1 text-4xl font-semibold tracking-tight tabular-nums',
+            balance < 0 && 'text-destructive'
           )}
-          disabled={isPending}
         >
-          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Guardar
-        </Button>
+          {formatCurrency(balance)}
+        </p>
       </div>
-    </form>
-  );
+      <dl className="grid grid-cols-2 border-t">
+        <div className="px-5 py-4">
+          <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="size-2 rounded-full bg-success" aria-hidden />
+            Entró
+          </dt>
+          <dd className="mt-1 text-lg font-medium tabular-nums">{formatCurrency(inputs)}</dd>
+        </div>
+        <div className="border-l px-5 py-4">
+          <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="size-2 rounded-full bg-destructive" aria-hidden />
+            Salió
+          </dt>
+          <dd className="mt-1 text-lg font-medium tabular-nums">{formatCurrency(outputs)}</dd>
+        </div>
+      </dl>
+    </Card>
+  )
+}
+
+function InlineError({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <Card className="flex-row items-center justify-between gap-3 px-5 py-4">
+      <p className="text-sm text-muted-foreground">{message}</p>
+      <Button variant="outline" size="sm" onClick={onRetry}>
+        <RotateCw aria-hidden />
+        Reintentar
+      </Button>
+    </Card>
+  )
+}
+
+function SummarySkeleton() {
+  return (
+    <Card className="gap-0 py-0" aria-busy="true" aria-label="Cargando resumen">
+      <div className="space-y-2 p-5">
+        <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-10 w-44" />
+      </div>
+      <div className="grid grid-cols-2 border-t">
+        <div className="space-y-2 px-5 py-4">
+          <Skeleton className="h-4 w-14" />
+          <Skeleton className="h-6 w-24" />
+        </div>
+        <div className="space-y-2 border-l px-5 py-4">
+          <Skeleton className="h-4 w-14" />
+          <Skeleton className="h-6 w-24" />
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function ListSkeleton() {
+  return (
+    <Card className="gap-0 py-0" aria-busy="true" aria-label="Cargando movimientos">
+      <div className="divide-y">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex items-center justify-between gap-4 px-4 py-3">
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-3/5" />
+              <Skeleton className="h-3.5 w-2/5" />
+            </div>
+            <Skeleton className="h-5 w-20" />
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
 }
