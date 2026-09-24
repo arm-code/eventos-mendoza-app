@@ -150,7 +150,7 @@ export default function PrincipalPage() {
                 'outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
               )}
             >
-              <span className="text-[15px] font-medium leading-snug">{label}</span>
+              <span className="text-center text-[15px] font-medium leading-snug">{label}</span>
             </Link>
           ))}
         </div>
