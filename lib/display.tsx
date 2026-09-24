@@ -88,3 +88,11 @@ export function toNumber(value: unknown): number {
     const n = Number(value)
     return Number.isFinite(n) ? n : 0
 }
+
+/** Texto comparable para búsquedas: sin acentos y en minúsculas ("José" → "jose"). */
+export function normalizeSearch(value?: string | null): string {
+    return (value ?? '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+}
