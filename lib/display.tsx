@@ -96,3 +96,22 @@ export function normalizeSearch(value?: string | null): string {
         .replace(/[\u0300-\u036f]/g, '')
         .toLowerCase()
 }
+
+/** Fecha local en formato YYYY-MM-DD para <input type="date"> (no usar toISOString: es UTC). */
+export function toLocalDateInput(date: Date = new Date()): string {
+    const y = date.getFullYear()
+    const m = String(date.getMonth() + 1).padStart(2, '0')
+    const d = String(date.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+}
+
+/**
+ * Convierte lo que escribe el usuario en una cantidad.
+ * Acepta "150", "150.5", "1,500.00" y "$1,500". Devuelve NaN si no es válida.
+ */
+export function parseAmount(raw: unknown): number {
+    if (typeof raw === 'number') return raw
+    const cleaned = String(raw ?? '').replace(/[$,\s]/g, '')
+    if (!/^\d+(\.\d{0,2})?$/.test(cleaned)) return Number.NaN
+    return Number(cleaned)
+}
